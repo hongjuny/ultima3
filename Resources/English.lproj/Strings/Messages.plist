@@ -1,0 +1,639 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<string>Steph Chakerian</string>
+	<string>Dann Cutter</string>
+	<string>Weldon Dodd</string>
+	<string>Seth Grenald</string>
+	<string>Ken Hill</string>
+	<string>Bryan Horling</string>
+	<string>TIME IS BENEATH YOU</string>
+	<string>Chris Hwang</string>
+	<string>Michael Jen</string>
+	<string>Eric King</string>
+	<string>Dan Lorca-Martinez</string>
+	<string>Ouch, that hurt.</string>
+	<string>Brian David Olson</string>
+	<string>Doug Miles</string>
+	<string>Shawn Scanlon</string>
+	<string>Chris Soeffing</string>
+	<string>Dismount
+</string>
+	<string>David Huberman</string>
+	<string>Victor E. Aldridge III</string>
+	<string>Read John Varley</string>
+	<string>Scirocco Six</string>
+	<string>Refer to the &quot;Ultima III Manual&quot; for help choosing a race, type, etc.</string>
+	<string>Pass
+</string>
+	<string>North
+</string>
+	<string>South
+</string>
+	<string>East
+</string>
+	<string>West
+</string>
+	<string>Attack-</string>
+	<string>Board</string>
+	<string>Mount horse!
+</string>
+	<string>Board frigate!
+</string>
+	<string>Descend</string>
+	<string>Enter </string>
+	<string>dungeon!
+</string>
+	<string>town!
+</string>
+	<string>castle!
+</string>
+	<string>shrine!
+Who enters?-</string>
+	<string>Fire</string>
+	<string>
+Direct-</string>
+	<string>Get chest!
+Plr to search-</string>
+	<string>No such player!
+</string>
+	<string>ACID TRAP!
+</string>
+	<string>POISON TRAP!
+</string>
+	<string>BOMB TRAP!
+</string>
+	<string>GAS TRAP!
+</string>
+	<string>Trap evaded!
+</string>
+	<string>GOLD+</string>
+	<string>(overflowing!)
+</string>
+	<string>and a </string>
+	<string>and </string>
+	<string>Hand Equipment!
+From plr-</string>
+	<string> to plr-</string>
+	<string>F,G,E,W,A:</string>
+	<string>Amount-</string>
+	<string>Not enough!
+</string>
+	<string>Too much!
+</string>
+	<string>Done!
+</string>
+	<string>G,K,P,T:</string>
+	<string>None!
+</string>
+	<string>How many-</string>
+	<string>Which weapon:</string>
+	<string>Which armour:</string>
+	<string>In use!
+</string>
+	<string>Ignite a torch
+</string>
+	<string>Whose torch-</string>
+	<string>Join gold to-</string>
+	<string>None left!
+</string>
+	<string>Klimb </string>
+	<string>Look-</string>
+	<string>Modify order!
+Plr:-</string>
+	<string>
+Aborted!
+</string>
+	<string>
+Plr:-</string>
+	<string>
+Exchanged!
+</string>
+	<string>Negate time!
+Whose powd?-</string>
+	<string>Peer at gem!
+Whose gem-</string>
+	<string>Quit &amp; save...
+</string>
+	<string>Only on surface!
+</string>
+	<string> Moves
+</string>
+	<string>Ready for # - </string>
+	<string>Weapon-</string>
+	<string>
+Not owned!
+</string>
+	<string>
+Not allowed!
+</string>
+	<string> Ready
+</string>
+	<string>Plr to steal-</string>
+	<string>Direct-</string>
+	<string>Failed!
+</string>
+	<string>Watch out!
+</string>
+	<string>Who will
+Transact-</string>
+	<string>
+GOOD DAY!
+
+</string>
+	<string>WELCOME MY CHILD
+</string>
+	<string>EXPERIENCE MORE!!
+
+</string>
+	<string>NO MORE!
+</string>
+	<string>SEEK YE, THE
+MARK OF KINGS!
+</string>
+	<string>THOU ART GREATER
+
+</string>
+	<string>Unlock-</string>
+	<string>Whose key-</string>
+	<string>Volume </string>
+	<string>ON!
+</string>
+	<string>OFF!
+</string>
+	<string>Wear for # - </string>
+	<string>Armour-</string>
+	<string>X-it </string>
+	<string>X-it craft
+</string>
+	<string>Yell, whom?-</string>
+	<string>Ztats for #-</string>
+	<string>WHAT?
+</string>
+	<string>&lt;-WHAT?
+</string>
+	<string>Not here!
+</string>
+	<string>
+
+ALL PLAYERS OUT!
+</string>
+	<string>
+A ship was
+destroyed!
+ </string>
+	<string>
+A HUGE SWIRLING
+ --WHIRLPOOL--
+  ENGULFS YOU
+ AND YOUR SHIP
+ DRAGGING BOTH
+     TO A
+ WATERY GRAVE!</string>
+	<string>
+
+ AS THE WATER
+ ENTERS  YOUR
+LUNGS YOU PASS
+INTO DARKNESS!
+
+</string>
+	<string>
+ You awaken on
+ the shores of
+  a forgotten
+land. Your ship
+ and crew lost
+  to the sea!
+ </string>
+	<string>
+
+
+
+
+ All is dark!
+
+</string>
+	<string> You made it!
+</string>
+	<string>INVALID MOVE!
+</string>
+	<string>
+destroyed!
+</string>
+	<string>OFF only!
+</string>
+	<string>Cast by whom?-</string>
+	<string>Cancelled.
+</string>
+	<string>Not a mage!
+</string>
+	<string>M.P. too low!
+</string>
+	<string>Spell type W/C-</string>
+	<string>Cleric Spell-</string>
+	<string>Wizard Spell-</string>
+	<string>Incapacitated!
+</string>
+	<string>Cure whom?-</string>
+	<string>Resurect whom?-</string>
+	<string>Recall whom?-</string>
+	<string>Heal whom?-</string>
+	<string>KILLED! Exp.+</string>
+	<string>
+****VICTORY!****
+
+</string>
+	<string>
+---CONFLICT!!---
+-&gt;</string>
+	<string>----PLAYER-</string>
+	<string>----
+ </string>
+	<string>Cast Spell!
+</string>
+	<string>Negate Time!
+</string>
+	<string>Ready a Weapon!
+</string>
+	<string>Ztats
+</string>
+	<string>NOT USABLE CMD!
+ </string>
+	<string>Plr-</string>
+	<string>-Missed!
+</string>
+	<string>-HIT!
+</string>
+	<string>KILLED!!!
+</string>
+	<string> attack
+Dir-</string>
+	<string>
+HIT!
+</string>
+	<string>Missed!
+</string>
+	<string>-PILFERED!
+</string>
+	<string>-POISONED!
+</string>
+	<string>It&apos;s dark!
+</string>
+	<string>You see a vision
+of the Time Lord
+  He tells you
+ the one way is
+   Love, Sol,
+ Moons &amp; Death,
+ all else fails.</string>
+	<string>
+A fountain, who
+will drink?-</string>
+	<string>Can&apos;t
+</string>
+	<string>YUCK! HORRIBLE!
+</string>
+	<string>How wonderful!
+</string>
+	<string>ARGH! BLAH! YUK!
+</string>
+	<string>Ah! That&apos;s nice!
+</string>
+	<string>Strange wind!
+</string>
+	<string>ARGH!! A TRAP!!
+</string>
+	<string>Evaded!!
+</string>
+	<string>A red hot rod
+in the wall, who
+will touch?-</string>
+	<string>It left a mark!
+</string>
+	<string>Gremlins!
+</string>
+	<string>Misty Writing:
+</string>
+	<string>Advance
+</string>
+	<string>Retreat
+</string>
+	<string>Turn right
+</string>
+	<string>Turn left
+</string>
+	<string>Descend
+</string>
+	<string>Klimb
+</string>
+	<string>INVALID CMD!
+</string>
+	<string>NOT A DNG CMD!
+</string>
+	<string>None
+</string>
+	<string>Strength</string>
+	<string>Dexterity</string>
+	<string>Intelligence</string>
+	<string>Wisdom</string>
+	<string>Offering*100-</string>
+	<string>
+Then be off!
+</string>
+	<string>
+YOU CAN&apos;T CHEAT
+THE GODS!
+</string>
+	<string>
+SHAZAM!
+</string>
+	<string>Exit to Sosaria!
+</string>
+	<string>POISON!
+</string>
+	<string>
+STARVING!
+</string>
+	<string>
+WELCOME TO
+THE PUB!
+</string>
+	<string>
+Here friend,
+have a drink!
+It cost 7 g.p.
+YOU PAY?-</string>
+	<string>LEAVE MY SHOP!
+YOU SCUM!!
+</string>
+	<string>WHAT? CAN&apos;T PAY!
+OUT YOU SCUM!
+</string>
+	<string>
+another drink?</string>
+	<string>
+
+Its been a
+pleasure!!
+</string>
+	<string>    YE LOCAL
+     GROCER
+
+</string>
+	<string>RATIONS:
+1 g.p. EACH,
+How many would
+you like?-</string>
+	<string>
+
+WHAT? CAN&apos;T PAY!
+OUT! YOU SCUM!!!
+</string>
+	<string>
+
+Thank you,
+anything else?</string>
+	<string>very well,
+come again!
+</string>
+	<string>
+CLERICAL HEALING
+SACRAMENTS:
+</string>
+	<string> 1-Curing,
+ 2-Healing,
+ 3-Resurrection,
+ 4-Recallings.
+Your needs:</string>
+	<string>1
+
+A curing will
+cost 100 g.p.
+Wilt thou pay? </string>
+	<string>Cure whom?-</string>
+	<string>2
+
+Healings cost
+200 g.p. Wilt
+thou pay? </string>
+	<string>Heal whom?-</string>
+	<string>3
+
+Resurrection
+cost 500 g.p.
+Wilt thou pay? </string>
+	<string>Resurrect whom?-</string>
+	<string>4
+
+Recallings
+cost 900 g.p.
+Wilt thou pay? </string>
+	<string>Recall whom?-</string>
+	<string>
+Welcome to the
+WEAPONS SHOP!
+
+list (Y/N)?-</string>
+	<string>
+Buy or Sell?-</string>
+	<string>
+
+Your interest?-</string>
+	<string>
+
+I&apos;m very sorry
+but you haven&apos;t
+the gold!
+</string>
+	<string>
+
+Here you are
+may it serve
+you well!
+</string>
+	<string>
+
+for sale?-</string>
+	<string>
+
+You don&apos;t own
+one of those!
+</string>
+	<string>
+
+Thank you!
+</string>
+	<string>
+More gold than
+thou can carry!
+Sale cancelled.
+</string>
+	<string>
+oh well, maybe
+next time.
+</string>
+	<string>
+Welcome to the
+ARMOUR SHOP!
+
+list (Y/N)?-</string>
+	<string>
+THE GUILD SHOP
+WE HAVE:</string>
+	<string>Your need: </string>
+	<string>Thank you,
+come again!
+</string>
+	<string>
+Anything else? </string>
+	<string>
+    RADRION:
+PROPHET OF LIFE!
+</string>
+	<string>
+How many 100gp
+is your
+offering?</string>
+	<string>
+More offering?</string>
+	<string>
+Fare thee well
+and good luck!
+</string>
+	<string>EQUINE EMPORIUM:
+</string>
+	<string>-Horses cost,
+</string>
+	<string>gp. will you
+buy? </string>
+	<string>Ah, too bad.
+These are the
+best in town!
+</string>
+	<string>I&apos;m sorry but
+you haven&apos;t
+the gold!
+</string>
+	<string>May you ride
+fast and true
+friend!
+</string>
+	<string>
+I&apos;m sorry,
+but you have
+not the funds!
+</string>
+	<string>Without proper
+offerings I
+can not help!
+</string>
+	<string>I&apos;m sorry but
+thou hast not
+gold enough.
+</string>
+	<string>
+Fare thee well,
+my children.
+</string>
+	<string>
+ Welcome to the
+   Shrine  of
+</string>
+	<string>Other command!
+Whose action-</string>
+	<string>
+
+AVAILABLE:
+</string>
+	<string>Cmd:-</string>
+	<string>Dir-</string>
+	<string>D, S, L, M-</string>
+	<string>CONGRATULATIONS!
+   THOU  HAST
+   COMPLEATED
+EXODUS: ULTIMA 3
+       IN
+ </string>
+	<string> MOVES
+REPORT THY FEAT!</string>
+	<string>Exotics!
+</string>
+	<string>A card, with
+strange marks!
+</string>
+	<string>Not enough gold!
+</string>
+	<string>
+Yell &apos;EVOCARE&apos;
+
+</string>
+	<string>Everyone
+hates you.
+</string>
+	<string>No effect!
+</string>
+	<string>
+
+
+
+
+
+  Resurrecting!
+
+
+</string>
+	<string>Southwest
+</string>
+	<string>Southeast
+</string>
+	<string>Northwest
+</string>
+	<string>Northeast
+</string>
+	<string>All is calm.
+</string>
+	<string>CONGRATULATIONS! Thou hast compleated EXODUS: ULTIMA III in
+ </string>
+	<string>
+
+
+
+A huge swirling whirlpool engulfs you and your ship, dragging both to a watery grave!
+</string>
+	<string>
+
+
+
+As the water enters your lungs, you pass into darkness!
+</string>
+	<string>
+
+
+You awaken on the shores of a forgotten land, your ship and crew lost to the sea!
+</string>
+	<string>
+Welcome to the Shrine of </string>
+	<string>
+Not enough room!</string>
+	<string>
+ Keys-50gp
+ Torches-5/30gp
+ Powders-90gp
+ Gems-75gp
+</string>
+	<string>
+Exodus is
+no more!
+
+</string>
+	<string>SOSARIA THANKS
+YOU!
+
+</string>
+	<string>While in Full Screen mode, you can access the menu bar or the Dock by moving the mouse to an edge of the screen.
+
+You can press Apple-F to leave Full Screen mode at any time.</string>
+</array>
+</plist>

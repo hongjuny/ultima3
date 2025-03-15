@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<string>Hand</string>
+	<string>Dagger</string>
+	<string>Mace</string>
+	<string>Sling</string>
+	<string>Axe</string>
+	<string>Bow</string>
+	<string>Sword</string>
+	<string>2-H-Swd</string>
+	<string>+2 Axe</string>
+	<string>+2 Bow</string>
+	<string>+2 Swd</string>
+	<string>Gloves</string>
+	<string>+4 Axe</string>
+	<string>+4 Bow</string>
+	<string>+4 Swd</string>
+	<string>Exotic</string>
+	<string>Skin</string>
+	<string>Cloth</string>
+	<string>Leather</string>
+	<string>Chain</string>
+	<string>Plate</string>
+	<string>+2 Chain</string>
+	<string>+2 Plate</string>
+	<string>Exotic</string>
+	<string>0</string>
+	<string>5</string>
+	<string>30</string>
+	<string>60</string>
+	<string>125</string>
+	<string>350</string>
+	<string>200</string>
+	<string>250</string>
+	<string>400</string>
+	<string>1050</string>
+	<string>800</string>
+	<string>1200</string>
+	<string>2700</string>
+	<string>6550</string>
+	<string>4550</string>
+	<string>0</string>
+	<string>0</string>
+	<string>75</string>
+	<string>195</string>
+	<string>575</string>
+	<string>2500</string>
+	<string>6130</string>
+	<string>8250</string>
+	<string>0</string>
+</array>
+</plist>

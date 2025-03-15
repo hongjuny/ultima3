@@ -1,0 +1,5 @@
+//
+// Prefix header for all source files of the 'Ultima3' target in the 'Ultima3' project.
+//
+
+#include <Carbon/Carbon.h>

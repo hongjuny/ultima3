@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<string>Water</string>
+	<string>Grass</string>
+	<string>Brush</string>
+	<string>Forest</string>
+	<string>Mountains</string>
+	<string>Dungeons</string>
+	<string>Townes</string>
+	<string>Castles</string>
+	<string>Floors</string>
+	<string>Chests</string>
+	<string>Horses</string>
+	<string>Frigates</string>
+	<string>Whirlpools</string>
+	<string>Serpents</string>
+	<string>Man-O-Wars</string>
+	<string>Pirates</string>
+	<string>Merchants</string>
+	<string>Jesters</string>
+	<string>Guards</string>
+	<string>Lord British</string>
+	<string>Fighters</string>
+	<string>Clerics</string>
+	<string>Wizards</string>
+	<string>Thieves</string>
+	<string>Orcs</string>
+	<string>Skeletons</string>
+	<string>Giants</string>
+	<string>Daemons</string>
+	<string>Pinchers</string>
+	<string>Dragons</string>
+	<string>Balrons</string>
+	<string>Exodus</string>
+	<string>Force Fields</string>
+	<string>Lava</string>
+	<string>Moon Gates</string>
+	<string>Walls</string>
+	<string>Void</string>
+	<string>Walls</string>
+	<string>A</string>
+	<string>B</string>
+	<string>C</string>
+	<string>D</string>
+	<string>E</string>
+	<string>F</string>
+	<string>G</string>
+	<string>H</string>
+	<string>I</string>
+	<string>U</string>
+	<string>Y</string>
+	<string>L</string>
+	<string>M</string>
+	<string>N</string>
+	<string>O</string>
+	<string>P</string>
+	<string>W</string>
+	<string>R</string>
+	<string>S</string>
+	<string>T</string>
+	<string>Snake</string>
+	<string>Snake</string>
+	<string>Magic</string>
+	<string>Fire</string>
+	<string>Shrine</string>
+	<string>Rangers</string>
+	<string>Brigands</string>
+	<string>Cutpurses</string>
+	<string>Goblins</string>
+	<string>Trolls</string>
+	<string>Ghouls</string>
+	<string>Zombies</string>
+	<string>Golems</string>
+	<string>Titans</string>
+	<string>Gargoyles</string>
+	<string>Manes</string>
+	<string>Snatches</string>
+	<string>Bradles</string>
+	<string>Griffons</string>
+	<string>Wyverns</string>
+	<string>Orcuses</string>
+	<string>Devils</string>
+</array>
+</plist>

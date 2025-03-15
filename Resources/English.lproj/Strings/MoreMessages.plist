@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<string>JOURNEY ONWARD</string>
+	<string>(Not formed)</string>
+	<string>REGISTER</string>
+	<string>FORM THE PARTY</string>
+	<string>(Party in use)</string>
+	<string>PLAYER-1-</string>
+	<string>PLAYER-2-</string>
+	<string>PLAYER-3-</string>
+	<string>PLAYER-4-</string>
+	<string>(Not a player)</string>
+	<string>              </string>
+	<string>(Formed)</string>
+	<string>DISPERSE THE PARTY</string>
+	<string>(No one there)</string>
+	<string>(Dispersed!)</string>
+	<string>CREATE</string>
+	<string>Entry#</string>
+	<string>(1-20 only!)</string>
+	<string>(Not empty!)</string>
+	<string>Character creation aborted.</string>
+	<string>Character created.</string>
+	<string>TERMINATE!</string>
+	<string>(No one there)</string>
+	<string>(With a party)</string>
+	<string>(Terminated)</string>
+	<string>© 1983-2014 Lord British &amp; LairWare</string>
+	<string>FROM THE DEPTHS OF HELL...</string>
+	<string>...HE COMES FOR VENGEANCE!</string>
+	<string>Return to the view</string>
+	<string>Organize a party</string>
+	<string>Journey onward</string>
+	<string>OPTIONS:</string>
+	<string>PARTY ORGANIZATION</string>
+	<string>Examine the register</string>
+	<string>Create a character</string>
+	<string>Form the party</string>
+	<string>Disperse the party</string>
+	<string>Terminate a character</string>
+	<string>Main  menu</string>
+	<string>OPTIONS:</string>
+	<string>(Player is out!)</string>
+	<string>                </string>
+	<string>CALM WINDS</string>
+	<string>NORTH WIND</string>
+	<string>EAST  WIND</string>
+	<string>SOUTH WIND</string>
+	<string>WEST  WIND</string>
+	<string>Lvl:0</string>
+	<string>HEAD-</string>
+	<string>North</string>
+	<string>-East</string>
+	<string>South</string>
+	<string>-West</string>
+	<string>PRESS  &lt;SPACE&gt;</string>
+	<string>ULTIMA III</string>
+	<string>entered this place</string>
+	<string>entered this dungeon</string>
+	<string>entered this town</string>
+	<string>entered this castle</string>
+	<string>entered the whirlpool</string>
+	<string>exited a location or saved the game</string>
+	<string>Level </string>
+	<string>Good Health</string>
+	<string>Poisoned</string>
+	<string>Dead</string>
+	<string>Ashes</string>
+	<string>Female</string>
+	<string>Male</string>
+	<string>Other</string>
+	<string>Magic Points</string>
+	<string>Hit Points</string>
+	<string>Experience</string>
+	<string>Food</string>
+	<string>Gold</string>
+	<string>non-mage</string>
+	<string>Card of Death</string>
+	<string>Card of Sol</string>
+	<string>Card of Love</string>
+	<string>Card of Moons</string>
+	<string>Mark of Force</string>
+	<string>Mark of Fire</string>
+	<string>Mark of the Snake</string>
+	<string>Mark of Kings</string>
+	<string> Torches</string>
+	<string> Gems</string>
+	<string> Keys</string>
+	<string> Powders</string>
+	<string>Ratings</string>
+	<string>Values</string>
+	<string>Weapons</string>
+	<string>Armour</string>
+	<string>Stuff</string>
+	<string>Game Paused</string>
+	<string>- empty -</string>
+	<string>Click mouse or press a key to continue</string>
+	<string>last saved the game outdoors</string>
+	<string>From the depths of hell...</string>
+	<string>...he comes for vengeance!</string>
+	<string>This game is $5 to fully unlock.  See “Register…” under the Ultima III menu for information.</string>
+</array>
+</plist>

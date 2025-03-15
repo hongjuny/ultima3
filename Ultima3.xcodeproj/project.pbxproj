@@ -1,0 +1,660 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		350D488D17025866009499DC /* Cursors in Resources */ = {isa = PBXBuildFile; fileRef = 350D488C17025865009499DC /* Cursors */; };
+		351BF177195EDA9B00B9E489 /* LWIntegerTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */; };
+		357ACC661707403A00FE8C4E /* MenuCleric.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC631707403A00FE8C4E /* MenuCleric.png */; };
+		357ACC671707403A00FE8C4E /* MenuManual.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC641707403A00FE8C4E /* MenuManual.png */; };
+		357ACC681707403A00FE8C4E /* MenuWizard.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC651707403A00FE8C4E /* MenuWizard.png */; };
+		357ACC6D1707467E00FE8C4E /* MenuCommands.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC691707467E00FE8C4E /* MenuCommands.png */; };
+		357ACC6E1707467E00FE8C4E /* MenuMap.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC6A1707467E00FE8C4E /* MenuMap.png */; };
+		357ACC6F1707467E00FE8C4E /* MenuMisc.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC6B1707467E00FE8C4E /* MenuMisc.png */; };
+		357ACC701707467E00FE8C4E /* MenuSpells.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC6C1707467E00FE8C4E /* MenuSpells.png */; };
+		8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0867D6AAFE840B52C02AAC07 /* InfoPlist.strings */; };
+		8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20286C33FDCF999611CA2CEA /* Carbon.framework */; };
+		A80AB8700AF563FC0073E150 /* CocoaBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A88109D00AF3EC080064A33C /* CocoaBridge.m */; };
+		A821B31D0A31CDAC0079FF83 /* UltimaSound.m in Sources */ = {isa = PBXBuildFile; fileRef = A821B30B0A31CDAC0079FF83 /* UltimaSound.m */; };
+		A821B31E0A31CDAC0079FF83 /* UltimaText.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B30C0A31CDAC0079FF83 /* UltimaText.c */; };
+		A821B31F0A31CDAC0079FF83 /* UltimaSpellCombat.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B30D0A31CDAC0079FF83 /* UltimaSpellCombat.c */; };
+		A821B3210A31CDAC0079FF83 /* UltimaNewMap.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3110A31CDAC0079FF83 /* UltimaNewMap.c */; };
+		A821B3220A31CDAC0079FF83 /* UltimaNew.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3120A31CDAC0079FF83 /* UltimaNew.c */; };
+		A821B3230A31CDAC0079FF83 /* UltimaMisc.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3130A31CDAC0079FF83 /* UltimaMisc.c */; };
+		A821B3240A31CDAC0079FF83 /* UltimaMacIF.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3140A31CDAC0079FF83 /* UltimaMacIF.c */; };
+		A821B3250A31CDAC0079FF83 /* UltimaDngn.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3160A31CDAC0079FF83 /* UltimaDngn.c */; };
+		A821B3260A31CDAC0079FF83 /* UltimaAutocombat.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3170A31CDAC0079FF83 /* UltimaAutocombat.c */; };
+		A821B3270A31CDAC0079FF83 /* UltimaAppleEvents.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3180A31CDAC0079FF83 /* UltimaAppleEvents.c */; };
+		A821B3280A31CDAC0079FF83 /* UltimaMain.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3190A31CDAC0079FF83 /* UltimaMain.c */; };
+		A821B3290A31CDAC0079FF83 /* CarbonShunts.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B31B0A31CDAC0079FF83 /* CarbonShunts.c */; };
+		A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B31C0A31CDAC0079FF83 /* UltimaGraphics.c */; };
+		A821B3530A31CE930079FF83 /* Music in Resources */ = {isa = PBXBuildFile; fileRef = A821B3450A31CE930079FF83 /* Music */; };
+		A83CE77E136389CA00ADADCA /* Strings in Resources */ = {isa = PBXBuildFile; fileRef = A83CE77D136389CA00ADADCA /* Strings */; };
+		A83CE8E213638CD000ADADCA /* MainResources.rsrc in Rez */ = {isa = PBXBuildFile; fileRef = A83CE8E113638CD000ADADCA /* MainResources.rsrc */; };
+		A85A8B170B225AE600299E2B /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = A85A8AEF0B225AE600299E2B /* Sounds */; };
+		A862ADCA0B484CF20043DA3B /* Graphics in Resources */ = {isa = PBXBuildFile; fileRef = A862ADB10B484CF20043DA3B /* Graphics */; };
+		A86F25FC15CD2D3B005C3CA5 /* PrefsDialog.m in Sources */ = {isa = PBXBuildFile; fileRef = A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */; };
+		A86F260915CD2EC4005C3CA5 /* GameOptions.nib in Resources */ = {isa = PBXBuildFile; fileRef = A86F260715CD2EC4005C3CA5 /* GameOptions.nib */; };
+		A87D41FA0AD1746F00989D7C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A8F5D6AC0A96317900E6755A /* main.m */; };
+		A896F5C50B7492DA00A4045D /* Buttons.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5AB0B7492DA00A4045D /* Buttons.png */; };
+		A896F5C60B7492DA00A4045D /* By.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5AC0B7492DA00A4045D /* By.png */; };
+		A896F5C70B7492DA00A4045D /* CharacterRecord.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5AD0B7492DA00A4045D /* CharacterRecord.jpg */; };
+		A896F5C80B7492DA00A4045D /* Commands.pdf in Resources */ = {isa = PBXBuildFile; fileRef = A896F5AE0B7492DA00A4045D /* Commands.pdf */; };
+		A896F5C90B7492DA00A4045D /* Credits.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5AF0B7492DA00A4045D /* Credits.png */; };
+		A896F5CA0B7492DA00A4045D /* DistributeFood.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B00B7492DA00A4045D /* DistributeFood.png */; };
+		A896F5CB0B7492DA00A4045D /* DungeonMasks.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B10B7492DA00A4045D /* DungeonMasks.png */; };
+		A896F5CC0B7492DA00A4045D /* DungeonShapes.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B20B7492DA00A4045D /* DungeonShapes.jpg */; };
+		A896F5CD0B7492DA00A4045D /* Exodus.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B30B7492DA00A4045D /* Exodus.png */; };
+		A896F5CE0B7492DA00A4045D /* Fountain.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B40B7492DA00A4045D /* Fountain.jpg */; };
+		A896F5CF0B7492DA00A4045D /* GatherGold.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B50B7492DA00A4045D /* GatherGold.png */; };
+		A896F5D00B7492DA00A4045D /* MiscTables.pdf in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B60B7492DA00A4045D /* MiscTables.pdf */; };
+		A896F5D10B7492DA00A4045D /* Opening_Anim_1.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B70B7492DA00A4045D /* Opening_Anim_1.png */; };
+		A896F5D20B7492DA00A4045D /* Opening_Anim_2.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B80B7492DA00A4045D /* Opening_Anim_2.png */; };
+		A896F5D30B7492DA00A4045D /* Opening_Anim_3.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5B90B7492DA00A4045D /* Opening_Anim_3.png */; };
+		A896F5D40B7492DA00A4045D /* Opening_Anim_4.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5BA0B7492DA00A4045D /* Opening_Anim_4.png */; };
+		A896F5D50B7492DA00A4045D /* Opening_Anim_5.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5BB0B7492DA00A4045D /* Opening_Anim_5.png */; };
+		A896F5D60B7492DA00A4045D /* Portraits.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5BC0B7492DA00A4045D /* Portraits.png */; };
+		A896F5D70B7492DA00A4045D /* RaceClassInfo.gif in Resources */ = {isa = PBXBuildFile; fileRef = A896F5BD0B7492DA00A4045D /* RaceClassInfo.gif */; };
+		A896F5D80B7492DA00A4045D /* Rod.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5BE0B7492DA00A4045D /* Rod.jpg */; };
+		A896F5D90B7492DA00A4045D /* Shrine.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5BF0B7492DA00A4045D /* Shrine.jpg */; };
+		A896F5DA0B7492DA00A4045D /* SosariaMap.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C00B7492DA00A4045D /* SosariaMap.jpg */; };
+		A896F5DB0B7492DA00A4045D /* SpellList.pdf in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C10B7492DA00A4045D /* SpellList.pdf */; };
+		A896F5DC0B7492DA00A4045D /* Stalagtites.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C20B7492DA00A4045D /* Stalagtites.png */; };
+		A896F5DD0B7492DA00A4045D /* TimeLord.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C30B7492DA00A4045D /* TimeLord.jpg */; };
+		A896F5DE0B7492DA00A4045D /* UltimaLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C40B7492DA00A4045D /* UltimaLogo.png */; };
+		A8AA78390A2F951A00F17165 /* QuickTime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8AA78370A2F951A00F17165 /* QuickTime.framework */; };
+		A8BD746F0AF01991003647FE /* UltimaIncludes.m in Sources */ = {isa = PBXBuildFile; fileRef = A8BD746E0AF01991003647FE /* UltimaIncludes.m */; };
+		A8BD75230AF01ADB003647FE /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */; };
+		A8ED548C0A34DC6C007A493A /* Application.icns in Resources */ = {isa = PBXBuildFile; fileRef = A8ED548B0A34DC6C007A493A /* Application.icns */; };
+		A8F5D6AE0A96318100E6755A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8AA791D0A2F9E4400F17165 /* Cocoa.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+		A8810BC40AF3FAD80064A33C /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.gcc.4_0;
+			fileType = sourcecode.c;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+			);
+		};
+/* End PBXBuildRule section */
+
+/* Begin PBXFileReference section */
+		0867D6ABFE840B52C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		20286C33FDCF999611CA2CEA /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
+		350D488C17025865009499DC /* Cursors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Cursors; sourceTree = "<group>"; };
+		351BF175195EDA9B00B9E489 /* LWIntegerTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LWIntegerTransformer.h; path = Sources/LWIntegerTransformer.h; sourceTree = SOURCE_ROOT; };
+		351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LWIntegerTransformer.m; path = Sources/LWIntegerTransformer.m; sourceTree = SOURCE_ROOT; };
+		357ACC631707403A00FE8C4E /* MenuCleric.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MenuCleric.png; sourceTree = "<group>"; };
+		357ACC641707403A00FE8C4E /* MenuManual.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MenuManual.png; sourceTree = "<group>"; };
+		357ACC651707403A00FE8C4E /* MenuWizard.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MenuWizard.png; sourceTree = "<group>"; };
+		357ACC691707467E00FE8C4E /* MenuCommands.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MenuCommands.png; sourceTree = "<group>"; };
+		357ACC6A1707467E00FE8C4E /* MenuMap.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MenuMap.png; sourceTree = "<group>"; };
+		357ACC6B1707467E00FE8C4E /* MenuMisc.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MenuMisc.png; sourceTree = "<group>"; };
+		357ACC6C1707467E00FE8C4E /* MenuSpells.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = MenuSpells.png; sourceTree = "<group>"; };
+		35BCC907225F86850094082C /* UltimaText.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UltimaText.h; path = Sources/UltimaText.h; sourceTree = SOURCE_ROOT; };
+		35BCC908225F86A70094082C /* UltimaSpellCombat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UltimaSpellCombat.h; path = Sources/UltimaSpellCombat.h; sourceTree = SOURCE_ROOT; };
+		35BCC909225F89B20094082C /* UltimaNewMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UltimaNewMap.h; path = Sources/UltimaNewMap.h; sourceTree = SOURCE_ROOT; };
+		35BCC90A225F8A360094082C /* UltimaMisc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UltimaMisc.h; path = Sources/UltimaMisc.h; sourceTree = SOURCE_ROOT; };
+		35BCC90B225F8B720094082C /* UltimaMacIF.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UltimaMacIF.h; path = Sources/UltimaMacIF.h; sourceTree = SOURCE_ROOT; };
+		35BCC90C225F8BA60094082C /* UltimaGraphics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UltimaGraphics.h; path = Sources/UltimaGraphics.h; sourceTree = SOURCE_ROOT; };
+		35BCC90D225F8C6B0094082C /* UltimaDngn.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UltimaDngn.h; path = Sources/UltimaDngn.h; sourceTree = SOURCE_ROOT; };
+		35BCC90E225F8F540094082C /* UltimaMain.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UltimaMain.h; path = Sources/UltimaMain.h; sourceTree = SOURCE_ROOT; };
+		4A9504C8FFE6A3BC11CA0CBA /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = /System/Library/Frameworks/ApplicationServices.framework; sourceTree = "<absolute>"; };
+		4A9504CAFFE6A41611CA0CBA /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = /System/Library/Frameworks/CoreServices.framework; sourceTree = "<absolute>"; };
+		8D0C4E960486CD37000505A6 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8D0C4E970486CD37000505A6 /* Ultima III.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Ultima III.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A821B30B0A31CDAC0079FF83 /* UltimaSound.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = UltimaSound.m; path = Sources/UltimaSound.m; sourceTree = SOURCE_ROOT; };
+		A821B30C0A31CDAC0079FF83 /* UltimaText.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaText.c; path = Sources/UltimaText.c; sourceTree = SOURCE_ROOT; };
+		A821B30D0A31CDAC0079FF83 /* UltimaSpellCombat.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaSpellCombat.c; path = Sources/UltimaSpellCombat.c; sourceTree = SOURCE_ROOT; };
+		A821B30E0A31CDAC0079FF83 /* UltimaSound.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = UltimaSound.h; path = Sources/UltimaSound.h; sourceTree = SOURCE_ROOT; };
+		A821B3110A31CDAC0079FF83 /* UltimaNewMap.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaNewMap.c; path = Sources/UltimaNewMap.c; sourceTree = SOURCE_ROOT; };
+		A821B3120A31CDAC0079FF83 /* UltimaNew.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaNew.c; path = Sources/UltimaNew.c; sourceTree = SOURCE_ROOT; };
+		A821B3130A31CDAC0079FF83 /* UltimaMisc.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaMisc.c; path = Sources/UltimaMisc.c; sourceTree = SOURCE_ROOT; };
+		A821B3140A31CDAC0079FF83 /* UltimaMacIF.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaMacIF.c; path = Sources/UltimaMacIF.c; sourceTree = SOURCE_ROOT; };
+		A821B3150A31CDAC0079FF83 /* UltimaIncludes.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = UltimaIncludes.h; path = Sources/UltimaIncludes.h; sourceTree = SOURCE_ROOT; };
+		A821B3160A31CDAC0079FF83 /* UltimaDngn.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaDngn.c; path = Sources/UltimaDngn.c; sourceTree = SOURCE_ROOT; };
+		A821B3170A31CDAC0079FF83 /* UltimaAutocombat.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaAutocombat.c; path = Sources/UltimaAutocombat.c; sourceTree = SOURCE_ROOT; };
+		A821B3180A31CDAC0079FF83 /* UltimaAppleEvents.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaAppleEvents.c; path = Sources/UltimaAppleEvents.c; sourceTree = SOURCE_ROOT; };
+		A821B3190A31CDAC0079FF83 /* UltimaMain.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaMain.c; path = Sources/UltimaMain.c; sourceTree = SOURCE_ROOT; };
+		A821B31A0A31CDAC0079FF83 /* CarbonShunts.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CarbonShunts.h; path = Sources/CarbonShunts.h; sourceTree = SOURCE_ROOT; };
+		A821B31B0A31CDAC0079FF83 /* CarbonShunts.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = CarbonShunts.c; path = Sources/CarbonShunts.c; sourceTree = SOURCE_ROOT; };
+		A821B31C0A31CDAC0079FF83 /* UltimaGraphics.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaGraphics.c; path = Sources/UltimaGraphics.c; sourceTree = SOURCE_ROOT; };
+		A821B32E0A31CE8A0079FF83 /* English */ = {isa = PBXFileReference; lastKnownFileType = archive.rsrc; name = English; path = Resources/English.lproj/MainResources.rsrc; sourceTree = "<group>"; };
+		A821B3450A31CE930079FF83 /* Music */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Music; path = Resources/Music; sourceTree = "<group>"; };
+		A83198CC1402D5960046A668 /* UltimaAutocombat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UltimaAutocombat.h; path = Sources/UltimaAutocombat.h; sourceTree = SOURCE_ROOT; };
+		A83198CD1402D6E80046A668 /* UltimaAppleEvents.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UltimaAppleEvents.h; path = Sources/UltimaAppleEvents.h; sourceTree = SOURCE_ROOT; };
+		A85A8AEF0B225AE600299E2B /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Sounds; path = Resources/Sounds; sourceTree = "<group>"; };
+		A862ADB10B484CF20043DA3B /* Graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Graphics; path = Resources/Graphics; sourceTree = "<group>"; };
+		A862AE880B4859A00043DA3B /* UltimaNew.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UltimaNew.h; path = Sources/UltimaNew.h; sourceTree = SOURCE_ROOT; };
+		A86F25DF15CD2C2C005C3CA5 /* LWCocoaDialogController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LWCocoaDialogController.h; path = Sources/LWCocoaDialogController.h; sourceTree = SOURCE_ROOT; };
+		A86F25FA15CD2D3B005C3CA5 /* PrefsDialog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PrefsDialog.h; path = Sources/PrefsDialog.h; sourceTree = "<group>"; };
+		A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PrefsDialog.m; path = Sources/PrefsDialog.m; sourceTree = "<group>"; };
+		A86F260815CD2EC4005C3CA5 /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/GameOptions.nib; sourceTree = "<group>"; };
+		A86F26DF15CD3FD0005C3CA5 /* PrefsDialogController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PrefsDialogController.h; path = Sources/PrefsDialogController.h; sourceTree = SOURCE_ROOT; };
+		A88109CF0AF3EC080064A33C /* CocoaBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CocoaBridge.h; path = Sources/CocoaBridge.h; sourceTree = SOURCE_ROOT; };
+		A88109D00AF3EC080064A33C /* CocoaBridge.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CocoaBridge.m; path = Sources/CocoaBridge.m; sourceTree = SOURCE_ROOT; };
+		A896F5AB0B7492DA00A4045D /* Buttons.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Buttons.png; sourceTree = "<group>"; };
+		A896F5AC0B7492DA00A4045D /* By.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = By.png; sourceTree = "<group>"; };
+		A896F5AD0B7492DA00A4045D /* CharacterRecord.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = CharacterRecord.jpg; sourceTree = "<group>"; };
+		A896F5AE0B7492DA00A4045D /* Commands.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Commands.pdf; sourceTree = "<group>"; };
+		A896F5AF0B7492DA00A4045D /* Credits.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Credits.png; sourceTree = "<group>"; };
+		A896F5B00B7492DA00A4045D /* DistributeFood.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = DistributeFood.png; sourceTree = "<group>"; };
+		A896F5B10B7492DA00A4045D /* DungeonMasks.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = DungeonMasks.png; sourceTree = "<group>"; };
+		A896F5B20B7492DA00A4045D /* DungeonShapes.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = DungeonShapes.jpg; sourceTree = "<group>"; };
+		A896F5B30B7492DA00A4045D /* Exodus.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Exodus.png; sourceTree = "<group>"; };
+		A896F5B40B7492DA00A4045D /* Fountain.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Fountain.jpg; sourceTree = "<group>"; };
+		A896F5B50B7492DA00A4045D /* GatherGold.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = GatherGold.png; sourceTree = "<group>"; };
+		A896F5B60B7492DA00A4045D /* MiscTables.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = MiscTables.pdf; sourceTree = "<group>"; };
+		A896F5B70B7492DA00A4045D /* Opening_Anim_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Opening_Anim_1.png; sourceTree = "<group>"; };
+		A896F5B80B7492DA00A4045D /* Opening_Anim_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Opening_Anim_2.png; sourceTree = "<group>"; };
+		A896F5B90B7492DA00A4045D /* Opening_Anim_3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Opening_Anim_3.png; sourceTree = "<group>"; };
+		A896F5BA0B7492DA00A4045D /* Opening_Anim_4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Opening_Anim_4.png; sourceTree = "<group>"; };
+		A896F5BB0B7492DA00A4045D /* Opening_Anim_5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Opening_Anim_5.png; sourceTree = "<group>"; };
+		A896F5BC0B7492DA00A4045D /* Portraits.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Portraits.png; sourceTree = "<group>"; };
+		A896F5BD0B7492DA00A4045D /* RaceClassInfo.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = RaceClassInfo.gif; sourceTree = "<group>"; };
+		A896F5BE0B7492DA00A4045D /* Rod.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Rod.jpg; sourceTree = "<group>"; };
+		A896F5BF0B7492DA00A4045D /* Shrine.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Shrine.jpg; sourceTree = "<group>"; };
+		A896F5C00B7492DA00A4045D /* SosariaMap.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = SosariaMap.jpg; sourceTree = "<group>"; };
+		A896F5C10B7492DA00A4045D /* SpellList.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = SpellList.pdf; sourceTree = "<group>"; };
+		A896F5C20B7492DA00A4045D /* Stalagtites.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Stalagtites.png; sourceTree = "<group>"; };
+		A896F5C30B7492DA00A4045D /* TimeLord.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = TimeLord.jpg; sourceTree = "<group>"; };
+		A896F5C40B7492DA00A4045D /* UltimaLogo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = UltimaLogo.png; sourceTree = "<group>"; };
+		A8AA78370A2F951A00F17165 /* QuickTime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickTime.framework; path = /System/Library/Frameworks/QuickTime.framework; sourceTree = "<absolute>"; };
+		A8AA791D0A2F9E4400F17165 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
+		A8BD746E0AF01991003647FE /* UltimaIncludes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = UltimaIncludes.m; path = Sources/UltimaIncludes.m; sourceTree = SOURCE_ROOT; };
+		A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = /System/Library/Frameworks/SystemConfiguration.framework; sourceTree = "<absolute>"; };
+		A8CB15BA0B45BFB9008D6CDE /* English */ = {isa = PBXFileReference; lastKnownFileType = folder; name = English; path = Resources/English.lproj/Strings; sourceTree = "<group>"; };
+		A8ED548B0A34DC6C007A493A /* Application.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = Application.icns; path = Resources/Application.icns; sourceTree = "<group>"; };
+		A8F5D6AC0A96317900E6755A /* main.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = main.m; path = Sources/main.m; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8D0C4E910486CD37000505A6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */,
+				A8AA78390A2F951A00F17165 /* QuickTime.framework in Frameworks */,
+				A8F5D6AE0A96318100E6755A /* Cocoa.framework in Frameworks */,
+				A8BD75230AF01ADB003647FE /* SystemConfiguration.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		195DF8CFFE9D517E11CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8D0C4E970486CD37000505A6 /* Ultima III.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		20286C29FDCF999611CA2CEA /* Ultima3 */ = {
+			isa = PBXGroup;
+			children = (
+				A88E026A0AED4B0200CC7FF9 /* Cocoa */,
+				20286C2AFDCF999611CA2CEA /* Sources */,
+				20286C2CFDCF999611CA2CEA /* Resources */,
+				20286C32FDCF999611CA2CEA /* External Frameworks and Libraries */,
+				195DF8CFFE9D517E11CA2CBB /* Products */,
+			);
+			name = Ultima3;
+			sourceTree = "<group>";
+		};
+		20286C2AFDCF999611CA2CEA /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A8F5D6AC0A96317900E6755A /* main.m */,
+				A821B3150A31CDAC0079FF83 /* UltimaIncludes.h */,
+				A8BD746E0AF01991003647FE /* UltimaIncludes.m */,
+				A821B31A0A31CDAC0079FF83 /* CarbonShunts.h */,
+				A821B31B0A31CDAC0079FF83 /* CarbonShunts.c */,
+				35BCC90E225F8F540094082C /* UltimaMain.h */,
+				A821B3190A31CDAC0079FF83 /* UltimaMain.c */,
+				A83198CD1402D6E80046A668 /* UltimaAppleEvents.h */,
+				A821B3180A31CDAC0079FF83 /* UltimaAppleEvents.c */,
+				A83198CC1402D5960046A668 /* UltimaAutocombat.h */,
+				A821B3170A31CDAC0079FF83 /* UltimaAutocombat.c */,
+				35BCC90D225F8C6B0094082C /* UltimaDngn.h */,
+				A821B3160A31CDAC0079FF83 /* UltimaDngn.c */,
+				35BCC90C225F8BA60094082C /* UltimaGraphics.h */,
+				A821B31C0A31CDAC0079FF83 /* UltimaGraphics.c */,
+				35BCC90B225F8B720094082C /* UltimaMacIF.h */,
+				A821B3140A31CDAC0079FF83 /* UltimaMacIF.c */,
+				35BCC90A225F8A360094082C /* UltimaMisc.h */,
+				A821B3130A31CDAC0079FF83 /* UltimaMisc.c */,
+				A862AE880B4859A00043DA3B /* UltimaNew.h */,
+				A821B3120A31CDAC0079FF83 /* UltimaNew.c */,
+				35BCC909225F89B20094082C /* UltimaNewMap.h */,
+				A821B3110A31CDAC0079FF83 /* UltimaNewMap.c */,
+				A821B30E0A31CDAC0079FF83 /* UltimaSound.h */,
+				A821B30B0A31CDAC0079FF83 /* UltimaSound.m */,
+				35BCC908225F86A70094082C /* UltimaSpellCombat.h */,
+				A821B30D0A31CDAC0079FF83 /* UltimaSpellCombat.c */,
+				35BCC907225F86850094082C /* UltimaText.h */,
+				A821B30C0A31CDAC0079FF83 /* UltimaText.c */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		20286C2CFDCF999611CA2CEA /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A8ED548B0A34DC6C007A493A /* Application.icns */,
+				A83CE8E113638CD000ADADCA /* MainResources.rsrc */,
+				A83CE77D136389CA00ADADCA /* Strings */,
+				350D488C17025865009499DC /* Cursors */,
+				A862ADB10B484CF20043DA3B /* Graphics */,
+				A821B3450A31CE930079FF83 /* Music */,
+				A85A8AEF0B225AE600299E2B /* Sounds */,
+				A896F5AA0B7492DA00A4045D /* Images */,
+				8D0C4E960486CD37000505A6 /* Info.plist */,
+				0867D6AAFE840B52C02AAC07 /* InfoPlist.strings */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		20286C32FDCF999611CA2CEA /* External Frameworks and Libraries */ = {
+			isa = PBXGroup;
+			children = (
+				20286C33FDCF999611CA2CEA /* Carbon.framework */,
+				A8AA791D0A2F9E4400F17165 /* Cocoa.framework */,
+				A8AA78370A2F951A00F17165 /* QuickTime.framework */,
+				A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */,
+				4A9504CAFFE6A41611CA0CBA /* CoreServices.framework */,
+				4A9504C8FFE6A3BC11CA0CBA /* ApplicationServices.framework */,
+			);
+			name = "External Frameworks and Libraries";
+			sourceTree = "<group>";
+		};
+		A88E026A0AED4B0200CC7FF9 /* Cocoa */ = {
+			isa = PBXGroup;
+			children = (
+				A88109CF0AF3EC080064A33C /* CocoaBridge.h */,
+				A88109D00AF3EC080064A33C /* CocoaBridge.m */,
+				A86F25DF15CD2C2C005C3CA5 /* LWCocoaDialogController.h */,
+				A86F26DF15CD3FD0005C3CA5 /* PrefsDialogController.h */,
+				A86F25FA15CD2D3B005C3CA5 /* PrefsDialog.h */,
+				A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */,
+				A86F260715CD2EC4005C3CA5 /* GameOptions.nib */,
+				351BF175195EDA9B00B9E489 /* LWIntegerTransformer.h */,
+				351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */,
+			);
+			name = Cocoa;
+			sourceTree = "<group>";
+		};
+		A896F5AA0B7492DA00A4045D /* Images */ = {
+			isa = PBXGroup;
+			children = (
+				A896F5AB0B7492DA00A4045D /* Buttons.png */,
+				A896F5AC0B7492DA00A4045D /* By.png */,
+				A896F5AD0B7492DA00A4045D /* CharacterRecord.jpg */,
+				A896F5AE0B7492DA00A4045D /* Commands.pdf */,
+				A896F5AF0B7492DA00A4045D /* Credits.png */,
+				A896F5B00B7492DA00A4045D /* DistributeFood.png */,
+				A896F5B10B7492DA00A4045D /* DungeonMasks.png */,
+				A896F5B20B7492DA00A4045D /* DungeonShapes.jpg */,
+				A896F5B30B7492DA00A4045D /* Exodus.png */,
+				A896F5B40B7492DA00A4045D /* Fountain.jpg */,
+				A896F5B50B7492DA00A4045D /* GatherGold.png */,
+				357ACC691707467E00FE8C4E /* MenuCommands.png */,
+				357ACC6A1707467E00FE8C4E /* MenuMap.png */,
+				357ACC6B1707467E00FE8C4E /* MenuMisc.png */,
+				357ACC6C1707467E00FE8C4E /* MenuSpells.png */,
+				357ACC641707403A00FE8C4E /* MenuManual.png */,
+				357ACC631707403A00FE8C4E /* MenuCleric.png */,
+				357ACC651707403A00FE8C4E /* MenuWizard.png */,
+				A896F5B60B7492DA00A4045D /* MiscTables.pdf */,
+				A896F5B70B7492DA00A4045D /* Opening_Anim_1.png */,
+				A896F5B80B7492DA00A4045D /* Opening_Anim_2.png */,
+				A896F5B90B7492DA00A4045D /* Opening_Anim_3.png */,
+				A896F5BA0B7492DA00A4045D /* Opening_Anim_4.png */,
+				A896F5BB0B7492DA00A4045D /* Opening_Anim_5.png */,
+				A896F5BC0B7492DA00A4045D /* Portraits.png */,
+				A896F5BD0B7492DA00A4045D /* RaceClassInfo.gif */,
+				A896F5BE0B7492DA00A4045D /* Rod.jpg */,
+				A896F5BF0B7492DA00A4045D /* Shrine.jpg */,
+				A896F5C00B7492DA00A4045D /* SosariaMap.jpg */,
+				A896F5C10B7492DA00A4045D /* SpellList.pdf */,
+				A896F5C20B7492DA00A4045D /* Stalagtites.png */,
+				A896F5C30B7492DA00A4045D /* TimeLord.jpg */,
+				A896F5C40B7492DA00A4045D /* UltimaLogo.png */,
+			);
+			path = Images;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8D0C4E890486CD37000505A6 /* Ultima3 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0E91AC508A95435008D54AB /* Build configuration list for PBXNativeTarget "Ultima3" */;
+			buildPhases = (
+				8D0C4E8C0486CD37000505A6 /* Resources */,
+				8D0C4E8F0486CD37000505A6 /* Sources */,
+				8D0C4E910486CD37000505A6 /* Frameworks */,
+				A8AA78C60A2F987F00F17165 /* Rez */,
+				A8716FA4138AC23C00E77906 /* Info.plist from git */,
+				A86F26ED15CD6349005C3CA5 /* Code Sign */,
+				A80B30A4133926F900CD6D7D /* Create Disk Image */,
+			);
+			buildRules = (
+				A8810BC40AF3FAD80064A33C /* PBXBuildRule */,
+			);
+			dependencies = (
+			);
+			name = Ultima3;
+			productInstallPath = "$(HOME)/Applications";
+			productName = Ultima3;
+			productReference = 8D0C4E970486CD37000505A6 /* Ultima III.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		20286C28FDCF999611CA2CEA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0410;
+				ORGANIZATIONNAME = LairWare;
+			};
+			buildConfigurationList = C0E91AC908A95435008D54AB /* Build configuration list for PBXProject "Ultima3" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 1;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
+			mainGroup = 20286C29FDCF999611CA2CEA /* Ultima3 */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8D0C4E890486CD37000505A6 /* Ultima3 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8D0C4E8C0486CD37000505A6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */,
+				A821B3530A31CE930079FF83 /* Music in Resources */,
+				A8ED548C0A34DC6C007A493A /* Application.icns in Resources */,
+				A85A8B170B225AE600299E2B /* Sounds in Resources */,
+				A83CE77E136389CA00ADADCA /* Strings in Resources */,
+				A862ADCA0B484CF20043DA3B /* Graphics in Resources */,
+				A896F5C50B7492DA00A4045D /* Buttons.png in Resources */,
+				A896F5C60B7492DA00A4045D /* By.png in Resources */,
+				A896F5C70B7492DA00A4045D /* CharacterRecord.jpg in Resources */,
+				A896F5C80B7492DA00A4045D /* Commands.pdf in Resources */,
+				A896F5C90B7492DA00A4045D /* Credits.png in Resources */,
+				A896F5CA0B7492DA00A4045D /* DistributeFood.png in Resources */,
+				A896F5CB0B7492DA00A4045D /* DungeonMasks.png in Resources */,
+				A896F5CC0B7492DA00A4045D /* DungeonShapes.jpg in Resources */,
+				A896F5CD0B7492DA00A4045D /* Exodus.png in Resources */,
+				A896F5CE0B7492DA00A4045D /* Fountain.jpg in Resources */,
+				A896F5CF0B7492DA00A4045D /* GatherGold.png in Resources */,
+				A896F5D00B7492DA00A4045D /* MiscTables.pdf in Resources */,
+				A896F5D10B7492DA00A4045D /* Opening_Anim_1.png in Resources */,
+				A896F5D20B7492DA00A4045D /* Opening_Anim_2.png in Resources */,
+				A896F5D30B7492DA00A4045D /* Opening_Anim_3.png in Resources */,
+				A896F5D40B7492DA00A4045D /* Opening_Anim_4.png in Resources */,
+				A896F5D50B7492DA00A4045D /* Opening_Anim_5.png in Resources */,
+				A896F5D60B7492DA00A4045D /* Portraits.png in Resources */,
+				A896F5D70B7492DA00A4045D /* RaceClassInfo.gif in Resources */,
+				A896F5D80B7492DA00A4045D /* Rod.jpg in Resources */,
+				A896F5D90B7492DA00A4045D /* Shrine.jpg in Resources */,
+				A896F5DA0B7492DA00A4045D /* SosariaMap.jpg in Resources */,
+				A896F5DB0B7492DA00A4045D /* SpellList.pdf in Resources */,
+				A896F5DC0B7492DA00A4045D /* Stalagtites.png in Resources */,
+				A896F5DD0B7492DA00A4045D /* TimeLord.jpg in Resources */,
+				A896F5DE0B7492DA00A4045D /* UltimaLogo.png in Resources */,
+				A86F260915CD2EC4005C3CA5 /* GameOptions.nib in Resources */,
+				350D488D17025866009499DC /* Cursors in Resources */,
+				357ACC661707403A00FE8C4E /* MenuCleric.png in Resources */,
+				357ACC671707403A00FE8C4E /* MenuManual.png in Resources */,
+				357ACC681707403A00FE8C4E /* MenuWizard.png in Resources */,
+				357ACC6D1707467E00FE8C4E /* MenuCommands.png in Resources */,
+				357ACC6E1707467E00FE8C4E /* MenuMap.png in Resources */,
+				357ACC6F1707467E00FE8C4E /* MenuMisc.png in Resources */,
+				357ACC701707467E00FE8C4E /* MenuSpells.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		A8AA78C60A2F987F00F17165 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A83CE8E213638CD000ADADCA /* MainResources.rsrc in Rez */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A80B30A4133926F900CD6D7D /* Create Disk Image */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Create Disk Image";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [[ ${CONFIGURATION} == \"Release\" && {$GCC_PREPROCESSOR_DEFINITIONS} != *APPSTORE* ]]\nthen\n\ncd ${BUILT_PRODUCTS_DIR}\n\nrm -f Ultima-III.dmg\n\nmkdir \"Ultima III\"\n\nhdiutil create -fs HFS+ -size 50000k -volname \"Ultima III\" -srcfolder \"Ultima III\" -fsargs \"-c c=64,a=16,e=16\" -format UDRW UltimaRW.dmg\n\nrmdir \"Ultima III\"\n\ndevice=$(hdiutil attach -readwrite -noverify -noautoopen UltimaRW.dmg | egrep '^/dev/' | sed 1q | awk '{print $1}')\n\nditto \"Ultima III.app\" \"/Volumes/Ultima III/Ultima III.app\"\n\nchmod -Rf go-w \"/Volumes/Ultima III/Ultima III.app\"\n\nrm -rf \"/Volumes/Ultima III/.background\"\nmkdir \"/Volumes/Ultima III/.background\"\n\ncp ${SOURCE_ROOT}/Images/Disk-Background.jpg \"/Volumes/Ultima III/.background/bgnd.jpg\"\n\nln -s /Applications \"/Volumes/Ultima III/Drag & Drop Here\"\n\necho '\n   tell application \"Finder\"\n     tell disk \"Ultima III\"\n           open\n           set current view of container window to icon view\n           set toolbar visible of container window to false\n           set statusbar visible of container window to false\n\t\tset the bounds of container window to {400, 100, 945, 440}\n           set theViewOptions to the icon view options of container window\n           set arrangement of theViewOptions to not arranged\n           set icon size of theViewOptions to 100\n           set background picture of theViewOptions to file \".background:bgnd.jpg\"\n\t\tset position of item \"Ultima III\" of container window to {160, 245}\n\t\tset position of item \"Drag & Drop Here\" of container window to {380, 245}\n\t\t  close\n\t\t  open\n           update without registering applications\n           delay 5\n     end tell\n   end tell\n' | osascript\n\nsync\n\n# a Leopard .DS_Store so it'll look good there too.\n#cp ${SOURCE_ROOT}/../Misc/dot_DS_Store \"/Volumes/Ultima III/.DS_Store\"\n\nhdiutil detach ${device}\n\nhdiutil convert UltimaRW.dmg -format UDBZ -imagekey zlib-level=9 -o Ultima-III.dmg\n\nrm -f UltimaRW.dmg\n\nhdiutil unflatten Ultima-III.dmg\n\nif [ -z \"$XCODE_PATH\" ]; then\n  XCODE_PATH=/Applications/Xcode5.app\nfi\n\n\"${XCODE_PATH}\"/Contents/Developer/Tools/Rez \"${XCODE_PATH}\"/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/Developer/Headers/FlatCarbon/*.r -F \"${XCODE_PATH}\"/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/System/Library/Frameworks/ ${SOURCE_ROOT}/SLA.r -a -o Ultima-III.dmg\n                                                   \nhdiutil flatten Ultima-III.dmg\n\nfi";
+		};
+		A86F26ED15CD6349005C3CA5 /* Code Sign */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Code Sign";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ ${CONFIGURATION} == \"Release\" ]\nthen\n\nexport CODESIGN_ALLOCATE=\"/${SYSTEM_DEVELOPER_DIR}/Toolchains/XcodeDefault.xctoolchain/usr/bin/codesign_allocate\"\n\npushd ${BUILT_PRODUCTS_DIR}\n\n/usr/bin/codesign --force --sign E7CA5F335C04F5C7D50C553210054684423F4308 --requirements \"=designated => anchor apple generic  and identifier \\\"com.lairware.ultima3\\\" and ((cert leaf[field.1.2.840.113635.100.6.1.9] exists) or ( certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists  and certificate leaf[subject.OU] = \\\"8X4SEBTU2P\\\" ))\" \"${CODESIGNING_FOLDER_PATH}\"\necho \"Ultima III CODE SIGNING VERIFY:\"\n/usr/bin/codesign --verify --verbose=4 \"${CODESIGNING_FOLDER_PATH}\"\n\npopd\n\nfi";
+		};
+		A8716FA4138AC23C00E77906 /* Info.plist from git */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Info.plist from git";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "mainBuildNumber=$(git rev-list HEAD | wc -l | tr -d ' ')\nmainBuildHash=$(git rev-parse --short HEAD)\ninfoPath=${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}\necho \"set $mainBuildNumber ($mainBuildHash) in $infoPath\"\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $mainBuildNumber\" \"$infoPath\"\n/usr/libexec/PlistBuddy -c \"Set :LWCommit $mainBuildHash\" \"$infoPath\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8D0C4E8F0486CD37000505A6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A821B31D0A31CDAC0079FF83 /* UltimaSound.m in Sources */,
+				351BF177195EDA9B00B9E489 /* LWIntegerTransformer.m in Sources */,
+				A821B31E0A31CDAC0079FF83 /* UltimaText.c in Sources */,
+				A821B31F0A31CDAC0079FF83 /* UltimaSpellCombat.c in Sources */,
+				A821B3210A31CDAC0079FF83 /* UltimaNewMap.c in Sources */,
+				A821B3220A31CDAC0079FF83 /* UltimaNew.c in Sources */,
+				A821B3230A31CDAC0079FF83 /* UltimaMisc.c in Sources */,
+				A821B3240A31CDAC0079FF83 /* UltimaMacIF.c in Sources */,
+				A821B3250A31CDAC0079FF83 /* UltimaDngn.c in Sources */,
+				A821B3260A31CDAC0079FF83 /* UltimaAutocombat.c in Sources */,
+				A821B3270A31CDAC0079FF83 /* UltimaAppleEvents.c in Sources */,
+				A821B3280A31CDAC0079FF83 /* UltimaMain.c in Sources */,
+				A821B3290A31CDAC0079FF83 /* CarbonShunts.c in Sources */,
+				A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */,
+				A87D41FA0AD1746F00989D7C /* main.m in Sources */,
+				A8BD746F0AF01991003647FE /* UltimaIncludes.m in Sources */,
+				A80AB8700AF563FC0073E150 /* CocoaBridge.m in Sources */,
+				A86F25FC15CD2D3B005C3CA5 /* PrefsDialog.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		0867D6AAFE840B52C02AAC07 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				0867D6ABFE840B52C02AAC07 /* English */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		A83CE77D136389CA00ADADCA /* Strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A8CB15BA0B45BFB9008D6CDE /* English */,
+			);
+			name = Strings;
+			sourceTree = "<group>";
+		};
+		A83CE8E113638CD000ADADCA /* MainResources.rsrc */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A821B32E0A31CE8A0079FF83 /* English */,
+			);
+			name = MainResources.rsrc;
+			sourceTree = "<group>";
+		};
+		A86F260715CD2EC4005C3CA5 /* GameOptions.nib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A86F260815CD2EC4005C3CA5 /* English */,
+			);
+			name = GameOptions.nib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		C0E91AC608A95435008D54AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = Ultima3_Prefix.pch;
+				INFOPLIST_FILE = Info.plist;
+				OTHER_CFLAGS = "-fconstant-cfstrings";
+				PRODUCT_NAME = "Ultima III";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		C0E91AC708A95435008D54AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_MODEL_TUNING = G5;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = Ultima3_Prefix.pch;
+				INFOPLIST_FILE = Info.plist;
+				OTHER_CFLAGS = "-fconstant-cfstrings";
+				PRODUCT_NAME = "Ultima III";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+		C0E91ACA08A95435008D54AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = i386;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_VERSION = "";
+				GCC_VERSION_ppc = 4.0;
+				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3.9;
+				OTHER_CFLAGS = "-fconstant-cfstrings";
+				SDKROOT = macosx10.6;
+				SDKROOT_ppc = "~/Documents/Legacy_Xcode/MacOSX10.5.sdk";
+				VALID_ARCHS = "i386 x86_64";
+			};
+			name = Debug;
+		};
+		C0E91ACB08A95435008D54AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					ppc,
+					i386,
+				);
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEPLOYMENT_POSTPROCESSING = YES;
+				GCC_VERSION = "";
+				GCC_VERSION_ppc = 4.0;
+				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.4;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3.9;
+				OTHER_CFLAGS = (
+					"-no_compact_linkedit",
+					"-fconstant-cfstrings",
+				);
+				SDKROOT = macosx10.6;
+				SDKROOT_ppc = "~/Documents/Legacy_Xcode/MacOSX10.5.sdk";
+				VALID_ARCHS = "i386 x86_64";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C0E91AC508A95435008D54AB /* Build configuration list for PBXNativeTarget "Ultima3" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0E91AC608A95435008D54AB /* Debug */,
+				C0E91AC708A95435008D54AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C0E91AC908A95435008D54AB /* Build configuration list for PBXProject "Ultima3" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0E91ACA08A95435008D54AB /* Debug */,
+				C0E91ACB08A95435008D54AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 20286C28FDCF999611CA2CEA /* Project object */;
+}
