@@ -60,4 +60,14 @@ Boolean SetupGameToDisplay(void);
 Boolean SetupFrameToDisplay(void);
 void DrawGamePortToMain(Boolean);
 
+#ifdef __APPLE__
+#ifdef __OBJC__
+@class MTKView;
+#else
+typedef void MTKView;
+#endif
+void U3InitMetalRenderer(MTKView *view);
+void U3MetalRenderFrame(void);
+#endif
+
 #endif /* UltimaGraphics_h */

@@ -832,12 +832,14 @@ void WindowInit(short which) {
         SizeWindow(gMainWindow, blkSiz * 40, blkSiz * 24, FALSE);
     PlaceWindow();
     ForceAllOnScreen();
-    /*
     // put this boolean YES into info.plist: NSHighResolutionCapable
     Rect windowRect;
-    if (noErr == GetWindowBounds(gMainWindow, kWindowContentRgn, &windowRect))
+    if (noErr == GetWindowBounds(gMainWindow, kWindowContentRgn, &windowRect)) {
         WrapCarbonWindowInCocoa(gMainWindow, windowRect.left, windowRect.top, windowRect.right-windowRect.left, windowRect.bottom-windowRect.top);
-*/
+        void *mtk = LWCreateMetalView(gMainWindow);
+        if (mtk)
+            U3InitMetalRenderer((MTKView *)mtk);
+    }
     ShowWindow(gMainWindow);
     SetPortWindowPort(gMainWindow);
     UpdateRgn = NewRgn();
