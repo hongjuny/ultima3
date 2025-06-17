@@ -14,7 +14,7 @@
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
-#import <QuickTime/QuickTime.h>
+#import <AVFoundation/AVFoundation.h>
 
 extern OSErr            gError;
 extern WindowPtr        gMainWindow, gShroudWindow;
@@ -1286,7 +1286,6 @@ void CheckInterrupted(void) {
     EventRecord theEvent;
     WaitNextEvent(everyEvent, &theEvent, 1L, nil);
     switch (theEvent.what) {
-        case nullEvent: MoviesTask(nil, 0); break;
         case mouseDown:
         case keyDown:
             gInterrupt = TRUE;

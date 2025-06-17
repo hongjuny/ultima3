@@ -38,7 +38,6 @@ extern short            blkSiz;
 extern short            gSongCurrent, gSongNext, gSongPlaying;
 extern UniversalProcPtr DialogFilterProc;
 extern long             lastSaveNumberOfMoves;
-extern CGrafPtr         gMoviesPort;
 
 Boolean                 gStatsActive=false, gWasFullScreen=false, gIgnoreNextWakeHibernate=false;
 Boolean                 gUnusualSize;
@@ -1933,13 +1932,6 @@ void CheckSystemRequirements(void) {
         DisableMusic();
         }
     */
-    Gestalt(gestaltQuickTimeVersion, &response);
-    if (response == 0) {
-        //FadeWindowsGDev(gMainWindow, 1, eFade_FadeInCommand);
-        GetIndString(errorStr, BASERES + 9, 9);
-        ParamText(errorStr, nil, nil, nil);
-        button = Alert(BASERES + 6, NIL_PTR);
-        if (button == 1)
             ExitToShell();
     }
 }
@@ -2630,10 +2622,7 @@ void HandleError(OSErr error, long desc, long idnum) {
 
 // 'Graphics' and 'Sounds' files are now integral to app.
 void OpenGraphicsAndSound(void) {
-    // a little dummy gworld that will always be around for QuickTime movies (sounds & music) to reference.
-    Rect lilRect;
-    SetRect(&lilRect, 0, 0, 16, 16);
-    NewGWorld(&gMoviesPort, 1, &lilRect, nil, nil, 0);
+    // No QuickTime initialization necessary under AVFoundation.
 
     /*
     OSErr   err;

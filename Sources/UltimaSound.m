@@ -7,14 +7,13 @@
 #import "UltimaMacIF.h"
 #import "UltimaText.h"
 
-#import <QuickTime/QuickTime.h>
+#import <AVFoundation/AVFoundation.h>
 
 extern Boolean          gDone;
 extern short            zp[255];
 
 short                   gCurChan, gMaxChan;
 short                   gSongCurrent, gSongNext, gSongPlaying;
-CGrafPtr                gMoviesPort;
 SndChannelPtr           gSampChan[6], gToneChan;
 Handle                  gSoundHandle[6];
 Boolean                 gSpeech, gSoundDone, gSoundIncapable, gMusicIncapable;
@@ -25,8 +24,8 @@ short                   gCountVoices, gCurrentVoiceIndex, gCurVoiceNum;
 short                   gCurSong, gSongVolRefNum;
 Str255                  gCurVoiceName;
 unsigned char           gVoiceName[64][64], strk;
-Movie                   songMovie = nil;
-short                   gQTMusicVolume = 255;
+AVAudioPlayer          *songPlayer = nil;
+float                   gMusicVolume = 1.0f;
 
 void ApplyVolumePreferences(void) {
     short soundVolume = NumberForPrefsKey(U3PrefSoundVolume);
@@ -34,7 +33,7 @@ void ApplyVolumePreferences(void) {
         soundVolume = 100;
     SetSoundVolumePercent(soundVolume);
 
-    Boolean isPlayingMusic = (songMovie && gSongPlaying != 0);
+    Boolean isPlayingMusic = (songPlayer && gSongPlaying != 0);
     Boolean shouldPlayMusic = !CFPreferencesGetAppBooleanValue(U3PrefMusicInactive, kCFPreferencesCurrentApplication, NULL);
     if (isPlayingMusic != shouldPlayMusic) {
         if (shouldPlayMusic) {
@@ -50,9 +49,9 @@ void ApplyVolumePreferences(void) {
     short musicVolume = NumberForPrefsKey(U3PrefMusicVolume);
     if (musicVolume < 1)
         musicVolume = 100;
-    gQTMusicVolume = (short)((float)musicVolume * 2.55);
-    if (songMovie) {
-        SetMovieVolume(songMovie, gQTMusicVolume);
+    gMusicVolume = musicVolume / 100.0f;
+    if (songPlayer) {
+        songPlayer.volume = gMusicVolume;
     }
 }
 
@@ -322,141 +321,57 @@ void SpeakMessages(int msg1, int msg2, int voiceNum) {
 }
 
 void SetUpMusic(void) {
-    OSErr err;
-    Boolean musicFailed;
-
     if (gMusicIncapable)
         return;
-
-    musicFailed = false;
-    err = EnterMovies();
-    if (err)
-        gMusicIncapable = true;
-    // try to start music-playing code
-    if (musicFailed) {
-        HandleError(1, 56, 0);
-        DisableMusic();
-    } else {
-        //LWEnableMenuItem((MenuHandle)gSpecialMenu, MUSICID);
-    }
 }
 
 void CloseMusic(void) {
 }
 
 void SetMusicPortAndDevice(CGrafPtr thePort, GDHandle theDevice) {
-    SetMovieGWorld(songMovie, thePort, theDevice);
+    (void)thePort;
+    (void)theDevice;
 }
 
 void MusicUpdate(void) {
-    FSSpec songSpec;
-    Str31 SongName = "\pSong_0.mov";
-    short songid, movResFile, movResID;    //, vRefNum;
-    OSErr err;
-    Boolean wasChanged;
-    static Boolean last7;
-
     if (CFPreferencesGetAppBooleanValue(U3PrefMusicInactive, kCFPreferencesCurrentApplication, NULL))
         return;
-    if (!songMovie || IsMovieDone(songMovie) || (strk == 7 && last7)) {   // current time >= full time
-        if (gSongNext == gSongCurrent) {
-            if (songMovie) {
-                //printf("replaying (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-                StopMovie(songMovie);
-                GoToBeginningOfMovie(songMovie);
-                StartMovie(songMovie);
-            }
-        } else {
-            //printf("ending #1 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-            EndSong();
-            gSongCurrent = gSongNext;
-            gSongPlaying = 0;
-        }
-    }
 
-    last7 = false;    //(gSongCurrent==7); // why is this in here??
-    if ((gSongCurrent == gSongPlaying) && gSongPlaying != 0)
-        return;
-    if (gSongCurrent > 0x10)
-        gSongCurrent = 0;
     if (gSongCurrent == 0)
         gSongCurrent = gSongNext;
-    gSongPlaying = gSongCurrent;
+
     if (gSongCurrent == 0) {
-        if (songMovie && !IsMovieDone(songMovie)) {
-            //printf("ending #2 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-            EndSong();
-            DisposeMovie(songMovie);
-            songMovie = nil;
+        if (songPlayer) {
+            [songPlayer stop];
+            [songPlayer release];
+            songPlayer = nil;
         }
         return;
     }
-    songid = '0' + gSongPlaying;
-    if (songid > '9')
-        songid += 7;
-    if (songid == '9' || songid == 'C' || songid == 'D' || songid == 'E' || songid == 'F')
-        return;
-    //printf("ending #3 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-    EndSong();
 
-    SongName[SongName[0] - 4] = songid;
-
-    FSRef fsr;
-    ProcessSerialNumber psn;
-    GetCurrentProcess(&psn);
-    GetProcessBundleLocation(&psn, &fsr);
-    CFURLRef bundleBaseURL = CFURLCreateFromFSRef(nil, &fsr);
-    CFURLRef musicBaseURL = CFURLCreateCopyAppendingPathComponent(nil, bundleBaseURL, CFSTR("Contents/Resources/Music"), false);
-    CFRelease(bundleBaseURL);
-    CFStringRef thisSongStrRef = CFStringCreateWithPascalString(nil, SongName, kCFStringEncodingMacRoman);
-    CFURLRef fullSongURLRef = CFURLCreateCopyAppendingPathComponent(nil, musicBaseURL, thisSongStrRef, false);
-    CFRelease(thisSongStrRef);
-    err = (CFURLGetFSRef(fullSongURLRef, &fsr)) ? noErr : paramErr;
-    CFRelease(fullSongURLRef);
-    CFRelease(musicBaseURL);
-    if (err)
-        HandleError(err, 57, 1);
-    if (!err)
-        err = FSGetCatalogInfo(&fsr, kFSCatInfoNone, nil, nil, &songSpec, nil);
-    if (err)
-        HandleError(err, 57, 1);
-    if (!err)
-        err = OpenMovieFile(&songSpec, &movResFile, fsRdPerm);
-    if (err)
-        HandleError(err, 57, 2);
-    movResID = 0;
-    if (songMovie)
-        DisposeMovie(songMovie);
-    if (!err)
-        err = NewMovieFromFile(&songMovie, movResFile, &movResID, SongName, newMovieActive, &wasChanged);
-    if (err)
-        HandleError(err, 57, 3);
-    if (!err)
-        err = CloseMovieFile(movResFile);
-    if (err)
-        HandleError(err, 57, 4);
-    if (!err) {
-        GoToBeginningOfMovie(songMovie);
-        SetMovieGWorld(songMovie, gMoviesPort, nil);    // it's only audio!
-        SetMovieVolume(songMovie, gQTMusicVolume);
-        StartMovie(songMovie);
+    if (gSongCurrent != gSongPlaying || !songPlayer) {
+        NSString *songName = [NSString stringWithFormat:@"Song_%X", gSongCurrent];
+        NSString *path = [[NSBundle mainBundle] pathForResource:songName ofType:@"mov" inDirectory:@"Music"];
+        if (path) {
+            if (songPlayer) {
+                [songPlayer stop];
+                [songPlayer release];
+            }
+            NSURL *url = [NSURL fileURLWithPath:path];
+            songPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:url error:nil];
+            songPlayer.volume = gMusicVolume;
+            [songPlayer prepareToPlay];
+            [songPlayer play];
+            gSongPlaying = gSongCurrent;
+        }
+    } else if (!songPlayer.playing) {
+        [songPlayer play];
     }
-    strk = gSongPlaying;
 }
 
 void EndSong(void) {
-    long startTime;
-
-    if (songMovie) {
-        startTime = TickCount();
-        const int numTicks = 30;
-        float scale = gQTMusicVolume / (float)numTicks;
-        while (TickCount() < (startTime + numTicks)) {
-            int newVolume = gQTMusicVolume - (TickCount() - startTime) * scale;
-            SetMovieVolume(songMovie, newVolume);
-            ThreadSleepTicks(3);
-        }
-        StopMovie(songMovie);
-        SetMovieVolume(songMovie, gQTMusicVolume);
+    if (songPlayer) {
+        [songPlayer stop];
+        songPlayer.currentTime = 0.0;
     }
 }
