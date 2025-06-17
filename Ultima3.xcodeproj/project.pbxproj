@@ -76,12 +76,10 @@
 		6B09CCB92E01EEF8006BA47E /* CocoaShunts.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B09CC7C2E01EE2E006BA47E /* CocoaShunts.m */; };
 		6B09CCBA2E01EEF8006BA47E /* CocoaBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A88109D00AF3EC080064A33C /* CocoaBridge.m */; };
 		6B09CCBB2E01EEF8006BA47E /* PrefsDialog.m in Sources */ = {isa = PBXBuildFile; fileRef = A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */; };
-		6B09CCBD2E01EEF8006BA47E /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20286C33FDCF999611CA2CEA /* Carbon.framework */; };
 		6B09CCBE2E01EEF8006BA47E /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8AA791D0A2F9E4400F17165 /* Cocoa.framework */; };
 		6B09CCBF2E01EEF8006BA47E /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */; };
 		6B09CCC12E01EEF8006BA47E /* MainResources.rsrc in Rez */ = {isa = PBXBuildFile; fileRef = A83CE8E113638CD000ADADCA /* MainResources.rsrc */; };
 		8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0867D6AAFE840B52C02AAC07 /* InfoPlist.strings */; };
-		8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20286C33FDCF999611CA2CEA /* Carbon.framework */; };
 		A80AB8700AF563FC0073E150 /* CocoaBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A88109D00AF3EC080064A33C /* CocoaBridge.m */; };
 		A821B31D0A31CDAC0079FF83 /* UltimaSound.m in Sources */ = {isa = PBXBuildFile; fileRef = A821B30B0A31CDAC0079FF83 /* UltimaSound.m */; };
 		A821B31E0A31CDAC0079FF83 /* UltimaText.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B30C0A31CDAC0079FF83 /* UltimaText.c */; };
@@ -160,7 +158,6 @@
 
 /* Begin PBXFileReference section */
 		0867D6ABFE840B52C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		20286C33FDCF999611CA2CEA /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
 		350D488C17025865009499DC /* Cursors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Cursors; sourceTree = "<group>"; };
 		351BF175195EDA9B00B9E489 /* LWIntegerTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LWIntegerTransformer.h; path = Sources/LWIntegerTransformer.h; sourceTree = SOURCE_ROOT; };
 		351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LWIntegerTransformer.m; path = Sources/LWIntegerTransformer.m; sourceTree = SOURCE_ROOT; };
@@ -254,7 +251,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6B09CCBD2E01EEF8006BA47E /* Carbon.framework in Frameworks */,
 				6B09CCBE2E01EEF8006BA47E /* Cocoa.framework in Frameworks */,
 				6B09CCBF2E01EEF8006BA47E /* SystemConfiguration.framework in Frameworks */,
 			);
@@ -264,7 +260,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */,
 				A8F5D6AE0A96318100E6755A /* Cocoa.framework in Frameworks */,
 				A8BD75230AF01ADB003647FE /* SystemConfiguration.framework in Frameworks */,
 			);
@@ -351,7 +346,6 @@
 		20286C32FDCF999611CA2CEA /* External Frameworks and Libraries */ = {
 			isa = PBXGroup;
 			children = (
-				20286C33FDCF999611CA2CEA /* Carbon.framework */,
 				A8AA791D0A2F9E4400F17165 /* Cocoa.framework */,
 				A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */,
 				4A9504CAFFE6A41611CA0CBA /* CoreServices.framework */,

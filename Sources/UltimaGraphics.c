@@ -14,7 +14,6 @@
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
-#import <AVFoundation/AVFoundation.h>
 
 extern OSErr            gError;
 extern WindowPtr        gMainWindow, gShroudWindow;
