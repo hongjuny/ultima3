@@ -6,6 +6,8 @@
 #ifndef CarbonShunts_h
 #define CarbonShunts_h
 
+#include <Carbon/Carbon.h>
+
 void ForceUpdateMain(void);
 void LWSetArrowCursor(void);
 void LWSetDialogPort(DialogPtr theDialog);
