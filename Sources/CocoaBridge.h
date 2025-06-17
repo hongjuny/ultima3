@@ -24,3 +24,4 @@ Boolean SetCursorNamed(CFStringRef cursorName, float scale);
 int RunCocoaDialog(CFStringRef nibName, CFMutableDictionaryRef valuesDict, CFStringRef controllerClassName);
 void LWOpenURL(CFStringRef urlString);
 void SetRefMenuIcons(MenuRef theMenu);
+void *LWCreateMetalView(void *windowRef);

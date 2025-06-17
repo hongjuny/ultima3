@@ -672,3 +672,21 @@ void SetRefMenuIcons(MenuRef theMenu) {
     [myPool release];
 }
 
+void *LWCreateMetalView(void *windowRef) {
+    CocoaInit();
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    MTKView *result = nil;
+    @try {
+        NSWindow *theWindow = [[LWWindowManager sharedInstance] windowForWindowRef:windowRef];
+        if (theWindow) {
+            result = [[[MTKView alloc] initWithFrame:[[theWindow contentView] bounds] device:MTLCreateSystemDefaultDevice()] autorelease];
+            [result setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+            [[theWindow contentView] addSubview:result];
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"LWCreateMetalView %@", exception);
+    }
+    [pool release];
+    return result;
+}
+
