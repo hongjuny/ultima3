@@ -19,3 +19,7 @@ To put it another way: I'm not claiming any copyright on the Ultima franchise na
 
 Leon McNeill AKA "Beastie"
 
+
+## Modernization
+
+New wrapper modules located in `Sources/CocoaShunts` provide Carbon-style functions implemented with Cocoa APIs. These wrappers allow gradual replacement of Carbon calls while keeping the existing game logic intact.
