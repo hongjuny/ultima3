@@ -17,7 +17,6 @@
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
-#import <AVFoundation/AVFoundation.h>
 
 extern short    gSongCurrent, gSongNext, gSongPlaying;
 extern Boolean  gSoundIncapable, gMusicIncapable;
