@@ -30,7 +30,7 @@
 		A821B3260A31CDAC0079FF83 /* UltimaAutocombat.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3170A31CDAC0079FF83 /* UltimaAutocombat.c */; };
 		A821B3270A31CDAC0079FF83 /* UltimaAppleEvents.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3180A31CDAC0079FF83 /* UltimaAppleEvents.c */; };
 		A821B3280A31CDAC0079FF83 /* UltimaMain.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B3190A31CDAC0079FF83 /* UltimaMain.c */; };
-		A821B3290A31CDAC0079FF83 /* CarbonShunts.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B31B0A31CDAC0079FF83 /* CarbonShunts.c */; };
+		A821B3290A31CDAC0079FF83 /* CarbonShunts.m in Sources */ = {isa = PBXBuildFile; fileRef = A821B31B0A31CDAC0079FF83 /* CarbonShunts.m */ };
 		A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B31C0A31CDAC0079FF83 /* UltimaGraphics.c */; };
 		A821B3530A31CE930079FF83 /* Music in Resources */ = {isa = PBXBuildFile; fileRef = A821B3450A31CE930079FF83 /* Music */; };
 		A83CE77E136389CA00ADADCA /* Strings in Resources */ = {isa = PBXBuildFile; fileRef = A83CE77D136389CA00ADADCA /* Strings */; };
@@ -112,7 +112,7 @@
 		8D0C4E960486CD37000505A6 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D0C4E970486CD37000505A6 /* Ultima III.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Ultima III.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A821B30B0A31CDAC0079FF83 /* UltimaSound.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = UltimaSound.m; path = Sources/UltimaSound.m; sourceTree = SOURCE_ROOT; };
-		A821B30C0A31CDAC0079FF83 /* UltimaText.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaText.c; path = Sources/UltimaText.c; sourceTree = SOURCE_ROOT; };
+		A821B30C0A31CDAC0079FF83 /* UltimaText.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = UltimaText.c; path = Sources/UltimaText.c; sourceTree = SOURCE_ROOT; };
 		A821B30D0A31CDAC0079FF83 /* UltimaSpellCombat.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaSpellCombat.c; path = Sources/UltimaSpellCombat.c; sourceTree = SOURCE_ROOT; };
 		A821B30E0A31CDAC0079FF83 /* UltimaSound.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = UltimaSound.h; path = Sources/UltimaSound.h; sourceTree = SOURCE_ROOT; };
 		A821B3110A31CDAC0079FF83 /* UltimaNewMap.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaNewMap.c; path = Sources/UltimaNewMap.c; sourceTree = SOURCE_ROOT; };
@@ -125,7 +125,7 @@
 		A821B3180A31CDAC0079FF83 /* UltimaAppleEvents.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaAppleEvents.c; path = Sources/UltimaAppleEvents.c; sourceTree = SOURCE_ROOT; };
 		A821B3190A31CDAC0079FF83 /* UltimaMain.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaMain.c; path = Sources/UltimaMain.c; sourceTree = SOURCE_ROOT; };
 		A821B31A0A31CDAC0079FF83 /* CarbonShunts.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CarbonShunts.h; path = Sources/CarbonShunts.h; sourceTree = SOURCE_ROOT; };
-		A821B31B0A31CDAC0079FF83 /* CarbonShunts.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = CarbonShunts.c; path = Sources/CarbonShunts.c; sourceTree = SOURCE_ROOT; };
+		A821B31B0A31CDAC0079FF83 /* CarbonShunts.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = CarbonShunts.m; path = Sources/CarbonShunts.m; sourceTree = SOURCE_ROOT; };
 		A821B31C0A31CDAC0079FF83 /* UltimaGraphics.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaGraphics.c; path = Sources/UltimaGraphics.c; sourceTree = SOURCE_ROOT; };
 		A821B32E0A31CE8A0079FF83 /* English */ = {isa = PBXFileReference; lastKnownFileType = archive.rsrc; name = English; path = Resources/English.lproj/MainResources.rsrc; sourceTree = "<group>"; };
 		A821B3450A31CE930079FF83 /* Music */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Music; path = Resources/Music; sourceTree = "<group>"; };
@@ -218,7 +218,7 @@
 				A821B3150A31CDAC0079FF83 /* UltimaIncludes.h */,
 				A8BD746E0AF01991003647FE /* UltimaIncludes.m */,
 				A821B31A0A31CDAC0079FF83 /* CarbonShunts.h */,
-				A821B31B0A31CDAC0079FF83 /* CarbonShunts.c */,
+				A821B31B0A31CDAC0079FF83 /* CarbonShunts.m */,
 				35BCC90E225F8F540094082C /* UltimaMain.h */,
 				A821B3190A31CDAC0079FF83 /* UltimaMain.c */,
 				A83198CD1402D6E80046A668 /* UltimaAppleEvents.h */,
@@ -511,7 +511,7 @@
 				A821B3260A31CDAC0079FF83 /* UltimaAutocombat.c in Sources */,
 				A821B3270A31CDAC0079FF83 /* UltimaAppleEvents.c in Sources */,
 				A821B3280A31CDAC0079FF83 /* UltimaMain.c in Sources */,
-				A821B3290A31CDAC0079FF83 /* CarbonShunts.c in Sources */,
+                               A821B3290A31CDAC0079FF83 /* CarbonShunts.m in Sources */,
 				A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */,
 				A87D41FA0AD1746F00989D7C /* main.m in Sources */,
 				A8BD746F0AF01991003647FE /* UltimaIncludes.m in Sources */,
