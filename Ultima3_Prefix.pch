@@ -3,4 +3,6 @@
 //
 
 #include <Carbon/Carbon.h>
+#ifdef __OBJC__
 #import <MetalKit/MetalKit.h>
+#endif
