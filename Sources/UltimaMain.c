@@ -17,7 +17,7 @@
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
-#import <QuickTime/QuickTime.h>
+#import <AVFoundation/AVFoundation.h>
 
 extern short    gSongCurrent, gSongNext, gSongPlaying;
 extern Boolean  gSoundIncapable, gMusicIncapable;
@@ -258,7 +258,6 @@ void MainLoop(void) {
     MyShowMenuBar();
     if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL))
         RestoreDisplay();
-    ExitMovies();
 
     return;
 }
@@ -507,7 +506,7 @@ void DrawOrganizeMenu(void) {
             if (Player[i][16])
                 formed = TRUE;
             while (UThemePascalStringWidth(str, kThemeCurrentPortFont) > (70 * scaler)) {
-                str[--str[0]] = 0xC9; // É
+                str[--str[0]] = 0xC9; // Ã‰
             }
             UDrawThemePascalString(str, kThemeCurrentPortFont);    // was thisFont
             Str255 lvlStr = "\pLvl ";
@@ -567,7 +566,7 @@ void DrawOrganizeMenu(void) {
             }
             AddString(desc, str);
             while (UThemePascalStringWidth(desc, kThemeCurrentPortFont) > (152 * scaler)) {
-                desc[--desc[0]] = 0xC9; // É
+                desc[--desc[0]] = 0xC9; // Ã‰
             }
             MoveTo((x + 153) * scaler, y * scaler);
             UDrawThemePascalString(desc, kThemeCurrentPortFont);
@@ -2883,7 +2882,6 @@ void CheckAllDead(void) { /* $71B4 */
             ForceUpdateMain();
             //IdleUntil(time);
             while (TickCount() < time) {
-                MoviesTask(nil, 0);
             }
             UPrintWin("\p\n\n\n\n\n\n\n\n");
             PlaySoundFile(CFSTR("BigDeath"), TRUE);    // was 0xE0
@@ -3465,7 +3463,6 @@ Boolean GetKeyMouse(unsigned char mode) {
             nowTick = TickCount();
             if (nowTick >= nextNullTick) {
                 if (musicOn)
-                    MoviesTask(nil, 0);
                 if (gUpdateWhere == 3)
                     FullUpdate();
                 else if (gUpdateWhere == 8) {

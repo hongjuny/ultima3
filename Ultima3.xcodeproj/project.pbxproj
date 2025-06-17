@@ -66,7 +66,7 @@
 		A896F5DC0B7492DA00A4045D /* Stalagtites.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C20B7492DA00A4045D /* Stalagtites.png */; };
 		A896F5DD0B7492DA00A4045D /* TimeLord.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C30B7492DA00A4045D /* TimeLord.jpg */; };
 		A896F5DE0B7492DA00A4045D /* UltimaLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C40B7492DA00A4045D /* UltimaLogo.png */; };
-		A8AA78390A2F951A00F17165 /* QuickTime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8AA78370A2F951A00F17165 /* QuickTime.framework */; };
+		A8AA78390A2F951A00F17165 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8AA78370A2F951A00F17165 /* AVFoundation.framework */; };
 		A8BD746F0AF01991003647FE /* UltimaIncludes.m in Sources */ = {isa = PBXBuildFile; fileRef = A8BD746E0AF01991003647FE /* UltimaIncludes.m */; };
 		A8BD75230AF01ADB003647FE /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */; };
 		A8ED548C0A34DC6C007A493A /* Application.icns in Resources */ = {isa = PBXBuildFile; fileRef = A8ED548B0A34DC6C007A493A /* Application.icns */; };
@@ -167,7 +167,7 @@
 		A896F5C20B7492DA00A4045D /* Stalagtites.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Stalagtites.png; sourceTree = "<group>"; };
 		A896F5C30B7492DA00A4045D /* TimeLord.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = TimeLord.jpg; sourceTree = "<group>"; };
 		A896F5C40B7492DA00A4045D /* UltimaLogo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = UltimaLogo.png; sourceTree = "<group>"; };
-		A8AA78370A2F951A00F17165 /* QuickTime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickTime.framework; path = /System/Library/Frameworks/QuickTime.framework; sourceTree = "<absolute>"; };
+		A8AA78370A2F951A00F17165 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = /System/Library/Frameworks/AVFoundation.framework; sourceTree = "<absolute>"; };
 		A8AA791D0A2F9E4400F17165 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		A8BD746E0AF01991003647FE /* UltimaIncludes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = UltimaIncludes.m; path = Sources/UltimaIncludes.m; sourceTree = SOURCE_ROOT; };
 		A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = /System/Library/Frameworks/SystemConfiguration.framework; sourceTree = "<absolute>"; };
@@ -182,7 +182,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */,
-				A8AA78390A2F951A00F17165 /* QuickTime.framework in Frameworks */,
+				A8AA78390A2F951A00F17165 /* AVFoundation.framework in Frameworks */,
 				A8F5D6AE0A96318100E6755A /* Cocoa.framework in Frameworks */,
 				A8BD75230AF01ADB003647FE /* SystemConfiguration.framework in Frameworks */,
 			);
@@ -269,7 +269,7 @@
 			children = (
 				20286C33FDCF999611CA2CEA /* Carbon.framework */,
 				A8AA791D0A2F9E4400F17165 /* Cocoa.framework */,
-				A8AA78370A2F951A00F17165 /* QuickTime.framework */,
+				A8AA78370A2F951A00F17165 /* AVFoundation.framework */,
 				A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */,
 				4A9504CAFFE6A41611CA0CBA /* CoreServices.framework */,
 				4A9504C8FFE6A3BC11CA0CBA /* ApplicationServices.framework */,
