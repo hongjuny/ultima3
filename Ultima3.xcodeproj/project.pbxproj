@@ -37,8 +37,9 @@
 		A83CE8E213638CD000ADADCA /* MainResources.rsrc in Rez */ = {isa = PBXBuildFile; fileRef = A83CE8E113638CD000ADADCA /* MainResources.rsrc */; };
 		A85A8B170B225AE600299E2B /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = A85A8AEF0B225AE600299E2B /* Sounds */; };
 		A862ADCA0B484CF20043DA3B /* Graphics in Resources */ = {isa = PBXBuildFile; fileRef = A862ADB10B484CF20043DA3B /* Graphics */; };
-		A86F25FC15CD2D3B005C3CA5 /* PrefsDialog.m in Sources */ = {isa = PBXBuildFile; fileRef = A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */; };
-		A86F260915CD2EC4005C3CA5 /* GameOptions.nib in Resources */ = {isa = PBXBuildFile; fileRef = A86F260715CD2EC4005C3CA5 /* GameOptions.nib */; };
+                A86F25FC15CD2D3B005C3CA5 /* PrefsDialog.m in Sources */ = {isa = PBXBuildFile; fileRef = A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */; };
+                C24F2769DC5966F83566C5CB /* LWAboutWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 3820F8BD26E3D7AFDE36CA2A /* LWAboutWindow.m */; };
+                A86F260915CD2EC4005C3CA5 /* GameOptions.nib in Resources */ = {isa = PBXBuildFile; fileRef = A86F260715CD2EC4005C3CA5 /* GameOptions.nib */; };
 		A87D41FA0AD1746F00989D7C /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A8F5D6AC0A96317900E6755A /* main.m */; };
 		A896F5C50B7492DA00A4045D /* Buttons.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5AB0B7492DA00A4045D /* Buttons.png */; };
 		A896F5C60B7492DA00A4045D /* By.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5AC0B7492DA00A4045D /* By.png */; };
@@ -136,8 +137,10 @@
 		A862AE880B4859A00043DA3B /* UltimaNew.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UltimaNew.h; path = Sources/UltimaNew.h; sourceTree = SOURCE_ROOT; };
 		A86F25DF15CD2C2C005C3CA5 /* LWCocoaDialogController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LWCocoaDialogController.h; path = Sources/LWCocoaDialogController.h; sourceTree = SOURCE_ROOT; };
 		A86F25FA15CD2D3B005C3CA5 /* PrefsDialog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PrefsDialog.h; path = Sources/PrefsDialog.h; sourceTree = "<group>"; };
-		A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PrefsDialog.m; path = Sources/PrefsDialog.m; sourceTree = "<group>"; };
-		A86F260815CD2EC4005C3CA5 /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/GameOptions.nib; sourceTree = "<group>"; };
+                A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PrefsDialog.m; path = Sources/PrefsDialog.m; sourceTree = "<group>"; };
+                B54E98E86F489B4B4746CDEF /* LWAboutWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LWAboutWindow.h; path = Sources/LWAboutWindow.h; sourceTree = SOURCE_ROOT; };
+                3820F8BD26E3D7AFDE36CA2A /* LWAboutWindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LWAboutWindow.m; path = Sources/LWAboutWindow.m; sourceTree = SOURCE_ROOT; };
+                A86F260815CD2EC4005C3CA5 /* English */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; name = English; path = English.lproj/GameOptions.nib; sourceTree = "<group>"; };
 		A86F26DF15CD3FD0005C3CA5 /* PrefsDialogController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PrefsDialogController.h; path = Sources/PrefsDialogController.h; sourceTree = SOURCE_ROOT; };
 		A88109CF0AF3EC080064A33C /* CocoaBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CocoaBridge.h; path = Sources/CocoaBridge.h; sourceTree = SOURCE_ROOT; };
 		A88109D00AF3EC080064A33C /* CocoaBridge.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = CocoaBridge.m; path = Sources/CocoaBridge.m; sourceTree = SOURCE_ROOT; };
@@ -288,8 +291,10 @@
 				A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */,
 				A86F260715CD2EC4005C3CA5 /* GameOptions.nib */,
 				351BF175195EDA9B00B9E489 /* LWIntegerTransformer.h */,
-				351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */,
-			);
+                                351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */,
+                                B54E98E86F489B4B4746CDEF /* LWAboutWindow.h */,
+                                3820F8BD26E3D7AFDE36CA2A /* LWAboutWindow.m */,
+                        );
 			name = Cocoa;
 			sourceTree = "<group>";
 		};
@@ -515,9 +520,10 @@
 				A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */,
 				A87D41FA0AD1746F00989D7C /* main.m in Sources */,
 				A8BD746F0AF01991003647FE /* UltimaIncludes.m in Sources */,
-				A80AB8700AF563FC0073E150 /* CocoaBridge.m in Sources */,
-				A86F25FC15CD2D3B005C3CA5 /* PrefsDialog.m in Sources */,
-			);
+                               A80AB8700AF563FC0073E150 /* CocoaBridge.m in Sources */,
+                               A86F25FC15CD2D3B005C3CA5 /* PrefsDialog.m in Sources */,
+                                C24F2769DC5966F83566C5CB /* LWAboutWindow.m in Sources */,
+                       );
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */

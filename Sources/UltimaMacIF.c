@@ -5,6 +5,7 @@
 #import "UltimaIncludes.h"
 #import "CarbonShunts.h"
 #import "CocoaBridge.h"
+#import "LWAboutWindow.h"
 #import "UltimaGraphics.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
@@ -384,42 +385,8 @@ void HandleAppleChoice(int theItem) {
 }
 
 void AboutUltima3(void) {
-    Rect myRect;
-    short temp;
-    Handle myHandle;
-    DialogPtr theDialog = GetNewDialog(BASERES + 40, nil, (WindowPtr)-1);
-
-    // Dynamic version number
-    CFStringRef versString = (CFStringRef)CopyAppVersionString();
-    if (versString) {
-        ConstStringPtr versPtr = CFStringGetPascalStringPtr(versString, kCFStringEncodingMacRoman);
-        if (versPtr) {
-            GetDialogItem(theDialog, 1, &temp, &myHandle, &myRect);
-            SetDialogItemText(myHandle, versPtr);
-        }
-        CFRelease(versString);
-    }
-
-    // Copyright message
-    Str255 copyrightStr = "\p";
-    GetPascalStringFromArrayByIndex(copyrightStr, CFSTR("MoreMessages"), 98);
-    if (copyrightStr[0]) {
-        GetDialogItem(theDialog, 5, &temp, &myHandle, &myRect);
-        SetDialogItemText(myHandle, copyrightStr);
-    }
-
-    GrafPtr curPort;
-    GetPort(&curPort);
-    LWSetDialogPort(theDialog);
-    ShowWindow(GetDialogWindow(theDialog));
-    short itemHit;
-    ModalDialog((ModalFilterUPP)DialogFilterProc, &itemHit);
-    unsigned majorOS, minorOS;
-    GetSystemVersion(&majorOS, &minorOS, NULL);
-    if (majorOS > 10 || (majorOS == 10 && minorOS >= 3))
-        TransitionWindow(GetDialogWindow(theDialog), 4, kWindowHideTransitionAction, nil);    // 4 = kWindowFadeTransitionEffect
-    SetPort(curPort);
-    DisposeDialog(theDialog);
+    // Use a Cocoa window for the About box.
+    ShowAboutWindow();
     /*
     OSErr           error;
     short           bytesWide, i, numblurs, mouseStateStore, xOff, yOff;
