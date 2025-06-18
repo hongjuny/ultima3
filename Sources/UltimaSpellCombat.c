@@ -4,6 +4,7 @@
 #import "UltimaSpellCombat.h"
 
 #import "UltimaIncludes.h"
+#import "CarbonShunts.h"
 #import "CocoaBridge.h"
 #import "UltimaAutocombat.h"
 #import "UltimaDngn.h"
