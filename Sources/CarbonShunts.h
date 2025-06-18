@@ -52,6 +52,9 @@ static inline void OpColor(const RGBColor *color) { (void)color; }
 #ifndef PenMode
 static inline void PenMode(short mode) { (void)mode; }
 #endif
+#ifndef PenSize
+static inline void PenSize(short width, short height) { (void)width; (void)height; }
+#endif
 #ifndef ForeColor
 static inline void ForeColor(short c) { (void)c; }
 #endif
@@ -160,6 +163,36 @@ static inline OSErr LockPixels(PixMapHandle pm) { (void)pm; return noErr; }
 #ifndef UnlockPixels
 static inline void UnlockPixels(PixMapHandle pm) { (void)pm; }
 #endif
+#ifndef GetIndString
+static inline void GetIndString(unsigned char *theString, short resID, short index)
+{ (void)theString; (void)resID; (void)index; }
+#endif
+#ifndef FSMakeFSSpec
+static inline OSErr FSMakeFSSpec(short vRefNum, long dirID, const unsigned char *name,
+                                 void *spec)
+{ (void)vRefNum; (void)dirID; (void)name; (void)spec; return -1; }
+#endif
+#ifndef IsAliasFile
+static inline OSErr IsAliasFile(const void *spec, Boolean *alias, Boolean *folder)
+{ (void)spec; if (alias) *alias = 0; if (folder) *folder = 0; return -1; }
+#endif
+#ifndef ResolveAliasFile
+static inline OSErr ResolveAliasFile(void *spec, Boolean resolve, Boolean *folder,
+                                     Boolean *alias)
+{ (void)spec; (void)resolve; if (folder) *folder = 0; if (alias) *alias = 0; return -1; }
+#endif
+#ifndef FSpOpenResFile
+static inline short FSpOpenResFile(const void *spec, SignedByte perm)
+{ (void)spec; (void)perm; return -1; }
+#endif
+#ifndef FSpDelete
+static inline OSErr FSpDelete(const void *spec) { (void)spec; return -1; }
+#endif
+#ifndef FSpCreateResFile
+static inline void FSpCreateResFile(const void *spec, OSType creator, OSType type,
+                                    ScriptCode script)
+{ (void)spec; (void)creator; (void)type; (void)script; }
+#endif
 #else
 /* Minimal Carbon compatibility layer for non-macOS builds */
 typedef unsigned char   Boolean;
@@ -183,6 +216,9 @@ typedef int             OSErr;
 typedef int             OSStatus;
 typedef int             Size;
 typedef int             SInt16;
+typedef signed char     SignedByte;
+typedef unsigned int    OSType;
+typedef short           ScriptCode;
 #define noErr 0
 
 static inline void SetRect(Rect *r, short l, short t, short rgt, short btm) {
@@ -358,6 +394,37 @@ static inline CursHandle GetCursor(short id) { (void)id; return NULL; }
 #endif
 #ifndef SetCursor
 static inline void SetCursor(const void *c) { (void)c; }
+#endif
+
+#ifndef GetIndString
+static inline void GetIndString(unsigned char *theString, short resID, short index)
+{ (void)theString; (void)resID; (void)index; }
+#endif
+#ifndef FSMakeFSSpec
+static inline OSErr FSMakeFSSpec(short vRefNum, long dirID, const unsigned char *name,
+                                 void *spec)
+{ (void)vRefNum; (void)dirID; (void)name; (void)spec; return -1; }
+#endif
+#ifndef IsAliasFile
+static inline OSErr IsAliasFile(const void *spec, Boolean *alias, Boolean *folder)
+{ (void)spec; if (alias) *alias = 0; if (folder) *folder = 0; return -1; }
+#endif
+#ifndef ResolveAliasFile
+static inline OSErr ResolveAliasFile(void *spec, Boolean resolve, Boolean *folder,
+                                     Boolean *alias)
+{ (void)spec; (void)resolve; if (folder) *folder = 0; if (alias) *alias = 0; return -1; }
+#endif
+#ifndef FSpOpenResFile
+static inline short FSpOpenResFile(const void *spec, SignedByte perm)
+{ (void)spec; (void)perm; return -1; }
+#endif
+#ifndef FSpDelete
+static inline OSErr FSpDelete(const void *spec) { (void)spec; return -1; }
+#endif
+#ifndef FSpCreateResFile
+static inline void FSpCreateResFile(const void *spec, OSType creator, OSType type,
+                                    ScriptCode script)
+{ (void)spec; (void)creator; (void)type; (void)script; }
 #endif
 
 #endif /* CarbonShunts_h */
