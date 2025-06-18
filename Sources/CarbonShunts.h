@@ -77,6 +77,9 @@ static inline short StringWidth(const unsigned char *str) {
 #ifndef MoveTo
 static inline void MoveTo(short h, short v) { (void)h; (void)v; }
 #endif
+#ifndef LineTo
+static inline void LineTo(short h, short v) { (void)h; (void)v; }
+#endif
 #ifndef DrawString
 static inline void DrawString(const unsigned char *str) { (void)str; }
 #endif
