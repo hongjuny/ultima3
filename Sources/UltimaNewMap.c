@@ -438,7 +438,7 @@ void DrawDioramaMap(void) {
     gSongCurrent = 10;
     MusicUpdate();
     watchCurs = GetCursor(watchCursor);
-    SetCursor(*watchCurs);
+    SetCursor(watchCurs);
     ForeColor(blackColor);
     mapRect.left = (blkSiz * 12) - (minSize * 32);
     mapRect.right = mapRect.left + (minSize * gCurMapSize);

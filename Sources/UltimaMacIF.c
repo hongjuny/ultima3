@@ -679,7 +679,7 @@ void ToolBoxInit(void) {
 #endif
     InitCursor();
     watchCurs = GetCursor(watchCursor);
-    SetCursor(*watchCurs);
+    SetCursor(watchCurs);
 }
 
 void SetUpDragRect(void) {

@@ -20,6 +20,11 @@ static inline void OffsetRect(Rect *r, short dh, short dv) {
     r->left += dh; r->right += dh; r->top += dv; r->bottom += dv;
 }
 #endif
+#ifndef InsetRect
+static inline void InsetRect(Rect *r, short dh, short dv) {
+    r->left += dh; r->right -= dh; r->top += dv; r->bottom -= dv;
+}
+#endif
 #ifndef SetGWorld
 static inline void SetGWorld(CGrafPtr port, GDHandle dev) {
     (void)port; (void)dev;
@@ -55,6 +60,9 @@ static inline void BackColor(short c) { (void)c; }
 #endif
 #ifndef PaintRect
 static inline void PaintRect(const Rect *r) { (void)r; }
+#endif
+#ifndef FrameRect
+static inline void FrameRect(const Rect *r) { (void)r; }
 #endif
 #ifndef TextFont
 static inline void TextFont(short font) { (void)font; }
@@ -111,6 +119,9 @@ static inline void LWKillPoly(LWPolyHandle poly) { (void)poly; }
 #define cyanColor    273
 #define magentaColor 137
 #define yellowColor  69
+#endif
+#ifndef watchCursor
+#define watchCursor 4
 #endif
 #ifndef srcCopy
 #define srcCopy     0

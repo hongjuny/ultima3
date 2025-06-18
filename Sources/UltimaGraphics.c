@@ -1448,7 +1448,7 @@ void DrawMiniMap(void) {
     gSongCurrent = 10;
     MusicUpdate();
     watchCurs = GetCursor(watchCursor);
-    SetCursor(*watchCurs);
+    SetCursor(watchCurs);
     ForeColor(blackColor);
     mapRect.left = (blkSiz * 12) - (minSize * (gCurMapSize / 2));
     mapRect.right = mapRect.left + (minSize * gCurMapSize);
