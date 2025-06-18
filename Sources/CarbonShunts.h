@@ -51,6 +51,11 @@ static inline void CopyMask(const BitMap *srcBits, const BitMap *maskBits,
     (void)maskRect; (void)dstRect;
 }
 #endif
+#ifndef ScrollRect
+static inline void ScrollRect(const Rect *r, short dh, short dv, RgnHandle update) {
+    (void)r; (void)dh; (void)dv; (void)update;
+}
+#endif
 #ifndef OpColor
 static inline void OpColor(const RGBColor *color) { (void)color; }
 #endif
@@ -68,6 +73,9 @@ static inline void BackColor(short c) { (void)c; }
 #endif
 #ifndef PaintRect
 static inline void PaintRect(const Rect *r) { (void)r; }
+#endif
+#ifndef EraseRect
+static inline void EraseRect(const Rect *r) { (void)r; }
 #endif
 #ifndef FrameRect
 static inline void FrameRect(const Rect *r) { (void)r; }
@@ -115,6 +123,34 @@ static inline void LineTo(short h, short v) { (void)h; (void)v; }
 #endif
 #ifndef DrawString
 static inline void DrawString(const unsigned char *str) { (void)str; }
+#endif
+#ifndef DrawText
+static inline void DrawText(const void *text, short firstByte, short byteCount) {
+    (void)text; (void)firstByte; (void)byteCount;
+}
+#endif
+#ifndef GetPen
+static inline void GetPen(Point *pt) { if (pt) { pt->h = pt->v = 0; } }
+#endif
+#ifndef GetThemeTextDimensions
+static inline OSStatus GetThemeTextDimensions(CFStringRef text, ThemeFontID fontID,
+                                              ThemeDrawState state, Boolean wrap,
+                                              Point *dim, SInt16 *base) {
+    if (dim) { dim->h = dim->v = 0; }
+    if (base) *base = 0;
+    (void)text; (void)fontID; (void)state; (void)wrap;
+    return noErr;
+}
+#endif
+#ifndef DrawThemeTextBox
+static inline OSStatus DrawThemeTextBox(CFStringRef text, ThemeFontID fontID,
+                                        ThemeDrawState state, Boolean wrap,
+                                        const Rect *bounds, SInt16 just,
+                                        void *reserved) {
+    (void)text; (void)fontID; (void)state; (void)wrap; (void)bounds;
+    (void)just; (void)reserved;
+    return noErr;
+}
 #endif
 #ifndef RGBForeColor
 static inline void RGBForeColor(const RGBColor *color) { (void)color; }
@@ -177,6 +213,9 @@ static inline void UnlockPixels(PixMapHandle pm) { (void)pm; }
 #ifndef GetIndString
 static inline void GetIndString(unsigned char *theString, short resID, short index)
 { (void)theString; (void)resID; (void)index; }
+#endif
+#ifndef GetFNum
+static inline OSErr GetFNum(ConstStr255Param name, short *fnum) { if (fnum) *fnum = 0; return noErr; }
 #endif
 #ifndef FSMakeFSSpec
 static inline OSErr FSMakeFSSpec(short vRefNum, long dirID, const unsigned char *name,
@@ -299,9 +338,17 @@ static inline void CopyBits(const BitMap *srcBits, const BitMap *dstBits,
     (void)srcBits; (void)dstBits; (void)srcRect; (void)dstRect;
     (void)mode; (void)maskRgn;
 }
+#ifndef ScrollRect
+static inline void ScrollRect(const Rect *r, short dh, short dv, RgnHandle update) {
+    (void)r; (void)dh; (void)dv; (void)update;
+}
+#endif
 static inline void ForeColor(short c) { (void)c; }
 static inline void BackColor(short c) { (void)c; }
 static inline void PaintRect(const Rect *r) { (void)r; }
+#ifndef EraseRect
+static inline void EraseRect(const Rect *r) { (void)r; }
+#endif
 #ifndef GetCPixel
 static inline void GetCPixel(short h, short v, RGBColor *color) {
     (void)h; (void)v; if (color) { color->red = color->green = color->blue = 0; }
@@ -323,6 +370,32 @@ static inline short StringWidth(const unsigned char *str) { return str ? (short)
 static inline void MoveTo(short h, short v) { (void)h; (void)v; }
 static inline void LineTo(short h, short v) { (void)h; (void)v; }
 static inline void DrawString(const unsigned char *str) { (void)str; }
+#ifndef DrawText
+static inline void DrawText(const void *text, short firstByte, short byteCount) {
+    (void)text; (void)firstByte; (void)byteCount;
+}
+#endif
+static inline void GetPen(Point *pt) { if (pt) { pt->h = pt->v = 0; } }
+#ifndef GetThemeTextDimensions
+static inline OSStatus GetThemeTextDimensions(CFStringRef text, ThemeFontID fontID,
+                                              ThemeDrawState state, Boolean wrap,
+                                              Point *dim, SInt16 *base) {
+    if (dim) { dim->h = dim->v = 0; }
+    if (base) *base = 0;
+    (void)text; (void)fontID; (void)state; (void)wrap;
+    return noErr;
+}
+#endif
+#ifndef DrawThemeTextBox
+static inline OSStatus DrawThemeTextBox(CFStringRef text, ThemeFontID fontID,
+                                        ThemeDrawState state, Boolean wrap,
+                                        const Rect *bounds, SInt16 just,
+                                        void *reserved) {
+    (void)text; (void)fontID; (void)state; (void)wrap; (void)bounds;
+    (void)just; (void)reserved;
+    return noErr;
+}
+#endif
 static inline void RGBForeColor(const RGBColor *color) { (void)color; }
 typedef void *LWPolyHandle;
 #include <stddef.h> /* for NULL */
@@ -458,6 +531,9 @@ static inline void SetCursor(const void *c) { (void)c; }
 #ifndef GetIndString
 static inline void GetIndString(unsigned char *theString, short resID, short index)
 { (void)theString; (void)resID; (void)index; }
+#endif
+#ifndef GetFNum
+static inline OSErr GetFNum(ConstStr255Param name, short *fnum) { if (fnum) *fnum = 0; return noErr; }
 #endif
 #ifndef FSMakeFSSpec
 static inline OSErr FSMakeFSSpec(short vRefNum, long dirID, const unsigned char *name,
