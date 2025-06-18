@@ -144,6 +144,26 @@ static inline void CopyBits(const BitMap *srcBits, const BitMap *dstBits,
 static inline void ForeColor(short c) { (void)c; }
 static inline void BackColor(short c) { (void)c; }
 static inline void PaintRect(const Rect *r) { (void)r; }
+#define bold   1
+#define italic 2
+static inline void TextFont(short font) { (void)font; }
+static inline void TextSize(short size) { (void)size; }
+static inline void TextMode(short mode) { (void)mode; }
+static inline void TextFace(short face) { (void)face; }
+static inline short StringWidth(const unsigned char *str) { return str ? (short)(str[0] * 6) : 0; }
+static inline void MoveTo(short h, short v) { (void)h; (void)v; }
+static inline void LineTo(short h, short v) { (void)h; (void)v; }
+static inline void DrawString(const unsigned char *str) { (void)str; }
+static inline void RGBForeColor(const RGBColor *color) { (void)color; }
+typedef void *LWPolyHandle;
+static inline LWPolyHandle LWOpenPoly(void) { return NULL; }
+static inline void LWClosePoly(void) {}
+static inline void LWPaintPoly(LWPolyHandle poly) { (void)poly; }
+static inline void LWKillPoly(LWPolyHandle poly) { (void)poly; }
+static inline OSErr NewGWorld(CGrafPtr *port, short depth, const Rect *rect, void *ctab, GDHandle device, unsigned int flags) { (void)port; (void)depth; (void)rect; (void)ctab; (void)device; (void)flags; return noErr; }
+static inline void DisposeGWorld(CGrafPtr port) { (void)port; }
+static inline OSErr LockPixels(PixMapHandle pm) { (void)pm; return noErr; }
+static inline void UnlockPixels(PixMapHandle pm) { (void)pm; }
 #define blackColor   33
 #define whiteColor   30
 #define redColor     205
