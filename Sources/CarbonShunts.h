@@ -264,4 +264,57 @@ static inline void ObscureCursor(void) {
 }
 #endif
 
+/* Additional stubs for legacy APIs missing on non-Carbon builds. These
+   implementations simply satisfy the compiler and do not provide real
+   QuickDraw behaviour. */
+#ifndef CursHandle
+typedef void *CursHandle;
+#endif
+
+#ifndef PicHandle
+typedef void *PicHandle;
+#endif
+
+#ifndef Random
+#include <stdlib.h>
+static inline long Random(void) { return rand(); }
+#endif
+
+#ifndef GetPort
+static inline void GetPort(CGrafPtr *port) { if (port) *port = NULL; }
+#endif
+#ifndef SetPort
+static inline void SetPort(CGrafPtr port) { (void)port; }
+#endif
+#ifndef NewRgn
+static inline RgnHandle NewRgn(void) { return NULL; }
+#endif
+#ifndef DisposeRgn
+static inline void DisposeRgn(RgnHandle rgn) { (void)rgn; }
+#endif
+#ifndef GetClip
+static inline void GetClip(RgnHandle rgn) { (void)rgn; }
+#endif
+#ifndef SetClip
+static inline void SetClip(RgnHandle rgn) { (void)rgn; }
+#endif
+#ifndef ClipRect
+static inline void ClipRect(const Rect *r) { (void)r; }
+#endif
+#ifndef GetPicture
+static inline PicHandle GetPicture(short id) { (void)id; return NULL; }
+#endif
+#ifndef DrawPicture
+static inline void DrawPicture(PicHandle pic, const Rect *r) { (void)pic; (void)r; }
+#endif
+#ifndef ReleaseResource
+static inline void ReleaseResource(Handle h) { (void)h; }
+#endif
+#ifndef GetCursor
+static inline CursHandle GetCursor(short id) { (void)id; return NULL; }
+#endif
+#ifndef SetCursor
+static inline void SetCursor(const void *c) { (void)c; }
+#endif
+
 #endif /* CarbonShunts_h */
