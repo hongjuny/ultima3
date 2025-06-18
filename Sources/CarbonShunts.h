@@ -15,6 +15,30 @@ static inline void SetRect(Rect *r, short l, short t, short rgt, short btm) {
 #endif
 /* QuickDraw is removed from modern SDKs. Provide simple stubs when the
    declarations are missing so legacy source continues to compile. */
+#ifndef OffsetRect
+static inline void OffsetRect(Rect *r, short dh, short dv) {
+    r->left += dh; r->right += dh; r->top += dv; r->bottom += dv;
+}
+#endif
+#ifndef SetGWorld
+static inline void SetGWorld(CGrafPtr port, GDHandle dev) {
+    (void)port; (void)dev;
+}
+#endif
+#ifndef CopyBits
+static inline void CopyBits(const BitMap *srcBits, const BitMap *dstBits,
+                            const Rect *srcRect, const Rect *dstRect,
+                            short mode, RgnHandle maskRgn) {
+    (void)srcBits; (void)dstBits; (void)srcRect; (void)dstRect;
+    (void)mode; (void)maskRgn;
+}
+#endif
+#ifndef OpColor
+static inline void OpColor(const RGBColor *color) { (void)color; }
+#endif
+#ifndef PenMode
+static inline void PenMode(short mode) { (void)mode; }
+#endif
 #ifndef ForeColor
 static inline void ForeColor(short c) { (void)c; }
 #endif
