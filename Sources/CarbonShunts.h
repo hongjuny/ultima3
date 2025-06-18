@@ -85,13 +85,20 @@ static inline void RGBForeColor(const RGBColor *color) { (void)color; }
 #endif
 #if defined(__LP64__)
 #ifndef LWPolyHandle
+#include <stddef.h> /* for NULL */
 typedef void *LWPolyHandle;
 static inline LWPolyHandle LWOpenPoly(void) { return NULL; }
 static inline void LWClosePoly(void) {}
 static inline void LWPaintPoly(LWPolyHandle poly) { (void)poly; }
 static inline void LWKillPoly(LWPolyHandle poly) { (void)poly; }
+#ifndef OpenPoly
+#define OpenPoly  LWOpenPoly
+#define ClosePoly LWClosePoly
+#define PaintPoly LWPaintPoly
+#define KillPoly  LWKillPoly
 #endif
-#endif
+#endif /* LWPolyHandle */
+#endif /* __LP64__ */
 #ifndef blackColor
 #define blackColor   33
 #define whiteColor   30
@@ -167,10 +174,17 @@ static inline void LineTo(short h, short v) { (void)h; (void)v; }
 static inline void DrawString(const unsigned char *str) { (void)str; }
 static inline void RGBForeColor(const RGBColor *color) { (void)color; }
 typedef void *LWPolyHandle;
+#include <stddef.h> /* for NULL */
 static inline LWPolyHandle LWOpenPoly(void) { return NULL; }
 static inline void LWClosePoly(void) {}
 static inline void LWPaintPoly(LWPolyHandle poly) { (void)poly; }
 static inline void LWKillPoly(LWPolyHandle poly) { (void)poly; }
+#ifndef OpenPoly
+#define OpenPoly  LWOpenPoly
+#define ClosePoly LWClosePoly
+#define PaintPoly LWPaintPoly
+#define KillPoly  LWKillPoly
+#endif
 static inline OSErr NewGWorld(CGrafPtr *port, short depth, const Rect *rect, void *ctab, GDHandle device, unsigned int flags) { (void)port; (void)depth; (void)rect; (void)ctab; (void)device; (void)flags; return noErr; }
 static inline void DisposeGWorld(CGrafPtr port) { (void)port; }
 static inline OSErr LockPixels(PixMapHandle pm) { (void)pm; return noErr; }
