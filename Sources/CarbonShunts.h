@@ -41,7 +41,9 @@ static inline void BlockMove(const void *src, void *dst, Size len) {
 #endif
 
 #ifndef ObscureCursor
-static inline void ObscureCursor(void) { HideCursor(); }
+static inline void ObscureCursor(void) {
+//    HideCursor();
+}
 #endif
 
 #endif /* CarbonShunts_h */

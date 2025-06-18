@@ -79,6 +79,8 @@
 		6B09CCBE2E01EEF8006BA47E /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8AA791D0A2F9E4400F17165 /* Cocoa.framework */; };
 		6B09CCBF2E01EEF8006BA47E /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */; };
 		6B09CCC12E01EEF8006BA47E /* MainResources.rsrc in Rez */ = {isa = PBXBuildFile; fileRef = A83CE8E113638CD000ADADCA /* MainResources.rsrc */; };
+		6B09CCD12E03282B006BA47E /* numtostring.c in Sources */ = {isa = PBXBuildFile; fileRef = 6B09CCD02E03282A006BA47E /* numtostring.c */; };
+		6B09CCD22E03282B006BA47E /* numtostring.c in Sources */ = {isa = PBXBuildFile; fileRef = 6B09CCD02E03282A006BA47E /* numtostring.c */; };
 		8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0867D6AAFE840B52C02AAC07 /* InfoPlist.strings */; };
 		A80AB8700AF563FC0073E150 /* CocoaBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A88109D00AF3EC080064A33C /* CocoaBridge.m */; };
 		A821B31D0A31CDAC0079FF83 /* UltimaSound.m in Sources */ = {isa = PBXBuildFile; fileRef = A821B30B0A31CDAC0079FF83 /* UltimaSound.m */; };
@@ -181,6 +183,8 @@
 		6B09CC7C2E01EE2E006BA47E /* CocoaShunts.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CocoaShunts.m; sourceTree = "<group>"; };
 		6B09CCC92E01EEF8006BA47E /* Ultima3-arm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Ultima3-arm.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B09CCCA2E01EEF9006BA47E /* Ultima3 copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "Ultima3 copy-Info.plist"; path = "/Users/ay5/Documents/git/ultima3/Ultima3 copy-Info.plist"; sourceTree = "<absolute>"; };
+		6B09CCCF2E032814006BA47E /* numtostring.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = numtostring.h; sourceTree = "<group>"; };
+		6B09CCD02E03282A006BA47E /* numtostring.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = numtostring.c; sourceTree = "<group>"; };
 		8D0C4E960486CD37000505A6 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D0C4E970486CD37000505A6 /* Ultima III.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Ultima III.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A821B30B0A31CDAC0079FF83 /* UltimaSound.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = UltimaSound.m; path = Sources/UltimaSound.m; sourceTree = SOURCE_ROOT; };
@@ -303,6 +307,8 @@
 				A83198CD1402D6E80046A668 /* UltimaAppleEvents.h */,
 				A821B3180A31CDAC0079FF83 /* UltimaAppleEvents.c */,
 				A83198CC1402D5960046A668 /* UltimaAutocombat.h */,
+				6B09CCCF2E032814006BA47E /* numtostring.h */,
+				6B09CCD02E03282A006BA47E /* numtostring.c */,
 				A821B3170A31CDAC0079FF83 /* UltimaAutocombat.c */,
 				35BCC90D225F8C6B0094082C /* UltimaDngn.h */,
 				A821B3160A31CDAC0079FF83 /* UltimaDngn.c */,
@@ -711,6 +717,7 @@
 				6B09CCB42E01EEF8006BA47E /* UltimaAppleEvents.c in Sources */,
 				6B09CCB52E01EEF8006BA47E /* UltimaMain.c in Sources */,
 				6B09CCB62E01EEF8006BA47E /* UltimaGraphics.c in Sources */,
+				6B09CCD22E03282B006BA47E /* numtostring.c in Sources */,
 				6B09CCB72E01EEF8006BA47E /* main.m in Sources */,
 				6B09CCB82E01EEF8006BA47E /* UltimaIncludes.m in Sources */,
 				6B09CCB92E01EEF8006BA47E /* CocoaShunts.m in Sources */,
@@ -736,6 +743,7 @@
 				A821B3270A31CDAC0079FF83 /* UltimaAppleEvents.c in Sources */,
 				A821B3280A31CDAC0079FF83 /* UltimaMain.c in Sources */,
 				A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */,
+				6B09CCD12E03282B006BA47E /* numtostring.c in Sources */,
 				A87D41FA0AD1746F00989D7C /* main.m in Sources */,
 				A8BD746F0AF01991003647FE /* UltimaIncludes.m in Sources */,
 				6B09CC7D2E01EE2E006BA47E /* CocoaShunts.m in Sources */,
