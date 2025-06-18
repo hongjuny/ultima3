@@ -72,7 +72,7 @@ static inline void DrawString(const unsigned char *str) { (void)str; }
 #ifndef RGBForeColor
 static inline void RGBForeColor(const RGBColor *color) { (void)color; }
 #endif
-#if defined(__LP64__)
+#if defined(__LP64__) && !defined(PolyHandle)
 typedef void * PolyHandle;
 static inline PolyHandle OpenPoly(void) { return NULL; }
 static inline void ClosePoly(void) {}
