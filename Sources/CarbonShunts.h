@@ -315,8 +315,10 @@ static inline PicHandle GetPicture(short id) { (void)id; return NULL; }
 #ifndef DrawPicture
 static inline void DrawPicture(PicHandle pic, const Rect *r) { (void)pic; (void)r; }
 #endif
+#ifndef __APPLE__
 #ifndef ReleaseResource
 static inline void ReleaseResource(Handle h) { (void)h; }
+#endif
 #endif
 #ifndef GetCursor
 static inline CursHandle GetCursor(short id) { (void)id; return NULL; }
