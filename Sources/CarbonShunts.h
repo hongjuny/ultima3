@@ -75,6 +75,12 @@ static inline void GetCPixel(short h, short v, RGBColor *color) {
 #ifndef InitCursor
 static inline void InitCursor(void) {}
 #endif
+#ifndef GetCursor
+static inline CursHandle GetCursor(short id) { (void)id; return NULL; }
+#endif
+#ifndef SetCursor
+static inline void SetCursor(const void *c) { (void)c; }
+#endif
 #ifndef InvertRect
 static inline void InvertRect(const Rect *r) { (void)r; }
 #endif
