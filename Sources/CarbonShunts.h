@@ -388,7 +388,6 @@ static inline void DrawPicture(PicHandle pic, const Rect *r) { (void)pic; (void)
 #ifndef ReleaseResource
 static inline void ReleaseResource(Handle h) { (void)h; }
 #endif
-#endif
 #ifndef GetCursor
 static inline CursHandle GetCursor(short id) { (void)id; return NULL; }
 #endif
@@ -426,5 +425,7 @@ static inline void FSpCreateResFile(const void *spec, OSType creator, OSType typ
                                     ScriptCode script)
 { (void)spec; (void)creator; (void)type; (void)script; }
 #endif
+
+#endif /* !__APPLE__ */
 
 #endif /* CarbonShunts_h */
