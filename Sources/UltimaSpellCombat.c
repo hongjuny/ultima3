@@ -1,6 +1,6 @@
 // Spell & Combat routines
 
-#include <Carbon/Carbon.h>
+#import "CarbonShunts.h"
 #import "UltimaSpellCombat.h"
 
 #import "UltimaIncludes.h"

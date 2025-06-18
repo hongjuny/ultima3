@@ -9,7 +9,7 @@
 #import "UltimaIncludes.h"
 
 #import <Cocoa/Cocoa.h>
-#import <Carbon/Carbon.h>
+#import "CarbonShunts.h"
 #import <AVFoundation/AVFoundation.h>
 
 extern short gUpdateWhere;
