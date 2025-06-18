@@ -204,6 +204,8 @@ static inline void FSpCreateResFile(const void *spec, OSType creator, OSType typ
                                     ScriptCode script)
 { (void)spec; (void)creator; (void)type; (void)script; }
 #endif
+
+
 #else
 /* Minimal Carbon compatibility layer for non-macOS builds */
 typedef unsigned char   Boolean;
@@ -435,6 +437,50 @@ static inline OSErr FSpDelete(const void *spec) { (void)spec; return -1; }
 static inline void FSpCreateResFile(const void *spec, OSType creator, OSType type,
                                     ScriptCode script)
 { (void)spec; (void)creator; (void)type; (void)script; }
+#endif
+
+#ifndef GetEOF
+static inline OSErr GetEOF(short refNum, long *logEOF)
+{ (void)refNum; if (logEOF) *logEOF = 0; return -1; }
+#endif
+#ifndef FSClose
+static inline OSErr FSClose(short refNum) { (void)refNum; return noErr; }
+#endif
+#ifndef BlockMoveData
+#include <string.h>
+static inline void BlockMoveData(const void *src, void *dst, Size len)
+{ memmove(dst, src, (size_t)len); }
+#endif
+#ifndef StringToNum
+#include <string.h>
+#include <stdlib.h>
+static inline OSErr StringToNum(const unsigned char *str, long *theNum)
+{
+    if (!str || !theNum) return -1;
+    size_t len = str[0] < 255 ? str[0] : 255;
+    char buf[256];
+    memcpy(buf, str + 1, len);
+    buf[len] = '\0';
+    *theNum = strtol(buf, NULL, 10);
+    return noErr;
+}
+#endif
+#ifndef EqualString
+#include <ctype.h>
+static inline Boolean EqualString(const unsigned char *a, const unsigned char *b,
+                                  Boolean caseSens, Boolean diacSens)
+{
+    (void)diacSens;
+    if (!a || !b) return 0;
+    if (a[0] != b[0]) return 0;
+    for (int i = 0; i < a[0]; i++) {
+        unsigned char ca = a[i + 1];
+        unsigned char cb = b[i + 1];
+        if (!caseSens) { ca = (unsigned char)tolower(ca); cb = (unsigned char)tolower(cb); }
+        if (ca != cb) return 0;
+    }
+    return 1;
+}
 #endif
 
 #endif /* !__APPLE__ */
