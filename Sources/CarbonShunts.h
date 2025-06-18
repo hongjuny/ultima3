@@ -8,6 +8,11 @@
 
 #ifdef __APPLE__
 #include <Carbon/Carbon.h>
+/* Older SDKs removed certain QuickDraw types entirely. Ensure the
+   cursor handle type is available before it is referenced below. */
+#ifndef CursHandle
+typedef void *CursHandle;
+#endif
 #ifndef SetRect
 static inline void SetRect(Rect *r, short l, short t, short rgt, short btm) {
     r->left = l; r->top = t; r->right = rgt; r->bottom = btm;
