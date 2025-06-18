@@ -72,12 +72,14 @@ static inline void DrawString(const unsigned char *str) { (void)str; }
 #ifndef RGBForeColor
 static inline void RGBForeColor(const RGBColor *color) { (void)color; }
 #endif
-#if defined(__LP64__) && !defined(PolyHandle)
-typedef void * PolyHandle;
-static inline PolyHandle OpenPoly(void) { return NULL; }
-static inline void ClosePoly(void) {}
-static inline void PaintPoly(PolyHandle poly) { (void)poly; }
-static inline void KillPoly(PolyHandle poly) { (void)poly; }
+#if defined(__LP64__)
+#ifndef LWPolyHandle
+typedef void *LWPolyHandle;
+static inline LWPolyHandle LWOpenPoly(void) { return NULL; }
+static inline void LWClosePoly(void) {}
+static inline void LWPaintPoly(LWPolyHandle poly) { (void)poly; }
+static inline void LWKillPoly(LWPolyHandle poly) { (void)poly; }
+#endif
 #endif
 #ifndef blackColor
 #define blackColor   33
