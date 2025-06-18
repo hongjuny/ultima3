@@ -1,9 +1,9 @@
 // New random map generator [K]reate after game solved
 
+#import "CarbonShunts.h"
 #import "UltimaNewMap.h"
 
 #import "UltimaIncludes.h"
-#import "CarbonShunts.h"
 #import "UltimaGraphics.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"

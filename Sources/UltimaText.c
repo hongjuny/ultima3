@@ -1,9 +1,9 @@
+#import "CarbonShunts.h"
 // Text & text input routines
 
 #import "UltimaText.h"
-
 #import "UltimaIncludes.h"
-#import "CarbonShunts.h"
+
 #import "CocoaBridge.h"
 #import "UltimaGraphics.h"
 #import "UltimaMacIF.h"
@@ -640,7 +640,7 @@ if x is even, it's variant one (Brigand, Goblin, Ghoul, Golem ...)
 if x is odd, it's variant two (Cutpurse, Troll, Zombie, Titan ...)
 */
 void PrintMonster(short which, Boolean plural, char variant) { /* $8457 */
-    if (which > 44 && variant > 0) {   // Ö2 = >23
+    if (which > 44 && variant > 0) {   // Ã–2 = >23
         PrintTile((which - 46) + 63 + variant, plural);
     } else {
         PrintTile(which / 2, plural);
