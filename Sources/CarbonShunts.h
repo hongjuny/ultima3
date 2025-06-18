@@ -119,6 +119,25 @@ static inline void LWKillPoly(LWPolyHandle poly) { (void)poly; }
 #define ditherCopy  64
 #define addOver     34
 #endif
+/* NewGWorld and related calls were removed from modern macOS SDKs.  Provide
+   simple stubs so the legacy graphics code continues to compile. */
+#ifndef NewGWorld
+static inline OSErr NewGWorld(CGrafPtr *port, short depth, const Rect *rect,
+                              void *ctab, GDHandle device, unsigned int flags)
+{
+    (void)port; (void)depth; (void)rect; (void)ctab; (void)device; (void)flags;
+    return noErr;
+}
+#endif
+#ifndef DisposeGWorld
+static inline void DisposeGWorld(CGrafPtr port) { (void)port; }
+#endif
+#ifndef LockPixels
+static inline OSErr LockPixels(PixMapHandle pm) { (void)pm; return noErr; }
+#endif
+#ifndef UnlockPixels
+static inline void UnlockPixels(PixMapHandle pm) { (void)pm; }
+#endif
 #else
 /* Minimal Carbon compatibility layer for non-macOS builds */
 typedef unsigned char   Boolean;
