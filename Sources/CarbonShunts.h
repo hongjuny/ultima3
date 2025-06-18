@@ -13,6 +13,34 @@ static inline void SetRect(Rect *r, short l, short t, short rgt, short btm) {
     r->left = l; r->top = t; r->right = rgt; r->bottom = btm;
 }
 #endif
+/* QuickDraw is removed from modern SDKs. Provide simple stubs when the
+   declarations are missing so legacy source continues to compile. */
+#ifndef ForeColor
+static inline void ForeColor(short c) { (void)c; }
+#endif
+#ifndef BackColor
+static inline void BackColor(short c) { (void)c; }
+#endif
+#ifndef PaintRect
+static inline void PaintRect(const Rect *r) { (void)r; }
+#endif
+#ifndef blackColor
+#define blackColor   33
+#define whiteColor   30
+#define redColor     205
+#define greenColor   341
+#define blueColor    409
+#define cyanColor    273
+#define magentaColor 137
+#define yellowColor  69
+#endif
+#ifndef srcCopy
+#define srcCopy     0
+#define srcOr       1
+#define blend       32
+#define ditherCopy  64
+#define addOver     34
+#endif
 #else
 /* Minimal Carbon compatibility layer for non-macOS builds */
 typedef unsigned char   Boolean;
@@ -56,6 +84,22 @@ static inline void CopyBits(const BitMap *srcBits, const BitMap *dstBits,
     (void)srcBits; (void)dstBits; (void)srcRect; (void)dstRect;
     (void)mode; (void)maskRgn;
 }
+static inline void ForeColor(short c) { (void)c; }
+static inline void BackColor(short c) { (void)c; }
+static inline void PaintRect(const Rect *r) { (void)r; }
+#define blackColor   33
+#define whiteColor   30
+#define redColor     205
+#define greenColor   341
+#define blueColor    409
+#define cyanColor    273
+#define magentaColor 137
+#define yellowColor  69
+#define srcCopy     0
+#define srcOr       1
+#define blend       32
+#define ditherCopy  64
+#define addOver     34
 #endif
 
 void ForceUpdateMain(void);
