@@ -33,6 +33,14 @@ static inline void CopyBits(const BitMap *srcBits, const BitMap *dstBits,
     (void)mode; (void)maskRgn;
 }
 #endif
+#ifndef CopyMask
+static inline void CopyMask(const BitMap *srcBits, const BitMap *maskBits,
+                            const BitMap *dstBits, const Rect *srcRect,
+                            const Rect *maskRect, const Rect *dstRect) {
+    (void)srcBits; (void)maskBits; (void)dstBits; (void)srcRect;
+    (void)maskRect; (void)dstRect;
+}
+#endif
 #ifndef OpColor
 static inline void OpColor(const RGBColor *color) { (void)color; }
 #endif
@@ -56,6 +64,9 @@ static inline void TextSize(short size) { (void)size; }
 #endif
 #ifndef TextMode
 static inline void TextMode(short mode) { (void)mode; }
+#endif
+#ifndef TextFace
+static inline void TextFace(short face) { (void)face; }
 #endif
 #ifndef StringWidth
 #include <string.h>
