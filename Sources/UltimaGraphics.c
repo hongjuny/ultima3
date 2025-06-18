@@ -1,9 +1,9 @@
 // Low-level graphic routines
 
+#import "CarbonShunts.h"
 #import "UltimaGraphics.h"
 
 #import "UltimaIncludes.h"
-#import "CarbonShunts.h"
 #import "CocoaBridge.h"
 #import "UltimaDngn.h"
 #import "UltimaMacIF.h"

@@ -1,9 +1,9 @@
 // A lot of miscellaneous Ultima routines
 
+#import "CarbonShunts.h"
 #import "UltimaMisc.h"
 
 #import "UltimaIncludes.h"
-#import "CarbonShunts.h"
 #import "CocoaBridge.h"
 #import "UltimaDngn.h"
 #import "UltimaGraphics.h"

@@ -1,9 +1,9 @@
 // Mac interface related routines
 
+#import "CarbonShunts.h"
 #import "UltimaMacIF.h"
 
 #import "UltimaIncludes.h"
-#import "CarbonShunts.h"
 #import "CocoaBridge.h"
 #import "LWAboutWindow.h"
 #import "UltimaGraphics.h"

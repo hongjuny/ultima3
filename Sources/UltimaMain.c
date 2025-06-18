@@ -1,9 +1,9 @@
 //  Ultima III Main Section v1.4
 
+#import "CarbonShunts.h"
 #import "UltimaMain.h"
 
 #import "UltimaIncludes.h"
-#import "CarbonShunts.h"
 #import "CocoaBridge.h"
 #import "PrefsDialog.h"
 #import "UltimaAppleEvents.h"
