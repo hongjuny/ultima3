@@ -64,6 +64,17 @@ static inline void PaintRect(const Rect *r) { (void)r; }
 #ifndef FrameRect
 static inline void FrameRect(const Rect *r) { (void)r; }
 #endif
+#ifndef GetCPixel
+static inline void GetCPixel(short h, short v, RGBColor *color) {
+    (void)h; (void)v; if (color) { color->red = color->green = color->blue = 0; }
+}
+#endif
+#ifndef InitCursor
+static inline void InitCursor(void) {}
+#endif
+#ifndef InvertRect
+static inline void InvertRect(const Rect *r) { (void)r; }
+#endif
 #ifndef TextFont
 static inline void TextFont(short font) { (void)font; }
 #endif
@@ -195,6 +206,17 @@ static inline void CopyBits(const BitMap *srcBits, const BitMap *dstBits,
 static inline void ForeColor(short c) { (void)c; }
 static inline void BackColor(short c) { (void)c; }
 static inline void PaintRect(const Rect *r) { (void)r; }
+#ifndef GetCPixel
+static inline void GetCPixel(short h, short v, RGBColor *color) {
+    (void)h; (void)v; if (color) { color->red = color->green = color->blue = 0; }
+}
+#endif
+#ifndef InitCursor
+static inline void InitCursor(void) {}
+#endif
+#ifndef InvertRect
+static inline void InvertRect(const Rect *r) { (void)r; }
+#endif
 #define bold   1
 #define italic 2
 static inline void TextFont(short font) { (void)font; }
