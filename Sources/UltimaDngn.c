@@ -742,7 +742,7 @@ short DrawWall(short location) { /* $19B4 */
 }
 
 void DrawDoor(short location) {
-    PolyHandle poly;
+    LWPolyHandle poly;
     // 0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31 */
     short dx1[32] = {74, 0,   300, 0,   114, 300, 20, 88,  212, 280, 36,  79,  135, 221, 264, 24,
                      87, 118, 182, 213, 276, 40,  87, 114, 143, 186, 213, 260, 118, 136, 164, 182};
@@ -759,16 +759,16 @@ void DrawDoor(short location) {
                      147, 148, 148, 147, 149, 143, 143, 143, 143, 143, 143, 143, 137, 134, 134, 137};
 
     SetGWorld(dungPort, nil);
-    poly = OpenPoly();
+    poly = LWOpenPoly();
     MoveTo((dx1[location] * 2), (dy1[location] * 2));
     LineTo((dx1[location] * 2), (dy2[location] * 2));
     LineTo((dx2[location] * 2), (dy3[location] * 2));
     LineTo((dx2[location] * 2), (dy4[location] * 2));
     LineTo((dx1[location] * 2), (dy1[location] * 2));
-    ClosePoly();
+    LWClosePoly();
     ForeColor(blackColor);
-    PaintPoly(poly);
-    KillPoly(poly);
+    LWPaintPoly(poly);
+    LWKillPoly(poly);
     ForeColor(blackColor);
     SetGWorld(mainPort, nil);
 }
