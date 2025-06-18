@@ -272,7 +272,15 @@ typedef void *CursHandle;
 #endif
 
 #ifndef PicHandle
-typedef void *PicHandle;
+/*
+ * Match the historical QuickDraw definition so builds that
+ * provide their own Picture types do not conflict with this
+ * lightweight shim. The actual structure layout is irrelevant
+ * for our purposes, so we only forward declare it here.
+ */
+typedef struct Picture Picture;
+typedef Picture *PicPtr;
+typedef PicPtr *PicHandle;
 #endif
 
 #ifndef Random
