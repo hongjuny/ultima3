@@ -8,6 +8,11 @@
 
 #ifdef __APPLE__
 #include <Carbon/Carbon.h>
+#ifndef SetRect
+static inline void SetRect(Rect *r, short l, short t, short rgt, short btm) {
+    r->left = l; r->top = t; r->right = rgt; r->bottom = btm;
+}
+#endif
 #else
 /* Minimal Carbon compatibility layer for non-macOS builds */
 typedef unsigned char   Boolean;
