@@ -48,6 +48,45 @@ static inline void BackColor(short c) { (void)c; }
 #ifndef PaintRect
 static inline void PaintRect(const Rect *r) { (void)r; }
 #endif
+#ifndef TextFont
+static inline void TextFont(short font) { (void)font; }
+#endif
+#ifndef TextSize
+static inline void TextSize(short size) { (void)size; }
+#endif
+#ifndef TextMode
+static inline void TextMode(short mode) { (void)mode; }
+#endif
+#ifndef StringWidth
+#include <string.h>
+static inline short StringWidth(const unsigned char *str) {
+    return str ? (short)(str[0] * 6) : 0;
+}
+#endif
+#ifndef MoveTo
+static inline void MoveTo(short h, short v) { (void)h; (void)v; }
+#endif
+#ifndef DrawString
+static inline void DrawString(const unsigned char *str) { (void)str; }
+#endif
+#ifndef RGBForeColor
+static inline void RGBForeColor(const RGBColor *color) { (void)color; }
+#endif
+#ifndef PolyHandle
+typedef void * PolyHandle;
+#endif
+#ifndef OpenPoly
+static inline PolyHandle OpenPoly(void) { return NULL; }
+#endif
+#ifndef ClosePoly
+static inline void ClosePoly(void) {}
+#endif
+#ifndef PaintPoly
+static inline void PaintPoly(PolyHandle poly) { (void)poly; }
+#endif
+#ifndef KillPoly
+static inline void KillPoly(PolyHandle poly) { (void)poly; }
+#endif
 #ifndef blackColor
 #define blackColor   33
 #define whiteColor   30
