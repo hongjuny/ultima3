@@ -5,6 +5,8 @@
 #import "UltimaIncludes.h"
 #import "CarbonShunts.h"
 #import "CocoaBridge.h"
+#import "U3Renderer.h"
+#import "U3Platform.h"
 #import "UltimaGraphics.h"
 #import "UltimaMacIF.h"
 #import "UltimaMain.h"
@@ -126,11 +128,11 @@ Boolean FormPartyDialog(void) {
     Str255 final, str;
 
     if (Party[7] != 0) {
-        ClearBottom();
+        U3RenderClearBottom();
         CenterMessage(4, 13);
         CenterMessage(5, 16);
         ShowClickMessage();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
         return FALSE;
     }
     theDialog = GetNewDialog(BASERES + 21, nil, (WindowPtr)-1);
@@ -224,7 +226,7 @@ Boolean FormPartyDialog(void) {
                 PutMiscStuff();
                 //              CenterMessage(12,22);
                 //              ShowClickMessage();
-                //              WaitKeyMouse();
+                //              U3PlatformWaitKeyMouse();
                 dialogDone = TRUE;
                 didForm = TRUE;
                 break;
@@ -274,23 +276,6 @@ void GetButtons(void) {
     if (error == noErr)
         DrawNamedImage(CFSTR("Buttons.png"), buttonPort, &buttonRect);
 
-    /*
-    CGrafPtr savePort;
-    PicHandle pict = GetPicture(BASERES+4);
-    if (pict==nil) HandleError(QDError(), 74, BASERES+4);
-    Rect buttonRect;
-    SetRect(&buttonRect, 0, 0, 272, 600);
-    OSErr error = NewGWorld(&buttonPort, 0, &buttonRect, nil, nil, 0);
-    if (error) error = NewGWorld(&buttonPort, 32, &buttonRect, nil, nil, 0);
-    if (error) HandleError(error, 75, 0);
-    GetPort(&savePort);
-    SetGWorld(buttonPort, nil);
-    ForeColor(blackColor); BackColor(whiteColor);
-    DrawPicture(pict, &buttonRect);
-    ReleaseResource((Handle)pict);
-    SetGWorld(mainPort, nil);
-    SetPort(savePort);
-*/
 }
 
 void DisposeButtons(void) {
@@ -376,7 +361,7 @@ Boolean HandleButtonClick(Point point, short butNum) {
             DrawButton(butNum, pushed, FALSE);
             ForceUpdateMain();
             if (pushed)
-                ThreadSleepTicks(10);
+                U3PlatformWaitTicks(10);
         }
     }
     DrawButton(butNum, FALSE, FALSE);
@@ -385,130 +370,17 @@ Boolean HandleButtonClick(Point point, short butNum) {
 
 // Defaults defined here (where 0 or false isn't the default)
 void ValidatePrefs(void) {
-    CFNumberRef number;
-    Boolean keyExistsAndValid;
-
     // Healing Threshold
-    CFPreferencesGetAppIntegerValue(U3PrefHealThreshold, kCFPreferencesCurrentApplication, &keyExistsAndValid);
-    if (!keyExistsAndValid) {
-        short healThreshold = 150;
-        number = CFNumberCreate(NULL, kCFNumberShortType, &healThreshold);
-        CFPreferencesSetAppValue(U3PrefHealThreshold, number, kCFPreferencesCurrentApplication);
-        CFRelease(number);
-    }
+    if (!U3PlatformHasPreference(U3PreferenceHealThreshold))
+        U3PlatformSetIntegerPreference(U3PreferenceHealThreshold, 150);
 }
-/*
-void OpenPrefs(void)
-{
-    Str255      prefsPath;
-    OSErr       err;
-    long        prefDirID, inOutCount;
-    Ptr         buffer;
-    FSSpec      spec;
-    short       prefVRefNum;
- 
-    err = FindFolder(kOnSystemDisk, kPreferencesFolderType, kDontCreateFolder, &prefVRefNum, &prefDirID);
-    if (err) HandleError(err, 62, 0);
-    GetIndString(prefsPath, BASERES+11, 6);
-    err = FSMakeFSSpec(prefVRefNum, prefDirID, prefsPath, &spec);
-    err = FSpOpenDF(&spec, fsRdWrPerm, &prefFRefNum); // open old prefs
-    if (err) // no prefs file found, so make a new one
-        {
-        err = FSpDelete(&spec);
-        err = FSpCreate(&spec, 'Ult3', 'pref', smSystemScript); // create new prefs
-        if (err) { HandleError(err, 63, 0); return; }
-        err = FSpOpenDF(&spec, fsRdWrPerm, &prefFRefNum); // open it
-        if (err) { HandleError(err, 64, 0); return; }
-        inOutCount = 3 + sizeof(struct preferences);
-        buffer = NewPtrClear(inOutCount);
-        if (buffer==nil) { HandleError(-108, 65, 0); return; }
-        // initialize preferences
-        buffer[0] = 1; // version
-        buffer[1] = (unsigned char)(sizeof(struct preferences)/256);
-        buffer[2] = (unsigned char)(sizeof(struct preferences) & 0x00FF);
-        prefs.soundActive       = true;
-        prefs.musicActive       = true;
-        prefs.speechActive      = true;
-        prefs.maskedTiles       = true;
-        prefs.speedConstrain    = true;
-        prefs.fullScreen        = true;
-        prefs.dontAskDisplayMode= false;
-        prefs.showPortraits     = true;
-        prefs.ignoreWind        = true;
-        prefs.allowDiagonal     = true;
-        prefs.noAutoSave        = true;
-        prefs.autoCombat        = true;
-        prefs.autoHeal          = true;
-        prefs.waitForSound      = true;
-        prefs.healThreshold     = 150;
-        prefs.currentwinpos.h   = 0;
-        prefs.currentwinpos.v   = 0;
-        prefs.modernAppearance      = true;
-        GetIndString(prefs.fontName, BASERES+11, 7);
-
-        BlockMove(&prefs, buffer+3, sizeof(struct preferences));
-        err = FSWrite(prefFRefNum, &inOutCount, buffer); // write defaults
-        if (err) HandleError(err, 66, 0);
-        err = SetFPos(prefFRefNum, 1, 0); // rewind to beginning
-        if (err) HandleError(err, 67, 0);
-        DisposePtr(buffer);
-        }
-}
-
-void GetPrefs(void)
-{
-    char        version;
-    long        inOutCount;
-    OSErr       err;
-    Ptr         buffer;
-
-    OpenPrefs();
-    err = GetEOF(prefFRefNum, &inOutCount);
-    buffer = NewPtrClear(inOutCount);
-    if (buffer==nil) HandleError(-108, 68, 0);
-    err = FSRead(prefFRefNum, &inOutCount, buffer);
-    if (err) HandleError(err, 69, 0);
-    FSClose(prefFRefNum);
-    version = buffer[0];
-    if (version>1)
-        {
-        // complain
-        }
-    inOutCount = (unsigned char)buffer[1]*256 + (unsigned char)buffer[2];
-    if (inOutCount > sizeof(struct preferences)) inOutCount = sizeof(struct preferences);
-    BlockMove(buffer+3, &prefs, inOutCount);
-    DisposePtr(buffer);
- }
-
-void PutPrefs(void)
-{
-    OSErr       err;
-    long        inOutCount;
-    Ptr         buffer;
- 
-    OpenPrefs();
-    err = SetFPos(prefFRefNum, 1, 0);
-    if (err) HandleError(err, 70, 0);
-    inOutCount = 3 + sizeof(struct preferences);
-    buffer = NewPtrClear(inOutCount);
-    if (buffer==nil) HandleError(-108, 71, 0);
-    buffer[0] = 1; // prefs version
-    buffer[1] = (unsigned char)(sizeof(struct preferences)/256);
-    buffer[2] = (unsigned char)(sizeof(struct preferences) & 0x00FF);
-    BlockMove(&prefs, buffer+3, sizeof(struct preferences));
-    err = FSWrite(prefFRefNum, &inOutCount, buffer);
-    if (err) HandleError(err, 72, 0);
-    DisposePtr(buffer);
-    FSClose(prefFRefNum);
-}
-*/
 void DoAutoHeal(void) {
     short clss, c, maxhp, hp, lowest, whoToHeal = -1, whoToCast = -1;
     Boolean whoToCastHealIsMulti, isMulti, isCler;
 
-    if (!CFPreferencesGetAppBooleanValue(U3PrefNoAutoHeal, kCFPreferencesCurrentApplication, NULL)) {
+    if (!U3PlatformGetBooleanPreference(U3PreferenceNoAutoHeal)) {
         // pick someone to heal (lowest hp as long as need 25 hp or more)
-        lowest = CFPreferencesGetAppIntegerValue(U3PrefHealThreshold, kCFPreferencesCurrentApplication, NULL);
+        lowest = U3PlatformGetIntegerPreference(U3PreferenceHealThreshold);
         for (c = 0; c <= 3; c++) {
             hp = Player[Party[7 + c]][26] * 256 + Player[Party[7 + c]][27];
             maxhp = Player[Party[7 + c]][28] * 256 + Player[Party[7 + c]][29];
@@ -799,8 +671,8 @@ pascal Boolean DialogFilter(DialogPtr theDlg, EventRecord *event, short *itemHit
                 GetDialogItem(theDlg, *itemHit, &theType, &theHandle, &rect);
                 if (LWIsControlActive((ControlHandle)theHandle)) {
                     HiliteControl((ControlHandle)theHandle, kControlButtonPart);
-                    long endTime = TickCount() + 8;
-                    while (TickCount() < endTime) {
+                    long endTime = U3PlatformTickCount() + 8;
+                    while (U3PlatformTickCount() < endTime) {
                     }
                     HiliteControl((ControlHandle)theHandle, 0);
                 } else {
@@ -829,13 +701,13 @@ void SetUpDisplayDialog(void) {
     //Rect          myRect;
     //Handle            myHandle;
 
-    if (!CFPreferencesGetAppBooleanValue(U3PrefDontAskDisplayMode, kCFPreferencesCurrentApplication, NULL)) {
+    if (!U3PlatformGetBooleanPreference(U3PreferenceDontAskDisplayMode)) {
         theDialog = GetNewDialog(BASERES + 24, nil, (WindowPtr)-1);
         GetPort(&curPort);
         LWSetDialogPort(theDialog);
         ShowWindow(GetDialogWindow(theDialog));
         dialogDone = FALSE;
-        if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL)) {
+        if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen)) {
             DefineDefaultItem(theDialog, IDAS_FULLSCREEN);
             ConfigureFilter(IDAS_FULLSCREEN, IDAS_WINDOW);
         } else {
@@ -846,11 +718,11 @@ void SetUpDisplayDialog(void) {
             ModalDialog((ModalFilterUPP)DialogFilterProc, &itemHit);
             switch (itemHit) {
                 case IDAS_FULLSCREEN:
-                    CFPreferencesSetAppValue(U3PrefFullScreen, kCFBooleanTrue, kCFPreferencesCurrentApplication);
+                    U3PlatformSetBooleanPreference(U3PreferenceFullScreen, true);
                     dialogDone = true;
                     break;
                 case IDAS_WINDOW:
-                    CFPreferencesSetAppValue(U3PrefFullScreen, kCFBooleanFalse, kCFPreferencesCurrentApplication);
+                    U3PlatformSetBooleanPreference(U3PreferenceFullScreen, false);
                     dialogDone = true;
                     break;
                     /*case IDAS_DONTASK:
@@ -861,27 +733,27 @@ void SetUpDisplayDialog(void) {
         }
         //GetDialogItem(theDialog, IDAS_DONTASK, &temp, &myHandle, &myRect);
         //CFBooleanRef dontAsk = (GetControlValue((ControlHandle)myHandle)) ? kCFBooleanTrue : kCFBooleanFalse ;
-        CFPreferencesSetAppValue(U3PrefDontAskDisplayMode, kCFBooleanTrue, kCFPreferencesCurrentApplication);
+        U3PlatformSetBooleanPreference(U3PreferenceDontAskDisplayMode, true);
         SetPort(curPort);
         DisposeDialog(theDialog);
     }
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
         SetUpDisplay();
 }
 
 void SetUpDisplay(void) {
-    if (!CFPreferencesGetAppBooleanValue(U3PrefNoEducateAboutFullScreen, kCFPreferencesCurrentApplication, NULL)) {
+    if (!U3PlatformGetBooleanPreference(U3PreferenceNoEducateAboutFullScreen)) {
         ResetCursor();
         int result = EducateAboutFullScreen();
         if (result == 0)
-            CFPreferencesSetAppValue(U3PrefNoEducateAboutFullScreen, kCFBooleanTrue, kCFPreferencesCurrentApplication);
+            U3PlatformSetBooleanPreference(U3PreferenceNoEducateAboutFullScreen, true);
     }
 
-    short curx = CFPreferencesGetAppIntegerValue(U3PrefCurWindowX, kCFPreferencesCurrentApplication, NULL);
-    short cury = CFPreferencesGetAppIntegerValue(U3PrefCurWindowY, kCFPreferencesCurrentApplication, NULL);
+    short curx = U3PlatformGetIntegerPreference(U3PreferenceCurrentWindowX);
+    short cury = U3PlatformGetIntegerPreference(U3PreferenceCurrentWindowY);
     SetSaveWindowPrefPosn(curx, cury);
 
-    if (!CFPreferencesGetAppBooleanValue(U3PrefFullScreenResChange, kCFPreferencesCurrentApplication, NULL)) {
+    if (!U3PlatformGetBooleanPreference(U3PreferenceFullScreenResolutionChange)) {
         fullScreenModeByResolutionChange = FALSE;
         int screenWidth, screenHeight;
         savedScreenModeDict = CGDisplayCurrentMode(kCGDirectMainDisplay);
@@ -912,7 +784,7 @@ void SetUpDisplay(void) {
         boolean_t isExactMatch = false;
         int bestWidth = 640;
         int bestHeight = 400;
-        if (!CFPreferencesGetAppBooleanValue(U3PrefOriginalSize, kCFPreferencesCurrentApplication, NULL)) {
+        if (!U3PlatformGetBooleanPreference(U3PreferenceOriginalSize)) {
             bestWidth *= 2;
             bestHeight *= 2;
         }
@@ -942,14 +814,14 @@ void RestoreDisplay(void) {
         GetGWorld(&mainPort, &mainDevice);
     }
 
-    short savx = CFPreferencesGetAppIntegerValue(U3PrefSaveWindowX, kCFPreferencesCurrentApplication, NULL);
-    short savy = CFPreferencesGetAppIntegerValue(U3PrefSaveWindowY, kCFPreferencesCurrentApplication, NULL);
+    short savx = U3PlatformGetIntegerPreference(U3PreferenceSaveWindowX);
+    short savy = U3PlatformGetIntegerPreference(U3PreferenceSaveWindowY);
     MoveWindow(gMainWindow, savx, savy, false);
     ForceOnScreen(gMainWindow);
 }
 
 void AdaptToWindow(Boolean forceOnScreen) {
-    Boolean doubleSize = !CFPreferencesGetAppBooleanValue(U3PrefOriginalSize, kCFPreferencesCurrentApplication, NULL);
+    Boolean doubleSize = !U3PlatformGetBooleanPreference(U3PreferenceOriginalSize);
     int newBlockSize = (doubleSize) ? 32 : 16;
     if (newBlockSize == doubleSize)
         return;
@@ -1157,32 +1029,6 @@ Boolean SetUpHelpWorld(void) {
     if (err == noErr)
         return DrawNamedImage(CFSTR("RaceClassInfo.gif"), helpWorld, &theRect);
     return false;
-
-    /*
-    PicHandle       pict;
-    GrafPtr         savePort;
-    short           error;
-    PixMapHandle    pm;
-    
-    if (helpWorld) return TRUE;
-    pict = GetPicture(BASERES+7);
-    if (pict==nil) return FALSE;
-    Rect theRect; SetRect(&theRect, 0, 0, 400, 753);
-    error = NewGWorld(&helpWorld, 0, &theRect, nil, nil, 0);
-    if (error) error = NewGWorld(&helpWorld, 8, &theRect, nil, nil, 0);
-    if (error) error = NewGWorld(&helpWorld, 1, &theRect, nil, nil, 0);
-    if (error) { ReleaseResource((Handle)pict); return FALSE; }
-    GetPort(&savePort);
-    SetGWorld(helpWorld, nil);
-    pm = GetGWorldPixMap(helpWorld);
-    LockPixels(pm);
-    ForeColor(blackColor); BackColor(whiteColor);
-    DrawPicture(pict, &theRect);
-    ReleaseResource((Handle)pict);
-    SetGWorld(mainPort, nil);
-    SetPort(savePort);
-    return TRUE;
-*/
 }
 
 void DestroyHelpWorld(void) {
@@ -1266,7 +1112,7 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
     int fontSize = (int)(9.0 * (blkSiz / 16.0));
     int labelOffset = 2 + ((fontSize - 9) / 3);
 
-    Boolean classic = (CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL));
+    Boolean classic = U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance);
     Boolean showPortraits = !classic;
     if (fontNumber == -1)
         GetFNum("\pHelvetica", &fontNumber);
@@ -1287,11 +1133,11 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
     EraseRect(&fromRect);
     ros = Party[ch + 7];
     if (Player[ros][0]) {   // character here
-        Boolean classic = (CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL));
+        Boolean classic = U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance);
         BackColor(whiteColor);
         // Image or condition initial
         if (!showPortraits)
-            UPrintChar(Player[ros][17], 14, 0);
+            U3RenderPrintCharAt(Player[ros][17], 14, 0);
         else
             DrawPortrait(ch, statWorld);
         // Name
@@ -1301,7 +1147,7 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
             str[++str[0]] = Player[ros][i++] & 0x7F;
         }
         if (classic)
-            UPrint(str, 7 - (str[0] / 2) + showPortraits, 0);
+            U3RenderPrintPascalStringAt(str, 7 - (str[0] / 2) + showPortraits, 0);
         else
             NewPrint(str, (blkSiz * 7.5) - PixelsWideString(str) / 2, 0);
         // Sex/Race/Class
@@ -1309,7 +1155,7 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
         str[1] = Player[ros][24];
         str[2] = Player[ros][22];
         str[3] = Player[ros][23];
-        UPrint(str, 1 + showPortraits, 1);
+        U3RenderPrintPascalStringAt(str, 1 + showPortraits, 1);
         if (!classic) {   // draw bars & such
             // Hit Points
             num = (Player[ros][26] * 256) + (Player[ros][27]);
@@ -1505,7 +1351,7 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
                 str[++str[0]] = '0';
             BlockMoveData(numStr + 1, str + str[0] + 1, numStr[0]);
             str[0] += numStr[0];
-            UPrint(str, 1 + showPortraits, 2);
+            U3RenderPrintPascalStringAt(str, 1 + showPortraits, 2);
             // Mana
             num = Player[ros][25];
             str[0] = 2;
@@ -1516,7 +1362,7 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
                 str[++str[0]] = '0';
             BlockMoveData(numStr + 1, str + str[0] + 1, numStr[0]);
             str[0] += numStr[0];
-            UPrint(str, 5 + showPortraits, 1);
+            U3RenderPrintPascalStringAt(str, 5 + showPortraits, 1);
             // Level
             num = Player[ros][30] + 1;
             str[0] = 2;
@@ -1527,7 +1373,7 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
                 str[++str[0]] = '0';
             BlockMoveData(numStr + 1, str + str[0] + 1, numStr[0]);
             str[0] += numStr[0];
-            UPrint(str, 10 + showPortraits, 1);
+            U3RenderPrintPascalStringAt(str, 10 + showPortraits, 1);
             // Food
             num = Player[ros][32] * 100 + Player[ros][33];
             str[0] = 2;
@@ -1542,7 +1388,7 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
                 str[++str[0]] = '0';
             BlockMoveData(numStr + 1, str + str[0] + 1, numStr[0]);
             str[0] += numStr[0];
-            UPrint(str, 8 + showPortraits, 2);
+            U3RenderPrintPascalStringAt(str, 8 + showPortraits, 2);
         }
     }
     SetPort(curPort);
@@ -1552,91 +1398,3 @@ void RenderCharStats(short ch, const Rect *rect) {   // 0-3
              &fromRect, rect, srcCopy, nil);
     DisposeGWorld(statWorld);
 }
-
-//void WriteStringFile(Str255 aString, short fRef) {
-//    long numBytes = aString[0];
-//    FSWrite(fRef, &numBytes, aString + 1);
-//}
-
-//void WriteNumberFile(long number, short fRef) {
-//    Str255 str;
-//    NumToString(number, str);
-//    WriteStringFile(str, fRef);
-//}
-
-//void WriteInfoToDisk(void) {
-//    short index, fRef;
-//    FSSpec fss;
-//    OSErr err;
-//    err = FSMakeFSSpec(0, 0, "\pTLKS-out.txt", &fss);
-//    err = FSpDelete(&fss);
-//    err = FSpCreate(&fss, 'ttxt', 'TEXT', smSystemScript);
-//    err = FSpOpenDF(&fss, fsWrPerm, &fRef);
-//    WriteStringFile("\pTLKS output\n", fRef);
-//    for (index = 400; index < 413; index++) {
-//        if (index == 412)
-//            index = 421;
-//        Str255 str;
-//        short i, person = 0;
-//        ResType type;
-//        Handle tlks, mons;
-//        tlks = GetResource('TLKS', index);
-//        LoadResource(tlks);
-//        HLock(tlks);
-//        GetResInfo(tlks, &i, &type, str);
-//        WriteStringFile(str, fRef);
-//        WriteStringFile("\p:\n", fRef);
-//        mons = GetResource('MONS', index);
-//        LoadResource(mons);
-//        HLock(mons);
-//        for (person = 0; person < 32; person++) {
-//            if ((*mons)[person + XMON] != 0 && (*mons)[person + YMON] != 0) {
-//                int attitude, attp, p = (*mons)[person + HPMON] & 0x0F;
-//                int ptr = 0;
-//                WriteStringFile("\p    ", fRef);
-//                WriteNumberFile((*mons)[person + XMON], fRef);
-//                WriteStringFile("\p,", fRef);
-//                WriteNumberFile((*mons)[person + YMON], fRef);
-//                WriteStringFile("\p: ", fRef);
-//                attitude = (unsigned char)((*mons)[person + HPMON]) & 0xC0;
-//                attp = 4;
-//                if (attitude == 0x00)
-//                    attp = 1;
-//                if (attitude == 0x40)
-//                    attp = 2;
-//                if (attitude == 0x80)
-//                    attp = 3;
-//                GetIndString(str, BASERES + 10, attp);
-//                WriteStringFile(str, fRef);
-//                WriteStringFile("\p ", fRef);
-//                GetPascalStringFromArrayByIndex(str, CFSTR("Tiles"), (*mons)[person] / 4);
-//                WriteStringFile(str, fRef);
-//                WriteStringFile("\p ", fRef);
-//                str[0] = 0;
-//                while (p > 0 && ptr < 256) {
-//                    while ((*tlks)[ptr] != 0 && ptr < 256)
-//                        ptr++;
-//                    p--;
-//                    ptr++;
-//                }
-//                while ((unsigned char)(*tlks)[ptr] == 255)
-//                    ptr++;
-//                while ((*tlks)[ptr] != 0 && ptr < 256) {
-//                    unsigned char talk = (*tlks)[ptr];
-//                    if (talk == 0xFF)
-//                        str[++str[0]] = ' ';
-//                    else
-//                        str[++str[0]] = talk & 0x7F;
-//                    ptr++;
-//                }
-//                WriteStringFile(str, fRef);
-//                WriteStringFile("\p\n", fRef);
-//            }
-//        }
-//        HUnlock(tlks);
-//        ReleaseResource(tlks);
-//        HUnlock(mons);
-//        ReleaseResource(mons);
-//    }
-//    FSClose(fRef);
-//}

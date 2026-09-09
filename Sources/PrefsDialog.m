@@ -9,12 +9,13 @@
 #import "PrefsDialogController.h"
 #import "CarbonShunts.h"
 #import "CocoaBridge.h"
+#import "U3Audio.h"
+#import "U3Platform.h"
 #import "LWIntegerTransformer.h"
 #import "UltimaMain.h"
 #import "UltimaGraphics.h"
 #import "UltimaIncludes.h"
 #import "UltimaMacIF.h"
-#import "UltimaSound.h"
 #import "UltimaText.h"
 
 extern WindowPtr gMainWindow;
@@ -22,6 +23,13 @@ extern short gUpdateWhere, gMouseState;
 extern Boolean gAutoCombat;
 extern unsigned char Party[64];
 extern unsigned char gCurFrame;
+
+static NSString *U3PreferenceStringValue(U3PreferenceKey key) {
+    char value[1024];
+    if (!U3PlatformCopyUTF8StringPreference(key, value, sizeof(value)))
+        return nil;
+    return [NSString stringWithUTF8String:value];
+}
 
 @implementation PrefsDialogController
 
@@ -32,7 +40,7 @@ extern unsigned char gCurFrame;
 - (void)awakeFromNib {
     // Set up Fonts menu
     int selectedIndex = -1;
-    NSString *currentFontName = [[NSUserDefaults standardUserDefaults] objectForKey:(NSString *)U3PrefGameFont];
+    NSString *currentFontName = U3PreferenceStringValue(U3PreferenceGameFont);
     while ([mFontsButton numberOfItems] > 2) {
         [mFontsButton removeItemAtIndex:2];
     }
@@ -63,7 +71,7 @@ extern unsigned char gCurFrame;
 
     // Set up Themes menu
     selectedIndex = -1;
-    NSString *currentThemeName = [[NSUserDefaults standardUserDefaults] objectForKey:(NSString *)U3PrefTileSet];
+    NSString *currentThemeName = U3PreferenceStringValue(U3PreferenceTileSet);
     [mThemesButton removeAllItems];
     NSArray *graphicsArray = [(NSArray *)CopyGraphicsDirectoryItems() autorelease];
     NSMutableArray *themeNames = [NSMutableArray new];
@@ -100,31 +108,30 @@ extern unsigned char gCurFrame;
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    ApplyVolumePreferences();
+    U3AudioApplyPreferences();
 }
 
 - (IBAction)useClassicDefaults:(id)sender {
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:(NSString *)U3PrefIncludeWind];
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:(NSString *)U3PrefNoDiagonals];
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:(NSString *)U3PrefManualCombat];
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:(NSString *)U3PrefNoAutoHeal];
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:(NSString *)U3PrefAutoSave];
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:(NSString *)U3PrefAsyncSound];
-    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:(NSString *)U3PrefClassicAppearance];
-    //[[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefGameFont];
+    U3PlatformSetBooleanPreference(U3PreferenceIncludeWind, true);
+    U3PlatformSetBooleanPreference(U3PreferenceNoDiagonals, true);
+    U3PlatformSetBooleanPreference(U3PreferenceManualCombat, true);
+    U3PlatformSetBooleanPreference(U3PreferenceNoAutoHeal, true);
+    U3PlatformSetBooleanPreference(U3PreferenceAutoSave, true);
+    U3PlatformSetBooleanPreference(U3PreferenceAsyncSound, true);
+    U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, true);
     //[mFontsButton selectItemAtIndex:0];
 }
 
 - (IBAction)useModernDefaults:(id)sender {
-    [[NSUserDefaults standardUserDefaults] setInteger:750 forKey:(NSString *)U3PrefHealThreshold];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefIncludeWind];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefNoDiagonals];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefManualCombat];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefNoAutoHeal];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefAutoSave];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefAsyncSound];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefClassicAppearance];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:(NSString *)U3PrefGameFont];
+    U3PlatformSetIntegerPreference(U3PreferenceHealThreshold, 750);
+    U3PlatformRemovePreference(U3PreferenceIncludeWind);
+    U3PlatformRemovePreference(U3PreferenceNoDiagonals);
+    U3PlatformRemovePreference(U3PreferenceManualCombat);
+    U3PlatformRemovePreference(U3PreferenceNoAutoHeal);
+    U3PlatformRemovePreference(U3PreferenceAutoSave);
+    U3PlatformRemovePreference(U3PreferenceAsyncSound);
+    U3PlatformRemovePreference(U3PreferenceClassicAppearance);
+    U3PlatformRemovePreference(U3PreferenceGameFont);
     [mFontsButton selectItemAtIndex:0];
 }
 
@@ -141,21 +148,21 @@ void GameOptionsDialog(void) {
 
     NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];
     NSMutableDictionary *valuesDict = [NSMutableDictionary dictionary];
-    NSString *orgTheme = [[[[NSUserDefaults standardUserDefaults] objectForKey:(NSString *)U3PrefTileSet] retain] autorelease];
-    if ([[NSUserDefaults standardUserDefaults] integerForKey:(NSString *)U3PrefSoundVolume] < 1)
-        [[NSUserDefaults standardUserDefaults] setInteger:100 forKey:(NSString *)U3PrefSoundVolume];
-    if ([[NSUserDefaults standardUserDefaults] integerForKey:(NSString *)U3PrefMusicVolume] < 1)
-        [[NSUserDefaults standardUserDefaults] setInteger:100 forKey:(NSString *)U3PrefMusicVolume];
+    NSString *orgTheme = [[U3PreferenceStringValue(U3PreferenceTileSet) retain] autorelease];
+    if (U3PlatformGetIntegerPreference(U3PreferenceSoundVolume) < 1)
+        U3PlatformSetIntegerPreference(U3PreferenceSoundVolume, 100);
+    if (U3PlatformGetIntegerPreference(U3PreferenceMusicVolume) < 1)
+        U3PlatformSetIntegerPreference(U3PreferenceMusicVolume, 100);
     int result = RunCocoaDialog(CFSTR("GameOptions"), (CFMutableDictionaryRef)valuesDict, CFSTR("PrefsDialogController"));
     if (result == 1) {
         ReflectPrefs();
-        NSString *newTheme = [[NSUserDefaults standardUserDefaults] objectForKey:(NSString *)U3PrefTileSet];
+        NSString *newTheme = U3PreferenceStringValue(U3PreferenceTileSet);
         if ((!newTheme && orgTheme) || (newTheme && !orgTheme) || ![orgTheme isEqual:newTheme])
             GetGraphics();
         SetNewFont(true);
         if (Party[3] == 0x80)
-            gAutoCombat = ![[NSUserDefaults standardUserDefaults] boolForKey:(NSString *)U3PrefManualCombat];
-        ApplyVolumePreferences();
+            gAutoCombat = !U3PlatformGetBooleanPreference(U3PreferenceManualCombat);
+        U3AudioApplyPreferences();
     }
     [myPool release];
 

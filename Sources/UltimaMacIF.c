@@ -5,6 +5,10 @@
 #import "UltimaIncludes.h"
 #import "CarbonShunts.h"
 #import "CocoaBridge.h"
+#import "U3Audio.h"
+#import "U3IO.h"
+#import "U3Renderer.h"
+#import "U3Platform.h"
 #import "UltimaGraphics.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
@@ -67,21 +71,15 @@ void ReflectNewCursor(short newCursor);
 // ----------------------------------------------------------------------
 
 void ReflectPrefs(void) {
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
         MyShowMenuBar();
-    CheckMenuItem(gSpecialMenu, SOUNDID,
-                  !CFPreferencesGetAppBooleanValue(U3PrefSoundInactive, kCFPreferencesCurrentApplication, NULL));
-    CheckMenuItem(gSpecialMenu, MUSICID,
-                  !CFPreferencesGetAppBooleanValue(U3PrefMusicInactive, kCFPreferencesCurrentApplication, NULL));
-    CheckMenuItem(gSpecialMenu, SPEECHID,
-                  !CFPreferencesGetAppBooleanValue(U3PrefSpeechInactive, kCFPreferencesCurrentApplication, NULL));
-    CheckMenuItem(gSpecialMenu, CONSTRAINID,
-                  !CFPreferencesGetAppBooleanValue(U3PrefSpeedUnconstrain, kCFPreferencesCurrentApplication, NULL));
-    CheckMenuItem(gSpecialMenu, AUTOCOMBATID,
-                  !CFPreferencesGetAppBooleanValue(U3PrefManualCombat, kCFPreferencesCurrentApplication, NULL));
-    CheckMenuItem(gSpecialMenu, DOUBLESIZEID,
-                  !CFPreferencesGetAppBooleanValue(U3PrefOriginalSize, kCFPreferencesCurrentApplication, NULL));
-    Boolean isFullScreen = CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL);
+    CheckMenuItem(gSpecialMenu, SOUNDID, !U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled));
+    CheckMenuItem(gSpecialMenu, MUSICID, !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled));
+    CheckMenuItem(gSpecialMenu, SPEECHID, !U3PlatformGetBooleanPreference(U3PreferenceSpeechDisabled));
+    CheckMenuItem(gSpecialMenu, CONSTRAINID, !U3PlatformGetBooleanPreference(U3PreferenceUnconstrainedSpeed));
+    CheckMenuItem(gSpecialMenu, AUTOCOMBATID, !U3PlatformGetBooleanPreference(U3PreferenceManualCombat));
+    CheckMenuItem(gSpecialMenu, DOUBLESIZEID, !U3PlatformGetBooleanPreference(U3PreferenceOriginalSize));
+    Boolean isFullScreen = U3PlatformGetBooleanPreference(U3PreferenceFullScreen);
     CheckMenuItem(gSpecialMenu, FULLSCREENID, isFullScreen);
     if (isFullScreen)
         LWDisableMenuItem(gSpecialMenu, DOUBLESIZEID);
@@ -133,7 +131,7 @@ Boolean QuitDialog(void) {
     if (gCurFrame != 1)
         return TRUE;
 
-    if (CFPreferencesGetAppBooleanValue(U3PrefAutoSave, kCFPreferencesCurrentApplication, NULL)) {
+    if (U3PlatformGetBooleanPreference(U3PreferenceAutoSave)) {
         GetPascalStringFromArrayByIndex(where, CFSTR("MoreMessages"), 55);    //GetIndString(where, BASERES+14, 56);
         if (Party[3] == 1)
             GetPascalStringFromArrayByIndex(where, CFSTR("MoreMessages"), 56);    //GetIndString(where, BASERES+14, 57);
@@ -169,7 +167,7 @@ void HandleMouseDown(void) {
 
     gInBackground = FALSE;
     mouse = gTheEvent.where;
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL) && mouse.v < gBarHeight)
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen) && mouse.v < gBarHeight)
         MyShowMenuBar();
     GlobalToLocal(&mouse);
     thePart = FindWindow(gTheEvent.where, &whichWindow);
@@ -420,115 +418,6 @@ void AboutUltima3(void) {
         TransitionWindow(GetDialogWindow(theDialog), 4, kWindowHideTransitionAction, nil);    // 4 = kWindowFadeTransitionEffect
     SetPort(curPort);
     DisposeDialog(theDialog);
-    /*
-    OSErr           error;
-    short           bytesWide, i, numblurs, mouseStateStore, xOff, yOff;
-    short           x, y;
-    PicHandle       pict;
-    Rect            fromRect, toRect;
-    CGrafPtr        aboutOffWorld1, aboutOffWorld2, aboutBackStoreWorld;
-    PixMapHandle    aboutOffPixMap1, aboutOffPixMap2;
-    long            endTime, offset;
-    Boolean         done=FALSE;
-    Ptr             base2;
-    
-    mouseStateStore = gMouseState;
-    gMouseState = 0;
-    CursorUpdate();
-    pict = GetPicture(10);
-    if (pict==0) { HandleError(ResError(), 73, 10); return; }
-    fromRect = (*pict)->picFrame;
-    toRect = fromRect;
-    xOff = ((blkSiz*40)/2)-(fromRect.right/2);
-    yOff = ((blkSiz*24)/2)-(fromRect.bottom/2);
-    OffsetRect(&toRect,xOff,yOff);
-    gInterrupt=FALSE;
-    error = NewGWorld(&aboutOffWorld1, 32, &fromRect, nil, nil, 0);
-    if (!error)
-        {
-        SetGWorld(aboutOffWorld1, nil);
-        ForeColor(blackColor); BackColor(whiteColor);
-        DrawPicture(pict, &fromRect);
-        ReleaseResource((Handle)pict); pict=0;
-        error = NewGWorld(&aboutOffWorld2, 32, &fromRect, nil, nil, 0);
-        if (error) { SetGWorld(mainPort, nil); DisposeGWorld(aboutOffWorld1); }
-        }
-    if (!error)
-        {
-        error = NewGWorld(&aboutBackStoreWorld, 0, &fromRect, nil, nil, 0);
-        if (error) { SetGWorld(mainPort, nil);
-                     DisposeGWorld(aboutOffWorld1); DisposeGWorld(aboutOffWorld2); }
-        }
-    if (!error)
-        {
-        CopyBits(LWPortCopyBits(mainPort),
-                 LWPortCopyBits(aboutBackStoreWorld), &toRect, &fromRect, srcCopy, nil);
-        aboutOffPixMap1 = GetGWorldPixMap(aboutOffWorld1);
-        LockPixels(aboutOffPixMap1);
-        aboutOffPixMap2 = GetGWorldPixMap(aboutOffWorld2);
-        LockPixels(aboutOffPixMap2);
-        base2 = GetPixBaseAddr(aboutOffPixMap2);
-        bytesWide = (0x7FFF & (**aboutOffPixMap2).rowBytes);
-        SetGWorld(mainPort, nil);
-        ForeColor(blackColor); BackColor(whiteColor);
-        endTime = TickCount()+360;
-        while (!gInterrupt)
-            {
-            if (!done)
-                {
-                CopyBits(LWPortCopyBits(aboutOffWorld1),
-                         LWPortCopyBits(aboutOffWorld2), &fromRect, &fromRect, srcCopy, nil);
-                numblurs = (endTime-TickCount())/12;
-                if (TickCount()>endTime) numblurs=0;
-                for (i=0; i<numblurs; i++)
-                    {
-                    offset = 0;
-                    for (y=0; y<fromRect.bottom; y++)
-                        {
-                        for (x=8; x<bytesWide; x++)
-                            {
-                            base2[x+offset] = ((unsigned char)base2[x+offset]*64 +
-                                          (unsigned char)base2[x+offset-4]*64 +
-                                          (unsigned char)base2[x+offset+4]*64 +
-                                          (unsigned char)base2[x+offset-8]*32 +
-                                          (unsigned char)base2[x+offset+8]*32)>>8; }
-                        offset += bytesWide;
-                        }
-                    }
-                MoveTo(toRect.left-1, toRect.top-1); LineTo(toRect.right, toRect.top-1);
-                LineTo(toRect.right, toRect.bottom); LineTo(toRect.left-1, toRect.bottom);
-                LineTo(toRect.left-1, toRect.top-1);
-                ForeColor(blackColor); BackColor(whiteColor);
-                CopyBits(LWPortCopyBits(aboutOffWorld2),
-                         LWPortCopyBits(mainPort), &fromRect, &toRect, ditherCopy, nil);
-                done=(numblurs==0);
-                }
-            CheckInterrupted();
-            }
-        UnlockPixels(aboutOffPixMap1);
-        DisposeGWorld(aboutOffWorld1);
-        UnlockPixels(aboutOffPixMap2);
-        DisposeGWorld(aboutOffWorld2);
-        SetPortWindowPort(gMainWindow);
-        CopyBits(LWPortCopyBits(aboutBackStoreWorld),
-                 LWPortCopyBits(mainPort), &fromRect, &toRect, srcCopy, nil);
-        DisposeGWorld(aboutBackStoreWorld);
-        }
-    else // something went wrong
-        {
-        SetGWorld(mainPort, nil);
-        ForeColor(blackColor); BackColor(whiteColor);
-        if (!pict) pict = GetPicture(10);
-        DrawPicture(pict, &toRect);
-        ReleaseResource((Handle)pict);
-        while (!gInterrupt) { CheckInterrupted(); }
-        }
-    PaintRect(&toRect);
-    LWGetWindowBounds(gMainWindow, &toRect);
-    LWInvalWindowRect(gMainWindow, &toRect);
-    gMouseState = mouseStateStore;
-    CursorUpdate();
-    */
 }
 
 void HandleFileChoice(int theItem) {
@@ -538,8 +427,8 @@ void HandleFileChoice(int theItem) {
         case SAVEID:
             if (Party[3] == 0 && gUpdateWhere == 3) {
                 QuitSave(0); /* mode 1 is silent, 0 is verbose */
-                UPrintWin("\p ");
-                DrawPrompt();
+                U3RenderPrintPascalString("\p ");
+                U3RenderDrawPrompt();
             } else {
                 mouseStateStore = gMouseState;
                 gMouseState = 0;
@@ -568,25 +457,26 @@ void HandleFileChoice(int theItem) {
 }
 
 void HandleSpecialChoice(int theItem) {
-    CFStringRef key = nil;
+    U3PreferenceKey key = U3PreferenceSoundDisabled;
+    Boolean hasKey = false;
     Boolean newValue = false;
     switch (theItem) {
-        case SOUNDID: key = U3PrefSoundInactive; break;
-        case MUSICID: key = U3PrefMusicInactive; break;
-        case SPEECHID: key = U3PrefSpeechInactive; break;
-        case CONSTRAINID: key = U3PrefSpeedUnconstrain; break;
-        case AUTOCOMBATID: key = U3PrefManualCombat; break;
-        case DOUBLESIZEID: key = U3PrefOriginalSize; break;
-        case FULLSCREENID: key = U3PrefFullScreen; break;
+        case SOUNDID: key = U3PreferenceSoundDisabled; hasKey = true; break;
+        case MUSICID: key = U3PreferenceMusicDisabled; hasKey = true; break;
+        case SPEECHID: key = U3PreferenceSpeechDisabled; hasKey = true; break;
+        case CONSTRAINID: key = U3PreferenceUnconstrainedSpeed; hasKey = true; break;
+        case AUTOCOMBATID: key = U3PreferenceManualCombat; hasKey = true; break;
+        case DOUBLESIZEID: key = U3PreferenceOriginalSize; hasKey = true; break;
+        case FULLSCREENID: key = U3PreferenceFullScreen; hasKey = true; break;
     }
-    if (key) {
-        newValue = !CFPreferencesGetAppBooleanValue(key, kCFPreferencesCurrentApplication, NULL);
-        CFPreferencesSetAppValue(key, (newValue) ? kCFBooleanTrue : kCFBooleanFalse, kCFPreferencesCurrentApplication);
+    if (hasKey) {
+        newValue = !U3PlatformGetBooleanPreference(key);
+        U3PlatformSetBooleanPreference(key, newValue);
     }
 
     switch (theItem) {
         case AUTOCOMBATID:
-            gAutoCombat = !(CFPreferencesGetAppBooleanValue(U3PrefManualCombat, kCFPreferencesCurrentApplication, NULL));
+            gAutoCombat = !U3PlatformGetBooleanPreference(U3PreferenceManualCombat);
             break;
         case DOUBLESIZEID:
             AdaptToWindow(true);
@@ -609,7 +499,7 @@ void HandleSpecialChoice(int theItem) {
             BlockExodus();
             break;*/
     }
-    ApplyVolumePreferences();
+    U3AudioApplyPreferences();
     ReflectPrefs();
 }
 
@@ -624,7 +514,7 @@ void HandleReferenceChoice(int theItem) {
         mouseStateStore = gMouseState;
         gMouseState = 0;
         CursorUpdate();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
         ImageGoAway();
         gMouseState = mouseStateStore;
     } else {
@@ -704,7 +594,7 @@ void ToolBoxInit(void) {
     InitGraf(&qd.thePort);
     GetDateTime((unsigned long *)&qd.randSeed);
     InitFonts();
-    FlushEvents(everyEvent, 0);
+    U3PlatformFlushAllEvents();
     InitWindows();
     InitMenus();
     TEInit();
@@ -728,21 +618,13 @@ void SetUpDragRect(void) {
 }
 
 void SetCurWindowPrefPosn(short x, short y) {
-    CFNumberRef numRef = CFNumberCreate(NULL, kCFNumberShortType, &x);
-    CFPreferencesSetAppValue(U3PrefCurWindowX, numRef, kCFPreferencesCurrentApplication);
-    CFRelease(numRef);
-    numRef = CFNumberCreate(NULL, kCFNumberShortType, &y);
-    CFPreferencesSetAppValue(U3PrefCurWindowY, numRef, kCFPreferencesCurrentApplication);
-    CFRelease(numRef);
+    U3PlatformSetIntegerPreference(U3PreferenceCurrentWindowX, x);
+    U3PlatformSetIntegerPreference(U3PreferenceCurrentWindowY, y);
 }
 
 void SetSaveWindowPrefPosn(short x, short y) {
-    CFNumberRef numRef = CFNumberCreate(NULL, kCFNumberShortType, &x);
-    CFPreferencesSetAppValue(U3PrefSaveWindowX, numRef, kCFPreferencesCurrentApplication);
-    CFRelease(numRef);
-    numRef = CFNumberCreate(NULL, kCFNumberShortType, &y);
-    CFPreferencesSetAppValue(U3PrefSaveWindowY, numRef, kCFPreferencesCurrentApplication);
-    CFRelease(numRef);
+    U3PlatformSetIntegerPreference(U3PreferenceSaveWindowX, x);
+    U3PlatformSetIntegerPreference(U3PreferenceSaveWindowY, y);
 }
 
 void ForceAllOnScreen(void) {
@@ -758,9 +640,9 @@ void PlaceWindow(void) {
     Rect curRect, scrRect;
     short width, height, newx, newy;
 
-    newx = CFPreferencesGetAppIntegerValue(U3PrefCurWindowX, kCFPreferencesCurrentApplication, NULL);
-    newy = CFPreferencesGetAppIntegerValue(U3PrefCurWindowY, kCFPreferencesCurrentApplication, NULL);
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL) || (newx == 0 && newy == 0)) {
+    newx = U3PlatformGetIntegerPreference(U3PreferenceCurrentWindowX);
+    newy = U3PlatformGetIntegerPreference(U3PreferenceCurrentWindowY);
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen) || (newx == 0 && newy == 0)) {
         width = blkSiz * 40;
         height = blkSiz * 24;
         LWGetWindowBounds(gMainWindow, &curRect);
@@ -781,8 +663,8 @@ void WindowInit(short which) {
     Rect scrRect, winRect;
     RGBColor color;
 
-    Boolean keyExists = false;
-    Boolean smallSize = CFPreferencesGetAppBooleanValue(U3PrefOriginalSize, kCFPreferencesCurrentApplication, &keyExists);
+    Boolean keyExists = U3PlatformHasPreference(U3PreferenceOriginalSize);
+    Boolean smallSize = U3PlatformGetBooleanPreference(U3PreferenceOriginalSize);
     // Establish a default based on the size of their main screen.
     if (!keyExists) {
         CFDictionaryRef mainDict = CGDisplayCurrentMode(kCGDirectMainDisplay);
@@ -793,8 +675,7 @@ void WindowInit(short which) {
         number = CFDictionaryGetValue(mainDict, kCGDisplayHeight);
         CFNumberGetValue(number, kCFNumberIntType, &screenHeight);
         smallSize = (screenWidth < 1280 || screenHeight < (800 + GetMBarHeight() + 8));
-        CFPreferencesSetAppValue(U3PrefOriginalSize, (smallSize) ? kCFBooleanTrue : kCFBooleanFalse,
-                                 kCFPreferencesCurrentApplication);
+        U3PlatformSetBooleanPreference(U3PreferenceOriginalSize, smallSize);
     }
 
     LWGetScreenRect(&scrRect);
@@ -850,7 +731,7 @@ void ShowHideBackground(void) {
     Rect screenRect, winRect;
     RGBColor color;
 
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL)) {
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen)) {
         MyHideMenuBar();
 #if TARGET_CARBON
         GetGlobalWindowRect(gMainWindow, &winRect);
@@ -1193,7 +1074,7 @@ void CursorUpdate(void) { /* figure what cursor to show where */
                     newCursor = 2;    // South
                 }
             }
-            Boolean allowDiagonal = (!CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL));
+            Boolean allowDiagonal = !U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals);
             if (allowDiagonal) {
                 offVal = (blkSiz * 6);
                 if (((mous.v - cYBig) / blkSiz) > 12) {   // bottom half
@@ -1370,7 +1251,7 @@ void DoStats(short chnum) {
     short mouseStateStore;
 
     if (Party[6 + chnum] == 0 || Player[Party[6 + chnum]][0] == 0) {
-        ErrorTone();
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     mouseStateStore = gMouseState;
@@ -1389,7 +1270,7 @@ void DoStats(short chnum) {
     DrawFancyRecord(FALSE);
     gStatsActive = TRUE;
     while (gStatsActive && !gDone) {
-        GetKeyMouse(1);
+        U3PlatformGetKeyMouse(1);
         if (gKeyPress)
             gStatsActive = FALSE;
     }
@@ -1401,7 +1282,7 @@ void DoStats(short chnum) {
     DrawMenuBar();
     gMouseState = mouseStateStore;
     gUpdateWhere = updateStore;
-    ClearTiles();
+    U3RenderClearTiles();
     ForceGameWindowUpdate();
 }
 
@@ -1880,7 +1761,7 @@ short MaxMana(char rosNum) {
 
 void DisableSound(void) {
     //prefs.soundActive=0;
-    CFPreferencesSetAppValue(U3PrefSoundInactive, kCFBooleanTrue, kCFPreferencesCurrentApplication);
+    U3PlatformSetBooleanPreference(U3PreferenceSoundDisabled, true);
     ReflectPrefs();
     LWDisableMenuItem(gSpecialMenu, SOUNDID);
     gSoundIncapable = TRUE;
@@ -1888,7 +1769,7 @@ void DisableSound(void) {
 
 void DisableMusic(void) {
     //prefs.musicActive=0;
-    CFPreferencesSetAppValue(U3PrefMusicInactive, kCFBooleanTrue, kCFPreferencesCurrentApplication);
+    U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, true);
     ReflectPrefs();
     LWDisableMenuItem(gSpecialMenu, MUSICID);
     gMusicIncapable = TRUE;
@@ -2010,7 +1891,7 @@ void ImageGoAway(void) {
     LWEnableMenuItem(gFileMenu, PAUSEID);
     DrawMenuBar();
     gUpdateWhere = gUpdateStore;
-    ClearTiles();
+    U3RenderClearTiles();
     ForceGameWindowUpdate();
     gCurImage = -1;
     return;
@@ -2029,7 +1910,7 @@ void DoPause(void) {
         DrawMenuBar();
         DrawPause();
         while (gPaused && gDone == FALSE) {
-            GetKeyMouse(1);
+            U3PlatformGetKeyMouse(1);
         }
         gMouseState = mouseStateStore;
     } else {
@@ -2116,13 +1997,12 @@ void SetUpTilesMenu(ControlHandle ctrl) {
     CFArrayRef graphicsArrayRef = (CFArrayRef)CopyGraphicsDirectoryItems();
     MenuRef theMenu = GetControlPopupMenuHandle(ctrl);
     CFStringRef defaultTilesRef = CFSTR("Standard");
-    CFStringRef userTilesNameRef = CFPreferencesCopyAppValue(U3PrefTileSet, kCFPreferencesCurrentApplication);
-    CFStringRef tilesNameRef;
-    if (userTilesNameRef) {
-        tilesNameRef = userTilesNameRef;
-    } else {
-        tilesNameRef = defaultTilesRef;
-    }
+    Str255 userTilesName;
+    CFStringRef userTilesNameRef = NULL;
+    CFStringRef tilesNameRef = NULL;
+    if (U3PlatformCopyPascalStringPreference(U3PreferenceTileSet, userTilesName, sizeof(userTilesName)))
+        userTilesNameRef = CFStringCreateWithPascalString(kCFAllocatorDefault, userTilesName, kCFStringEncodingMacRoman);
+    tilesNameRef = userTilesNameRef ? userTilesNameRef : defaultTilesRef;
     int i;
     for (i = 0; i < CFArrayGetCount(graphicsArrayRef); i++) {
         CFStringRef anItemRef = CFArrayGetValueAtIndex(graphicsArrayRef, i);
@@ -2159,7 +2039,7 @@ short RosterSelect(void) {
     Handle myHandle;
     Str255 itemStr, tempStr;
 
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
         MyShowMenuBar();
     rosDlog = GetNewDialog(BASERES + 10, nil, (WindowPtr)-1);
     GetPort(&curPort);
@@ -2278,7 +2158,7 @@ Boolean CharacterCreateDialog(short rosNum) {
     ControlHandle ctrl;
 
     retVal = FALSE;
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
         MyShowMenuBar();
 
     DrawOrganizeMenu();
@@ -2288,7 +2168,7 @@ Boolean CharacterCreateDialog(short rosNum) {
 
     // Sex
     GetDialogItem(charDlog, IDCCD_SEX, &temp, &myHandle, &myRect);
-    value = RandNum(1, 2);    // No "Other", it's stupid.  They can select it later.
+    value = U3PlatformRandom(1, 2);    // No "Other", it's stupid.  They can select it later.
     SetControlValue((ControlHandle)myHandle, value);
 
     // Randomly pick a name
@@ -2299,7 +2179,7 @@ Boolean CharacterCreateDialog(short rosNum) {
         identifier = CFSTR("Male");
     }
     int numNames = CFArrayGetCount((CFArrayRef)StringsArray(identifier));
-    GetPascalStringFromArrayByIndex(tempStr, identifier, RandNum(0, numNames - 1));
+    GetPascalStringFromArrayByIndex(tempStr, identifier, U3PlatformRandom(0, numNames - 1));
     GetDialogItemAsControl(charDlog, IDCCD_NAME, &ctrl);
     SetDialogItemText((Handle)ctrl, tempStr);
 
@@ -2375,7 +2255,7 @@ Boolean CharacterCreateDialog(short rosNum) {
     GetDialogItemAsControl(charDlog, IDCCD_REMAIN, &ctrl);
     SetDialogItemText((Handle)ctrl, itemStr);
     ShowWindow(GetDialogWindow(charDlog));
-    ReleaseResource(myHandle);
+    U3IOReleaseLegacyResourceHandle(myHandle);
 
     SelectDialogItemText(charDlog, IDCCD_NAME, 0, 32767);    // Select all of name field
 
@@ -2444,7 +2324,7 @@ Boolean CharacterCreateDialog(short rosNum) {
                     identifier = CFSTR("Intersex");
                 }
                 int numNames = CFArrayGetCount((CFArrayRef)StringsArray(identifier));
-                GetPascalStringFromArrayByIndex(tempStr, identifier, RandNum(0, numNames - 1));
+                GetPascalStringFromArrayByIndex(tempStr, identifier, U3PlatformRandom(0, numNames - 1));
                 GetDialogItemAsControl(charDlog, IDCCD_NAME, &ctrl);
                 SetDialogItemText((Handle)ctrl, tempStr);
                 SelectDialogItemText(charDlog, IDCCD_NAME, 0, 32767);    // Select all of name field
@@ -2593,8 +2473,8 @@ short WidgetClick(Rect cRect, Boolean click, Boolean drag) {
                 sectRect.right = sectRect.left + (lastRect.right - lastRect.left);
                 sectRect.bottom = sectRect.top + (lastRect.bottom - lastRect.top);
                 MyInvertFrame(&sectRect);
-                long endTime = TickCount() + 1;
-                while (TickCount() < endTime) {
+                long endTime = U3PlatformTickCount() + 1;
+                while (U3PlatformTickCount() < endTime) {
                 }
                 MyInvertFrame(&sectRect);
             }
@@ -2762,4 +2642,3 @@ void MyShowMenuBar(void) {
 #endif
     }
 }
-

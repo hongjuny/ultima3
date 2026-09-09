@@ -8,7 +8,6 @@ CFStringRef CopyExpireDateString(void);
 CFStringRef CopyAppVersionString(void);
 int ThisReleaseNumber(void);
 void ThreadSleepTicks(int numTicks);
-short NumberForPrefsKey(CFStringRef prefsKey);
 CFURLRef GraphicsDirectoryURL(void);
 CFURLRef ResourcesDirectoryURL(void);
 CFArrayRef CopyGraphicsDirectoryItems(void);

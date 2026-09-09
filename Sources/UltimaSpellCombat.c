@@ -4,13 +4,20 @@
 
 #import "UltimaIncludes.h"
 #import "CocoaBridge.h"
+#import "U3Audio.h"
+#import "U3IO.h"
+#import "U3Renderer.h"
+#import "U3Platform.h"
 #import "UltimaAutocombat.h"
 #import "UltimaDngn.h"
 #import "UltimaGraphics.h"
+#import "UltimaMacIF.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
-#import "UltimaSound.h"
 #import "UltimaText.h"
+
+#include <stdio.h>
+#include <string.h>
 
 char                    g835D, g835E, g835F;
 short                   spellnum;
@@ -39,13 +46,26 @@ void RelocateDungeon(void);
 
 // ----------------------------------------------------------------------
 
+static void AppendDecimalToPascalString(uint8_t *string, size_t capacity, int32_t number) {
+    char digits[16];
+    int count = snprintf(digits, sizeof(digits), "%ld", (long)number);
+    if (count <= 0)
+        return;
+
+    size_t length = string[0];
+    size_t available = capacity > length + 1 ? capacity - length - 1 : 0;
+    size_t copyLength = (size_t)count < available ? (size_t)count : available;
+    memcpy(string + length + 1, digits, copyLength);
+    string[0] = (uint8_t)(length + copyLength);
+}
+
 Boolean Cast(short mode, short chnum) { /* $535C. if mode<>0, chnum is set (1-4) */
     short rosNum;
     char classType;
     if (mode == 0) {
         zp[0x1F] = 0x78;
         zp[0xD6] = gChnum;
-        UPrintMessage(119);
+        U3RenderPrintMessage(119);
         chnum = GetChar();
         if (chnum < 1 || chnum > 4)
             return FALSE;
@@ -75,11 +95,11 @@ Boolean Cast(short mode, short chnum) { /* $535C. if mode<>0, chnum is set (1-4)
     if (classType == careerTable[10])
         spellnum = EitherChoose();
     if (spellnum == -2) {
-        UPrintMessage(120);
+        U3RenderPrintMessage(120);
         return FALSE;
     }
     if (spellnum == -1) {
-        UPrintMessage(121);
+        U3RenderPrintMessage(121);
         return FALSE;
     }
     ProcessMagic(chnum);
@@ -97,23 +117,23 @@ void ProcessMagic(short chnum) {
     if (spellnum == 34)
         magicreq = 90;
     if (magicreq > Player[rosNum][25]) {
-        UPrintMessage(122);
+        U3RenderPrintMessage(122);
         return;
     }
     Player[rosNum][25] -= magicreq;
     ShowChars(false);
-    UPrintWin("\p\n");
+    U3RenderPrintPascalString("\p\n");
     if (spellnum < 32) {
         PrintSpell(spellnum);
     } else {
         if (spellnum == 32)
-            UPrintWin("\pTERRAFORM");
+            U3RenderPrintPascalString("\pTERRAFORM");
         if (spellnum == 33)
-            UPrintWin("\pARMAGEDDON");
+            U3RenderPrintPascalString("\pARMAGEDDON");
         if (spellnum == 34)
-            UPrintWin("\pFLOTELLUM");
+            U3RenderPrintPascalString("\pFLOTELLUM");
     }
-    UPrintWin("\p\n\n");
+    U3RenderPrintPascalString("\p\n\n");
     Spell(chnum);
     return;
 }
@@ -122,7 +142,7 @@ short EitherChoose(void) {
     short value, result;
     result = -1;
 either0:
-    UPrintMessage(123);
+    U3RenderPrintMessage(123);
     value = GetKey();
     if (value == 27)
         return -2;
@@ -140,7 +160,7 @@ either0:
 short ClericChoose(void) {
     short value;
 cleric0:
-    UPrintMessage(124);
+    U3RenderPrintMessage(124);
     value = GetKey();
     if (value == 27)
         return -2;
@@ -154,7 +174,7 @@ cleric0:
 short WizardChoose(void) {
     short value;
 wizard0:
-    UPrintMessage(125);
+    U3RenderPrintMessage(125);
     value = GetKey();
     if (value == 27)
         return -2;
@@ -174,8 +194,8 @@ wizard0:
 }
 
 void Incap(void) {
-    UPrintMessage(126);
-    ErrorTone();
+    U3RenderPrintMessage(126);
+    U3AudioPlaySound(U3SoundEffectError1, true);
 }
 
 /* ---------------------------------------------------------------- */
@@ -193,13 +213,13 @@ void Spell(short chnum) {
                 return;
             }
             g5521 = 0xFF;
-            if (RandNum(0, 255) < 128) {
+            if (U3PlatformRandom(0, 255) < 128) {
                 Failed();
                 return;
             }
             BigDeath(255, chnum);
             break;
-        case 1: /* Mittar */ Projectile(chnum, RandNum(0, 40) | 0x10); break;
+        case 1: /* Mittar */ Projectile(chnum, U3PlatformRandom(0, 40) | 0x10); break;
         case 2: /* Lorum */
             gTorch = 10;
             Flashriek();
@@ -216,8 +236,8 @@ void Spell(short chnum) {
             int matchValue = (Party[1] == 0x16) ? 0 : 4;
             value = -1;
             while (value != matchValue) {
-                xs = RandNum(0, gCurMapSize - 1);
-                ys = RandNum(0, gCurMapSize - 1);
+                xs = U3PlatformRandom(0, gCurMapSize - 1);
+                ys = U3PlatformRandom(0, gCurMapSize - 1);
                 value = GetXYVal(xs, ys);
             }
             xpos = xs;
@@ -259,7 +279,7 @@ void Spell(short chnum) {
                 return;
             }
             g56E7 = 0xFF;
-            if (RandNum(0, 255) < 128) {
+            if (U3PlatformRandom(0, 255) < 128) {
                 Failed();
                 return;
             }
@@ -267,14 +287,14 @@ void Spell(short chnum) {
             break;
         case 17: /* Appar Unem */
             Flashriek();
-            if ((RandNum(0, 255) & 0x03) == 0) {
+            if ((U3PlatformRandom(0, 255) & 0x03) == 0) {
                 Failed();
                 return;
             }
             m5BDC = 0;
             GetChest(1, chnum);
             break;
-        case 18: /* Sanctu */ Heal(RandNum(0, 20) + 10); break;
+        case 18: /* Sanctu */ Heal(U3PlatformRandom(0, 20) + 10); break;
         case 19: /* Luminae */
             gTorch = 10;
             Flashriek();
@@ -290,7 +310,7 @@ void Spell(short chnum) {
             RelocateDungeon();
             break;
         case 23: /* Alcort */
-            UPrintMessage(127);
+            U3RenderPrintMessage(127);
             value = GetChar();
             if (value < 1 || value > 4) {
                 Failed();
@@ -318,7 +338,7 @@ void Spell(short chnum) {
             gTorch = 250;
             Flashriek();
             break;
-        case 26: /* Sanctu Mani */ Heal(RandNum(0, 80) + 20); break;
+        case 26: /* Sanctu Mani */ Heal(U3PlatformRandom(0, 80) + 20); break;
         case 27: /* Vieda */
             Flashriek();
             if (Party[3] == 1)
@@ -332,7 +352,7 @@ void Spell(short chnum) {
                 Failed();
                 return;
             }
-            UPrintMessage(128);
+            U3RenderPrintMessage(128);
             value = GetChar();
             if (value < 1 || value > 4) {
                 Failed();
@@ -345,7 +365,7 @@ void Spell(short chnum) {
                 Failed();
                 return;
             }
-            if ((RandNum(0, 255) & 0x03) == 0) {
+            if ((U3PlatformRandom(0, 255) & 0x03) == 0) {
                 Player[Party[6 + value]][17] = 'A';
                 Failed();
                 return;
@@ -358,7 +378,7 @@ void Spell(short chnum) {
                 Failed();
                 return;
             }
-            UPrintMessage(129);
+            U3RenderPrintMessage(129);
             value = GetChar();
             if (value < 1 || value > 4) {
                 Failed();
@@ -379,9 +399,9 @@ void Spell(short chnum) {
                 Failed();
                 return;
             }
-            UPrintMessage(85);
-            GetDirection(0);
-            UPrintWin("\pTypeNum-");
+            U3RenderPrintMessage(85);
+            U3PlatformGetDirection(0);
+            U3RenderPrintPascalString("\pTypeNum-");
             value = UInputNum(wx, wy);
             Flashriek();
             if (value > 12 && value < 31) {   // a creature
@@ -403,7 +423,7 @@ void Spell(short chnum) {
             } else {
                 PutXYVal(value * 4, xpos + dx, ypos + dy);
             }
-            UPrintWin("\p\n");
+            U3RenderPrintPascalString("\p\n");
             break;
         case 33: /* Armageddon */
             if (Party[3] == 0x80) {
@@ -459,8 +479,8 @@ void Projectile(short chnum, short damage) { /* $552B */
         Failed();
         return;
     }
-    UPrintMessage(85);
-    GetDirection(0);
+    U3RenderPrintMessage(85);
+    U3PlatformGetDirection(0);
     Flashriek();
     hit = Shoot(CharX[chnum - 1], CharY[chnum - 1]);
     if (hit > 127) {
@@ -468,7 +488,7 @@ void Projectile(short chnum, short damage) { /* $552B */
         return;
     }
     ShowHit(MonsterX[hit], MonsterY[hit], 0x78, MonsterTile[hit]);
-    PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+    U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
     DamageMonster(hit, damage, chnum);
 }
 
@@ -480,14 +500,14 @@ void BigDeath(short damage, short chnum) { /* $5600 */
     }
     Flashriek();
     for (mon = 7; mon >= 0; mon--) {
-        if ((RandNum(0, 255) & 0x03) != 0) {
+        if ((U3PlatformRandom(0, 255) & 0x03) != 0) {
             if (MonsterHP[mon] != 0) {
                 unsigned char orgTile = GetXYTile(MonsterX[mon], MonsterY[mon]);
                 gBallTileBackground = MonsterTile[mon];
                 PutXYTile(0x78, MonsterX[mon], MonsterY[mon]);
                 DrawTiles();
                 ShowHit(MonsterX[mon], MonsterY[mon], 0x78, MonsterTile[mon]);
-                PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+                U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
                 DrawMapPause();
                 PutXYTile(orgTile, MonsterX[mon], MonsterY[mon]);
                 DrawTiles();
@@ -512,7 +532,7 @@ void Necorp(void) { /* $5677 */
             PutXYTile(0x78, MonsterX[mon], MonsterY[mon]);
             DrawTiles();
             ShowHit(MonsterX[mon], MonsterY[mon], 0x78, MonsterTile[mon]);
-            PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+            U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
             DrawMapPause();
             PutXYTile(orgTile, MonsterX[mon], MonsterY[mon]);
             DrawTiles();
@@ -522,7 +542,7 @@ void Necorp(void) { /* $5677 */
 
 void Heal(short damage) { /* $56F7 */
     short chnum;
-    UPrintMessage(130);
+    U3RenderPrintMessage(130);
     chnum = GetChar();
     if (chnum < 1 || chnum > 4) {
         Failed();
@@ -536,8 +556,8 @@ void Heal(short damage) { /* $56F7 */
 }
 
 void Failed(void) { /* $586E */
-    UPrintMessage(86);
-    PlaySoundFile(CFSTR("FailedSpell"), TRUE);    // was 0xDA
+    U3RenderPrintMessage(86);
+    U3AudioPlaySound(U3SoundEffectFailedSpell, true);    // was 0xDA
 }
 
 void Flashriek(void) { /* $5885 */
@@ -546,28 +566,28 @@ void Flashriek(void) { /* $5885 */
     InverseTiles();
     switch (SpellSound[spellnum]) {
         case 0:
-            PlaySoundFile(CFSTR("BigDeath"), FALSE);
+            U3AudioPlaySound(U3SoundEffectBigDeath, false);
             break;    // was 0xE0
         case 1:
-            PlaySoundFile(CFSTR("Immolate"), FALSE);
+            U3AudioPlaySound(U3SoundEffectImmolate, false);
             break;    // was 0xE9
         case 2:
-            PlaySoundFile(CFSTR("TorchIgnite"), FALSE);
+            U3AudioPlaySound(U3SoundEffectTorchIgnite, false);
             break;    // was 0xDF
         case 3:
-            PlaySoundFile(CFSTR("Downwards"), FALSE);
+            U3AudioPlaySound(U3SoundEffectDownwards, false);
             break;    // was 0xDE
         case 4:
-            PlaySoundFile(CFSTR("Upwards"), FALSE);
+            U3AudioPlaySound(U3SoundEffectUpwards, false);
             break;    // was 0xDD
         case 5:
-            PlaySoundFile(CFSTR("Invocation"), FALSE);
+            U3AudioPlaySound(U3SoundEffectInvocation, false);
             break;    // was 0xF4
         case 6:
-            PlaySoundFile(CFSTR("Heal"), FALSE);
+            U3AudioPlaySound(U3SoundEffectHeal, false);
             break;    // was 0xF3
         default:
-            PlaySoundFile(CFSTR("MiscSpell"), FALSE);
+            U3AudioPlaySound(U3SoundEffectMiscSpell, false);
             break;    // was 0xDC
     }
     InverseTiles();
@@ -577,8 +597,8 @@ void RelocateDungeon(void) { /* $572B */
     short value;
     value = -1;
     while (value != 0) {
-        xs = RandNum(0, 16);
-        ys = RandNum(0, 16);
+        xs = U3PlatformRandom(0, 16);
+        ys = U3PlatformRandom(0, 16);
         value = GetXYDng(xs, ys);
     }
     xpos = xs;
@@ -642,31 +662,38 @@ unsigned char ValidMove(short value) { /* $7E5B */
         goto good;
     return 0xFF;
 good:
-    PlaySoundFile(CFSTR("Step"), TRUE);    // was 0xF6, TRUE
+    U3AudioPlaySound(U3SoundEffectStep, true);    // was 0xF6, TRUE
     return 0;
 }
 
 void GetScreen(short resid) {
     short ptr;
-    Handle screen;
-    screen = GetResource('CONS', resid);
-    LoadResource(screen);
+    U3DataBuffer screen;
+    if (!U3IOLoadResource(U3ResourceKindConsoleScreen, resid, &screen)) {
+        HandleError(U3IOLastError(), 51, resid);
+        return;
+    }
+    if (screen.size < 0xB0) {
+        U3IOReleaseResource(&screen);
+        HandleError(eofErr, 51, resid);
+        return;
+    }
     for (ptr = 0; ptr < 121; ptr++) {
-        TileArray[ptr] = *(*screen + ptr);
+        TileArray[ptr] = screen.bytes[ptr];
     }
     for (ptr = 0; ptr < 8; ptr++) {
-        MonsterX[ptr] = *(*screen + ptr + 0x80);
-        MonsterY[ptr] = *(*screen + ptr + 0x88);
-        MonsterTile[ptr] = *(*screen + ptr + 0x90);
-        MonsterHP[ptr] = *(*screen + ptr + 0x98);
+        MonsterX[ptr] = screen.bytes[ptr + 0x80];
+        MonsterY[ptr] = screen.bytes[ptr + 0x88];
+        MonsterTile[ptr] = screen.bytes[ptr + 0x90];
+        MonsterHP[ptr] = screen.bytes[ptr + 0x98];
     }
     for (ptr = 0; ptr < 4; ptr++) {
-        CharX[ptr] = *(*screen + ptr + 0xA0);
-        CharY[ptr] = *(*screen + ptr + 0xA4);
-        CharTile[ptr] = *(*screen + ptr + 0xA8);
-        CharShape[ptr] = *(*screen + ptr + 0xAC);
+        CharX[ptr] = screen.bytes[ptr + 0xA0];
+        CharY[ptr] = screen.bytes[ptr + 0xA4];
+        CharTile[ptr] = screen.bytes[ptr + 0xA8];
+        CharShape[ptr] = screen.bytes[ptr + 0xAC];
     }
-    ReleaseResource(screen);
+    U3IOReleaseResource(&screen);
 }
 
 unsigned char ExodusCastle(void) { /* $6F43 */
@@ -732,7 +759,7 @@ shoot0:
 }
 
 void DamageMonster(short which, short damage, short chnum) { /* $84C7 */
-    Str32 str, numStr;
+    Str32 str;
     short expnum;
 
     if (gMonType != 0x26) { /* not Lord British, har har */
@@ -740,11 +767,9 @@ void DamageMonster(short which, short damage, short chnum) { /* $84C7 */
             GetPascalStringFromArrayByIndex(str, CFSTR("Messages"), 130);
             //GetIndString(str, BASERES+12, 131);
             expnum = ((gMonType / 2) & 0x0F);
-            NumToString(Experience[expnum], numStr);
-            BlockMove(numStr + 1, str + str[0] + 1, numStr[0]);
-            str[0] += numStr[0];
+            AppendDecimalToPascalString(str, sizeof(str), Experience[expnum]);
             str[++str[0]] = '\n';
-            UPrintWin(str);
+            U3RenderPrintPascalString(str);
             AddExp(chnum, Experience[expnum]);
             PutXYTile(MonsterTile[which], MonsterX[which], MonsterY[which]);
             MonsterHP[which] = 0;
@@ -817,9 +842,9 @@ unsigned char HowMany(void) { /* $80DE */
     if (ExodusCastle() == 0)
         return 7;
     if (Party[3] < 2)
-        return RandNum(0, 7);    // Party[3]'s were g835E, which wasn't set yet!
+        return U3PlatformRandom(0, 7);    // Party[3]'s were g835E, which wasn't set yet!
     if (Party[3] > 3)
-        return RandNum(0, 7);
+        return U3PlatformRandom(0, 7);
     return 0;
 }
 
@@ -841,15 +866,15 @@ void HandleMove(short chnum) { /* $828D */
     PutXYTile(CharShape[chnum], xs, ys);
     return;
 bad:
-    UPrintMessage(116);
-    PlaySoundFile(CFSTR("Bump"), TRUE);    // was 0xE7
+    U3RenderPrintMessage(116);
+    U3AudioPlaySound(U3SoundEffectBump, true);    // was 0xE7
     return;
 }
 
 void Victory(void) { /* $8535 */
     gTimeNegate = gSongCurrent = gSongNext = 0;
-    UPrintMessage(132);
-    PlaySoundFile(CFSTR("CombatVictory"), TRUE);    // was 0xED
+    U3RenderPrintMessage(132);
+    U3AudioPlaySound(U3SoundEffectCombatVictory, true);    // was 0xED
     gSongCurrent = g835F;
     gSongNext = g835F;
     Party[3] = g835E;
@@ -874,10 +899,10 @@ void Combat(void) { /* $7FB0 */
         if (Monsters[mon] == 0x4C || Monsters[mon] == 0x48)
             Monsters[mon + HPMON] = 0xC0;
     }
-    UPrintMessage(133);
+    U3RenderPrintMessage(133);
     numMon = HowMany();
     PrintMonster(gMonType, (numMon > 0), gMonVarType);
-    UPrintWin("\p\n\n");
+    U3RenderPrintPascalString("\p\n\n");
     GetScreen(BackGround(gMonType));
     g835E = Party[3];
     Party[3] = 0x80;
@@ -899,10 +924,10 @@ void Combat(void) { /* $7FB0 */
         MonsterHP[mon] = 0;
     }
     while (numMon >= 0) {
-        mon = RandNum(0, 7);
+        mon = U3PlatformRandom(0, 7);
         if (MonsterHP[mon] == 0) {
             health = (gMonType / 2) & 0x0F;
-            MonsterHP[mon] = RandNum(0, monhpstart[health]) | 0x0F;
+            MonsterHP[mon] = U3PlatformRandom(0, monhpstart[health]) | 0x0F;
             MonsterTile[mon] = GetXYTile(MonsterX[mon], MonsterY[mon]);
             unsigned char tileValue = gMonType;
             if (gMonVarType && gMonType >= 46 && gMonType <= 63)
@@ -912,11 +937,10 @@ void Combat(void) { /* $7FB0 */
         }
     }
     DrawTiles();
-    PlaySoundFile(CFSTR("CombatStart"), FALSE);    // was 0xEE
-    FlushEvents(keyDownMask | keyUpMask, 0);
-    FlushEvents(mDownMask | mUpMask, 0);
+    U3AudioPlaySound(U3SoundEffectCombatStart, false);    // was 0xEE
+    U3PlatformFlushInputEvents();
     gSongNext = 5;
-    gAutoCombat = !CFPreferencesGetAppBooleanValue(U3PrefManualCombat, kCFPreferencesCurrentApplication, NULL);
+    gAutoCombat = !U3PlatformGetBooleanPreference(U3PreferenceManualCombat);
 combatstart:
     AgeChars();
     ShowChars(false);
@@ -925,7 +949,7 @@ combatloop: /* $8164 */
     if (gDone)
         return;
     if (gAutoCombat)
-        ObscureCursor();
+        U3PlatformObscureCursor();
     chnum = g835D;
     gChnum = chnum;
     if (gResurrect) {
@@ -936,11 +960,11 @@ combatloop: /* $8164 */
     if (CheckAlive(chnum) == FALSE)
         goto plrdone;
     count = 0x2F;
-    UPrintMessage(134);
-    UPrintNumPad(chnum + 1, 1);
+    U3RenderPrintMessage(134);
+    U3RenderPrintNumberPadded(chnum + 1, 1);
     wx++;
-    UPrintMessage(135);
-    DrawPrompt();
+    U3RenderPrintMessage(135);
+    U3RenderDrawPrompt();
     gMouseState = 5;
     dx = dy = 0;
     xs = CharX[chnum];
@@ -965,7 +989,7 @@ keyloop:
     if (count == 0) {
         gKeyPress = ' ';
     } else {
-        if (GetKeyMouse(0) == FALSE)
+        if (U3PlatformGetKeyMouse(0) == FALSE)
             goto keyloop;
     }
     PutXYTile(CharShape[chnum], xs, ys);
@@ -983,11 +1007,11 @@ keyloop:
             gKeyPress = 30;
         if (gKeyPress == '2')
             gKeyPress = 31;
-        Boolean allowDiagonal = !(CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL));
+        Boolean allowDiagonal = !(U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals));
         switch (gKeyPress) {
             case '1':
                 if (allowDiagonal) {
-                    UPrintMessage(250);
+                    U3RenderPrintMessage(250);
                     dx = -1;
                     dy = 1;
                     HandleMove(chnum);
@@ -995,7 +1019,7 @@ keyloop:
                 break;
             case '3':
                 if (allowDiagonal) {
-                    UPrintMessage(251);
+                    U3RenderPrintMessage(251);
                     dx = 1;
                     dy = 1;
                     HandleMove(chnum);
@@ -1003,7 +1027,7 @@ keyloop:
                 break;
             case '7':
                 if (allowDiagonal) {
-                    UPrintMessage(252);
+                    U3RenderPrintMessage(252);
                     dx = -1;
                     dy = -1;
                     HandleMove(chnum);
@@ -1011,33 +1035,33 @@ keyloop:
                 break;
             case '9':
                 if (allowDiagonal) {
-                    UPrintMessage(253);
+                    U3RenderPrintMessage(253);
                     dx = 1;
                     dy = -1;
                     HandleMove(chnum);
                 }
                 break;
             case 28:
-                UPrintMessage(27);
+                U3RenderPrintMessage(27);
                 dx = -1;
                 HandleMove(chnum);
                 break;
             case 29:
-                UPrintMessage(26);
+                U3RenderPrintMessage(26);
                 dx = 1;
                 HandleMove(chnum);
                 break;
             case 30:
-                UPrintMessage(24);
+                U3RenderPrintMessage(24);
                 dy = -1;
                 HandleMove(chnum);
                 break;
             case 31:
-                UPrintMessage(25);
+                U3RenderPrintMessage(25);
                 dy = 1;
                 HandleMove(chnum);
                 break;
-            case ' ': UPrintMessage(23); break;
+            case ' ': U3RenderPrintMessage(23); break;
             default: What2(); break;
         }
         goto plrdone;
@@ -1046,30 +1070,30 @@ keyloop:
         case 'A': CombatAttack(chnum); break;
         case 'C':
             zp[0x1F] = 0x78;
-            UPrintMessage(136);
+            U3RenderPrintMessage(136);
             if (Cast(1, chnum + 1) == FALSE) {
-                UPrintWin("\p ");
+                U3RenderPrintPascalString("\p ");
                 DrawFramePiece(8, 23, 23);
                 DrawFramePiece(12, 24, 23);
                 goto keyloop;
             }
             break;
         case 'N':
-            UPrintMessage(137);
+            U3RenderPrintMessage(137);
             NegateTime(1, chnum + 1);
             break;
         case 'R':
-            UPrintMessage(138);
+            U3RenderPrintMessage(138);
             ReadyWeapon(chnum + 1, 0);
             break;
         case 'V': Volume(); break;
         case 'Z':
-            UPrintMessage(139);
+            U3RenderPrintMessage(139);
             Stats(1, chnum + 1);
             break;
         default:
-            UPrintMessage(140);
-            PlaySoundFile(CFSTR("Error2"), TRUE);    // was 0xFE
+            U3RenderPrintMessage(140);
+            U3AudioPlaySound(U3SoundEffectError2, true);    // was 0xFE
             DrawFramePiece(8, 23, 23);
             DrawFramePiece(12, 24, 23);
             goto keyloop;
@@ -1117,12 +1141,12 @@ nextmon:
     if (zp[0xD0] == 0)
         goto afternext;
     if (gChnum >= 0) {
-        if (RandNum(0, 255) < 128) {
+        if (U3PlatformRandom(0, 255) < 128) {
             if (gMonType == 0x3A)
                 goto monshoot;
         }
     }
-    if (RandNum(0, 0xC0) > 127) {
+    if (U3PlatformRandom(0, 0xC0) > 127) {
         if (gMonType == 0x1A)
             goto monmagic;
         if (gMonType == 0x1C)
@@ -1143,11 +1167,11 @@ nextplr:
         goto monlb;
     goto nextmon;
 monmagic: /* $864A */
-    gChnum = RandNum(0, 255) & 3;
+    gChnum = U3PlatformRandom(0, 255) & 3;
     if (Player[Party[7 + gChnum]][17] != 'G')
         goto nextplr;
     InverseTiles();
-    PlaySoundFile(CFSTR("MonsterSpell"), FALSE);    // was 0xF2, was Whine(0x40,0x40);
+    U3AudioPlaySound(U3SoundEffectMonsterSpell, false);    // was 0xF2, was Whine(0x40,0x40);
     InverseTiles();
     zp[0x1F] = 0x78;
     goto afternext;
@@ -1163,7 +1187,7 @@ monlb: /* $8672 */
     DrawTiles();
     goto nextmon;
 monshoot:                                   /* $86A4 */
-    PlaySoundFile(CFSTR("Shoot"), TRUE);    // was 0xEA
+    U3AudioPlaySound(U3SoundEffectShoot, true);    // was 0xEA
     xs = MonsterX[mon];
     ys = MonsterY[mon];
 monshoot2: /* $86B5 */
@@ -1200,28 +1224,28 @@ afternext: /* $86FD */
         if (gMonType == 0x2E)
             Pilfer(gChnum);
     }
-    UPrintMessage(141);
-    UPrintNumPad(gChnum + 1, 1);
+    U3RenderPrintMessage(141);
+    U3RenderPrintNumberPadded(gChnum + 1, 1);
     wx++;
-    PlaySoundFile(CFSTR("Attack"), FALSE);    // was 0xF8
+    U3AudioPlaySound(U3SoundEffectAttack, false);    // was 0xF8
 
     // If in Exodus Castle and the character is not wearing Exotic, it's an automatic hit.
     if (g835E == 3 && Party[4] == LocationX[1] && Player[Party[7 + gChnum]][40] != 7)
         goto plrhit;
 
     // Random from 0 to armour+16 -- less than 8 is a hit.
-    temp = RandNum(0, Player[Party[7 + gChnum]][40] + 0x10);
+    temp = U3PlatformRandom(0, Player[Party[7 + gChnum]][40] + 0x10);
     if (temp < 8)
         goto plrhit;
 
-    UPrintMessage(142);    // Missed
+    U3RenderPrintMessage(142);    // Missed
     goto nextmon;
 plrhit:                    /* $876D */
-    UPrintMessage(143);    // Hit
+    U3RenderPrintMessage(143);    // Hit
 c8777:
     temp = ((Player[Party[7 + gChnum]][28] * 256) + Player[Party[7 + gChnum]][29]) / 100;
     temp = ((monhpstart[(gMonType / 2) & 0x0F] / 8) + temp) | 1;
-    temp = RandNum(0, temp) + 1;
+    temp = U3PlatformRandom(0, temp) + 1;
     HPSubtract(Party[7 + gChnum], temp);
     HPSubtract(Party[7 + gChnum], (g835E & 3) * 16);
     InverseChar(gChnum);
@@ -1229,13 +1253,13 @@ c8777:
     PutXYTile(zp[0x1F], CharX[gChnum], CharY[gChnum]);
     DrawTiles();
     ShowHit(CharX[gChnum], CharY[gChnum], 0x7A, CharTile[gChnum]);
-    PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+    U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
     DrawMapPause();
     PutXYTile(CharShape[gChnum], CharX[gChnum], CharY[gChnum]);
     DrawTiles();
     InverseChar(gChnum); /* <--- I had to add this fucker! */
     if (Player[Party[7 + gChnum]][17] == 'D') {
-        UPrintMessage(144);
+        U3RenderPrintMessage(144);
         PutXYTile(CharTile[gChnum], CharX[gChnum], CharY[gChnum]);
         CharX[gChnum] = 0xFF;
         CharY[gChnum] = 0xFF;
@@ -1284,20 +1308,20 @@ void CombatAttack(short chnum) { /* $8360 */
     GetPascalStringFromArrayByIndex(str2, CFSTR("Messages"), 144);
     //GetIndString(str2, BASERES+12, 145);
     AddString(str1, str2);
-    UPrintWin(str1);
+    U3RenderPrintPascalString(str1);
 
-    GetDirection(1);
+    U3PlatformGetDirection(1);
     if (dx == 0 && dy == 0)
         return;
     /* was Whine(chnum*8+0xE0, 6); */
     if (chnum == 0)
-        PlaySoundFile(CFSTR("Swish1"), FALSE);
+        U3AudioPlaySound(U3SoundEffectSwish1, false);
     else if (chnum == 1)
-        PlaySoundFile(CFSTR("Swish2"), FALSE);
+        U3AudioPlaySound(U3SoundEffectSwish2, false);
     else if (chnum == 2)
-        PlaySoundFile(CFSTR("Swish3"), FALSE);
+        U3AudioPlaySound(U3SoundEffectSwish3, false);
     else
-        PlaySoundFile(CFSTR("Swish4"), FALSE);
+        U3AudioPlaySound(U3SoundEffectSwish4, false);
 
     if (wpn == 3 || wpn == 5 || wpn == 9 || wpn == 13) {
     projectile:
@@ -1329,22 +1353,22 @@ void CombatAttack(short chnum) { /* $8360 */
         Missed();
         return;
     }
-    if (RandNum(0, 255) < 128) {
-        if (Player[rosNum][19] < RandNum(0, 99)) {
+    if (U3PlatformRandom(0, 255) < 128) {
+        if (Player[rosNum][19] < U3PlatformRandom(0, 99)) {
             Missed();
             return;
         }
     }
     PrintMonster(gMonType, false, gMonVarType);
-    UPrintMessage(146);
+    U3RenderPrintMessage(146);
     gBallTileBackground = MonsterTile[mon];
     PutXYTile(zp[0x1F], MonsterX[mon], MonsterY[mon]);
     DrawTiles();
     ShowHit(MonsterX[mon], MonsterY[mon], 0x7A, MonsterTile[mon]);
-    PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+    U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
     DrawMapPause();
     PutXYTile(gMonType, MonsterX[mon], MonsterY[mon]);
-    damage = RandNum(0, (Player[rosNum][18] | 1));
+    damage = U3PlatformRandom(0, (Player[rosNum][18] | 1));
     damage += Player[rosNum][18] / 2;
     damage += Player[rosNum][48] * 3;
     damage += 4;
@@ -1352,7 +1376,7 @@ void CombatAttack(short chnum) { /* $8360 */
 }
 
 void Missed(void) { /* $8414 */
-    UPrintMessage(147);
+    U3RenderPrintMessage(147);
     DrawTiles();
 }
 
@@ -1418,8 +1442,8 @@ markdone:
 void Pilfer(short chnum) { /* $881F */
     short rosNum, item;
     rosNum = Party[7 + chnum];
-    if (RandNum(0, 255) < 128) {
-        item = RandNum(0, 15);
+    if (U3PlatformRandom(0, 255) < 128) {
+        item = U3PlatformRandom(0, 15);
         if (item == 0)
             return;
         if (Player[rosNum][48] == item)
@@ -1428,7 +1452,7 @@ void Pilfer(short chnum) { /* $881F */
             return;
         Player[rosNum][48 + item] = 0;
     } else {
-        item = RandNum(0, 7);
+        item = U3PlatformRandom(0, 7);
         if (item == 0)
             return;
         if (Player[rosNum][40] == item)
@@ -1437,32 +1461,32 @@ void Pilfer(short chnum) { /* $881F */
             return;
         Player[rosNum][40 + item] = 0;
     }
-    UPrintMessage(141);
-    UPrintNumPad(chnum + 1, 1);
+    U3RenderPrintMessage(141);
+    U3RenderPrintNumberPadded(chnum + 1, 1);
     wx++;
-    UPrintMessage(148);
-    PlaySoundFile(CFSTR("Ouch"), FALSE);    // was 0xFA
+    U3RenderPrintMessage(148);
+    U3AudioPlaySound(U3SoundEffectOuch, false);    // was 0xFA
 }
 
 void Poison(short chnum) { /* $8881 */
     short rosNum;
     rosNum = Party[7 + chnum];
-    if ((RandNum(0, 255) & 0x03) != 0)
+    if ((U3PlatformRandom(0, 255) & 0x03) != 0)
         return;
     if (Player[rosNum][17] != 'G')
         return;
     Player[rosNum][17] = 'P';
-    UPrintMessage(141);
-    UPrintNumPad(chnum + 1, 1);
+    U3RenderPrintMessage(141);
+    U3RenderPrintNumberPadded(chnum + 1, 1);
     wx++;
-    UPrintMessage(149);
-    PlaySoundFile(CFSTR("Ouch"), FALSE);    // was 0xFA
+    U3RenderPrintMessage(149);
+    U3AudioPlaySound(U3SoundEffectOuch, false);    // was 0xFA
 }
 
 void ShowHit(short x, short y, unsigned char hitType, unsigned char tileUnder) {
     short orgVal;
     //long      time;
-    if (!CFPreferencesGetAppBooleanValue(U3PrefSoundInactive, kCFPreferencesCurrentApplication, NULL))
+    if (!U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled))
         return;
     //if (prefs.soundActive) return;
     orgVal = GetXYTile(x, y);
@@ -1470,7 +1494,7 @@ void ShowHit(short x, short y, unsigned char hitType, unsigned char tileUnder) {
     PutXYTile(hitType, x, y);
     SwapShape(hitType);
     DrawTiles();
-    ThreadSleepTicks(10);
+    U3PlatformWaitTicks(10);
     SwapShape(hitType);
     PutXYTile(orgVal, x, y);
     DrawTiles();

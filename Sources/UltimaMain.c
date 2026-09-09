@@ -6,6 +6,10 @@
 #import "CarbonShunts.h"
 #import "CocoaBridge.h"
 #import "PrefsDialog.h"
+#import "U3Audio.h"
+#import "U3IO.h"
+#import "U3Renderer.h"
+#import "U3Platform.h"
 #import "UltimaAppleEvents.h"
 #import "UltimaDngn.h"
 #import "UltimaGraphics.h"
@@ -13,7 +17,6 @@
 #import "UltimaMisc.h"
 #import "UltimaNew.h"
 #import "UltimaNewMap.h"
-#import "UltimaSound.h"
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
@@ -34,7 +37,7 @@ MenuHandle      gAppleMenu, gFileMenu, gEditMenu, gSpecialMenu, gRefMenu;
 long            gTime[2] = {10,9};
 short           gTorch, gTimeNegate, gDepth, gUpdateWhere, gMonType, gRefChange, gPauseChange;
 short           gMoon[2] = {12,4}, gMoonDisp[2] = {'4','4'}, gUpdateStore;
-short           gRosterRefNum, gCurImage, gOrgDepth, gCurCursor, gChnum, gCurMouseDir;
+short           gCurImage, gOrgDepth, gCurCursor, gChnum, gCurMouseDir;
 short           gMouseState, gMouseKey, gCurMapID, gCurMapSize;
 EventRecord     gTheEvent;
 StringHandle    gFontName;
@@ -50,7 +53,7 @@ PixMapHandle    gWidePixMap, updatePixMap, minitilesPixMap, textPixMap;
 PixMapHandle    directPixMap;
 GDHandle        mainDevice;
 RgnHandle       UpdateRgn;
-Handle          gParty, gRoster, gCurrentTlk, gDemoData;
+U3DataBuffer    gDemoData;
 ResType         gResType;
 int             xpos, ypos, xs, ys, dx, dy, ox, oy, tx, ty, wx, wy, demoptr;
 long            gMapOffset;
@@ -184,7 +187,7 @@ int Ultima3_main(void) {
     EnableMenuCommand(NULL, kHICommandPreferences);
     SetAntiAliasedTextEnabled(true, 6);
     OpenGraphicsAndSound();
-    ApplyVolumePreferences();
+    U3AudioApplyPreferences();
     MenuBarInit();
     ValidatePrefs();
     //GetPrefs();
@@ -193,11 +196,11 @@ int Ultima3_main(void) {
     CheckSystemRequirements();
     SetUpDisplayDialog();
     ReflectPrefs();
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL)) {
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen)) {
         ShowHideBackground();
         // spin wheels for 2 seconds for gadgets to disappear
-        endTime = TickCount() + 60;
-        while (TickCount() < endTime) {
+        endTime = U3PlatformTickCount() + 60;
+        while (U3PlatformTickCount() < endTime) {
             WaitNextEvent(everyEvent, &gTheEvent, 0L, nil);
             switch (gTheEvent.what) {
                 case updateEvt:
@@ -216,7 +219,7 @@ int Ultima3_main(void) {
             }
         }
     }
-    FlushEvents(everyEvent, 0);
+    U3PlatformFlushAllEvents();
 
     DoSplashScreen();
     MainLoop();
@@ -242,7 +245,7 @@ void MainLoop(void) {
     demoptr = 0;
     CreateIntroData();
     Intro();
-    ClearBottom();
+    U3RenderClearBottom();
     GetDemoRsrc();
     zp[0xCF] = zp[0x10] = gDemoSong = 0;
     gSongCurrent = 0;
@@ -251,12 +254,12 @@ void MainLoop(void) {
     Demo();
     MainMenu();
     //PutPrefs();
-    CFPreferencesAppSynchronize(kCFPreferencesCurrentApplication);
-    EndSong();
-    CloseMusic();
-    CloseChannel();
+    U3PlatformSynchronizePreferences();
+    U3AudioStopMusic();
+    U3AudioCloseMusic();
+    U3AudioCloseEffects();
     MyShowMenuBar();
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
         RestoreDisplay();
     ExitMovies();
 
@@ -275,7 +278,7 @@ void Intro(void) {
         CenterMessage(54, 23);
         DrawFramePiece(12, 12, 23);
         DrawFramePiece(13, 27, 23);
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
     }
 }
 
@@ -284,8 +287,8 @@ void Demo(void) {
     DisableMenus();
     gUpdateWhere = 2;
     DrawDemoScreen();
-    ObscureCursor();
-    while (!GetKeyMouse(2)) {
+    U3PlatformObscureCursor();
+    while (!U3PlatformGetKeyMouse(2)) {
         DemoUpdate(demoptr);
         demoptr++;
         if (demoptr > 511)
@@ -301,7 +304,7 @@ void MainMenu(void) {
     DrawMenuBar();
     while (!gDone) {
         if (theChar != '\n') {
-            ClearBottom();
+            U3RenderClearBottom();
             DrawFrame(3);
             gUpdateWhere = 5;
             LWDisableMenuItem(gFileMenu, ABORTID);
@@ -310,17 +313,17 @@ void MainMenu(void) {
         gSongCurrent = gSongNext = 0;
         tx = 24;
         ty = 15;
-        //theChar = CursorKey(false);
-        theChar = WaitKeyMouse();
+        //theChar = U3PlatformCursorKey(false);
+        theChar = U3PlatformWaitKeyMouse();
         if (theChar > 95)
             theChar -= 32;
         switch (theChar) {
             case 'R':
-                ClearBottom();
+                U3RenderClearBottom();
                 Demo();
                 break;
             case 'J':
-                ClearBottom();
+                U3RenderClearBottom();
                 CenterMessage(1, 15);
                 ForceUpdateMain();
                 Delay(45, nil);
@@ -367,14 +370,14 @@ organize:
         if (gDone == TRUE)
             OrgDone = TRUE;
         if (theChar != '\n') {
-            ClearBottom();
+            U3RenderClearBottom();
             DrawOrganizeMenu();
         }
         tx = 24;
         ty = 13;
         gUpdateWhere = 6;
-        //      theChar = CursorKey(false);
-        theChar = WaitKeyMouse();
+        //      theChar = U3PlatformCursorKey(false);
+        theChar = U3PlatformWaitKeyMouse();
         InitCursor();
         gUpdateWhere = 0;
         if (theChar > 95)
@@ -424,7 +427,7 @@ void DrawOrganizeMenu(void) {
             Player[i][16] = 0;
         }
     }
-    UPrint("\p ", 11, 11);
+    U3RenderPrintPascalStringAt("\p ", 11, 11);
     CenterMessage(33, 11);
     SetRect(&offRect, 0, 0, 38 * blkSiz, 133 * scaler);
     offx = 16;
@@ -507,7 +510,7 @@ void DrawOrganizeMenu(void) {
             if (Player[i][16])
                 formed = TRUE;
             while (UThemePascalStringWidth(str, kThemeCurrentPortFont) > (70 * scaler)) {
-                str[--str[0]] = 0xC9; // É
+                str[--str[0]] = 0xC9; // MacRoman ellipsis
             }
             UDrawThemePascalString(str, kThemeCurrentPortFont);    // was thisFont
             Str255 lvlStr = "\pLvl ";
@@ -567,7 +570,7 @@ void DrawOrganizeMenu(void) {
             }
             AddString(desc, str);
             while (UThemePascalStringWidth(desc, kThemeCurrentPortFont) > (152 * scaler)) {
-                desc[--desc[0]] = 0xC9; // É
+                desc[--desc[0]] = 0xC9; // MacRoman ellipsis
             }
             MoveTo((x + 153) * scaler, y * scaler);
             UDrawThemePascalString(desc, kThemeCurrentPortFont);
@@ -588,10 +591,10 @@ void DrawOrganizeMenu(void) {
 }
 
 void Examine(void) {
-    ClearBottom();
+    U3RenderClearBottom();
     DrawCharacterList();
     ShowClickMessage();
-    WaitKeyMouse();
+    U3PlatformWaitKeyMouse();
 }
 
 void DrawCharacterList(void) {   // now obsolete
@@ -600,50 +603,50 @@ void DrawCharacterList(void) {   // now obsolete
     for (slot = 1; slot<21; slot++) {
         ty = slot+11+((slot>10)*-10); // 11 was 12
         tx = 1+(slot<10)+((slot>10)*20);
-        UPrintNum(slot, tx, ty);
+        U3RenderPrintNumberAt(slot, tx, ty);
         if (Player[slot][0]!=0)
             {
             if (Player[slot][16]!=0) {
-                UPrintChar('*',tx+1,ty);
+                U3RenderPrintCharAt('*',tx+1,ty);
                 }
             else {
-                UPrintChar('-',tx+1,ty);
+                U3RenderPrintCharAt('-',tx+1,ty);
                 }
-            UPrintChar(Player[slot][24],tx+1,ty);
-            UPrintChar(Player[slot][22],tx,ty);
-            UPrintChar(Player[slot][23],tx,ty);
-            UPrintChar(Player[slot][17],tx,ty);
+            U3RenderPrintCharAt(Player[slot][24],tx+1,ty);
+            U3RenderPrintCharAt(Player[slot][22],tx,ty);
+            U3RenderPrintCharAt(Player[slot][23],tx,ty);
+            U3RenderPrintCharAt(Player[slot][17],tx,ty);
             tx++;
             for (byte = 0; byte<8; byte++) {
                 if (Player[slot][byte]!=0) {
-                    UPrintChar(Player[slot][byte],tx,ty);
+                    U3RenderPrintCharAt(Player[slot][byte],tx,ty);
                     }
                 }
             }
         else
             {
-            UPrint("\p--",tx+8,ty);
+            U3RenderPrintPascalStringAt("\p--",tx+8,ty);
             }
         }   */
 }
 
 void FormParty(void) {
     if (FormPartyDialog()) {
-        ClearBottom();
+        U3RenderClearBottom();
         CenterMessage(4, 13);
         CenterMessage(12, 16);
         ShowClickMessage();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
     }
     /*  char    input, byte;
     Boolean valid;
-    ClearBottom();
+    U3RenderClearBottom();
     CenterMessage(4,13);
     if (Party[7]!=0)
         {
         CenterMessage(5,16);
         ShowClickMessage();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
         return;
         }
     for (byte = 0; byte<64; byte++)
@@ -657,7 +660,7 @@ void FormParty(void) {
     for (byte = 1; byte<5; byte++)
         {
         valid = TRUE;
-        UPrint("\p   ",24,15+byte);
+        U3RenderPrintPascalStringAt("\p   ",24,15+byte);
         input = UInputNum(24,15+byte);
         if (gDone) byte = 7;
         if (byte>1 && input==0) goto form1;
@@ -665,13 +668,13 @@ void FormParty(void) {
             CenterMessage(10,21);
             valid = FALSE;
             ShowClickMessage();
-            WaitKeyMouse();
+            U3PlatformWaitKeyMouse();
             CenterMessage(11,21); }
         if (Player[input][16]!=0) {
             CenterMessage(41,21);
             valid = FALSE;
             ShowClickMessage();
-            WaitKeyMouse();
+            U3PlatformWaitKeyMouse();
             CenterMessage(42,21); }
         if (valid == TRUE)
             {
@@ -716,14 +719,14 @@ form1:
                 PutMiscStuff();
                 CenterMessage(12,22);
                 ShowClickMessage();
-                WaitKeyMouse();
+                U3PlatformWaitKeyMouse();
                 }
             }  */
 }
 
 void DisperseParty(void) {
     char byte;
-    ClearBottom();
+    U3RenderClearBottom();
     CenterMessage(13, 17);
     for (byte = 1; byte < 21; byte++) {
         Player[byte][16] = 0;
@@ -732,7 +735,7 @@ void DisperseParty(void) {
     if (Party[7] == 0) {
         CenterMessage(14, 20);
         ShowClickMessage();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
     } else {
         for (byte = 0; byte < 17; byte++) {
             Party[byte] = 0;
@@ -740,28 +743,28 @@ void DisperseParty(void) {
         PutParty();
         CenterMessage(15, 19);
         ShowClickMessage();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
     }
 }
 
 void CreateChar(void) {
     char byte, player;
 
-    /*  ClearBottom();
+    /*  U3RenderClearBottom();
     CenterMessage(16,15);
     Message(17,16,18);
     player = UInputNum(22,18);
     if ((player<1) || (player>20))
         {
         CenterMessage(18,21);
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
         }
     else
         {
         if (Player[player][0]!=0)
             {
             CenterMessage(19,21);
-            WaitKeyMouse();
+            U3PlatformWaitKeyMouse();
             }
         else
             { */
@@ -780,10 +783,10 @@ void CreateChar(void) {
     DrawFrame(gCurFrame);
     DrawExodusPict();
     if (player < 1 || player > 20) {
-        ClearBottom();
+        U3RenderClearBottom();
         CenterMessage(20, 16);
         ShowClickMessage();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
         DestroyHelpWorld();
         return;
     }
@@ -795,15 +798,15 @@ void CreateChar(void) {
         Player[player][byte] = 0;
     }
     if (CharacterCreateDialog(player) == FALSE) {
-        ClearBottom();
+        U3RenderClearBottom();
         CenterMessage(20, 16);
         ShowClickMessage();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
         DestroyHelpWorld();
         return;
     }
     DestroyHelpWorld();
-    ClearBottom();
+    U3RenderClearBottom();
     CenterMessage(21, 16);
     Player[player][17] = 'G';    // Good Health
     Player[player][27] = 100;    // Current Hit Points
@@ -817,41 +820,41 @@ void CreateChar(void) {
     Player[player][48] = 1;      // pre-readied
     PutRoster();
     ShowClickMessage();
-    WaitKeyMouse();
+    U3PlatformWaitKeyMouse();
 }
 /*  }
 }
-            ClearBottom();
-            UPrint("\pEntry#",11,11);
-            UPrintNum(player, tx, ty);
-            UPrint("\pPoints:50",20,ty);
-            UPrint("\pName:",14,ty+2);
-            UPrint("\pSex:",14,ty+1);
-            UPrint("\pRace:",14,ty+1);
-            UPrint("\pType:",14,ty+1);
-            UPrint("\pStrength........",12,ty+1);
-            UPrint("\pDexterity.......",12,ty+1);
-            UPrint("\pIntelligence....",12,ty+1);
-            UPrint("\pWisdom..........",12,ty+1);
-            UPrint("\pO.K.:",14,ty+1);
+            U3RenderClearBottom();
+            U3RenderPrintPascalStringAt("\pEntry#",11,11);
+            U3RenderPrintNumberAt(player, tx, ty);
+            U3RenderPrintPascalStringAt("\pPoints:50",20,ty);
+            U3RenderPrintPascalStringAt("\pName:",14,ty+2);
+            U3RenderPrintPascalStringAt("\pSex:",14,ty+1);
+            U3RenderPrintPascalStringAt("\pRace:",14,ty+1);
+            U3RenderPrintPascalStringAt("\pType:",14,ty+1);
+            U3RenderPrintPascalStringAt("\pStrength........",12,ty+1);
+            U3RenderPrintPascalStringAt("\pDexterity.......",12,ty+1);
+            U3RenderPrintPascalStringAt("\pIntelligence....",12,ty+1);
+            U3RenderPrintPascalStringAt("\pWisdom..........",12,ty+1);
+            U3RenderPrintPascalStringAt("\pO.K.:",14,ty+1);
             tx = 19;
             ty = 13;
             byte = 0;
 NameBegin:
-            input = CursorKey(false);
+            input = U3PlatformCursorKey(false);
             if (gDone) goto CreateSave;
             if (input == 8) goto NameBS;
             if (input == 13) goto Sex;
             if (input<' ') goto NameBegin;
             Player[player][byte] = input;
-            UPrintChar(input,tx,ty);
+            U3RenderPrintCharAt(input,tx,ty);
             byte++;
             if (byte>12) goto Sex;
             goto NameBegin;
 NameBS:
             if (byte>0)
                 {
-                UPrint("\p ",tx-1,ty);
+                U3RenderPrintPascalStringAt("\p ",tx-1,ty);
                 tx--;
                 byte--;
                 }
@@ -860,18 +863,18 @@ Sex:
             flag1 = FALSE;
             tx = 19;
             ty = 14;
-            input = CursorKey(false);
+            input = U3PlatformCursorKey(false);
             if (input>95) input -= 32;
             Player[player][24] = input;
-            if (input == 'F') { UPrint("\pFemale",tx,ty); flag1=TRUE; }
-            if (input == 'O') { UPrint("\pOther",tx,ty); flag1 = TRUE; }
-            if (input == 'M') { UPrint("\pMale",tx,ty); flag1 = TRUE; }
+            if (input == 'F') { U3RenderPrintPascalStringAt("\pFemale",tx,ty); flag1=TRUE; }
+            if (input == 'O') { U3RenderPrintPascalStringAt("\pOther",tx,ty); flag1 = TRUE; }
+            if (input == 'M') { U3RenderPrintPascalStringAt("\pMale",tx,ty); flag1 = TRUE; }
             if (flag1 == FALSE && gDone!=TRUE) goto Sex;
 Race:
             flag1 = FALSE;
             tx = 19;
             ty = 15;
-            input = CursorKey(false);
+            input = U3PlatformCursorKey(false);
             if (input>95) input -= 32;
             Player[player][22] = input;
             for (byte=0; byte<5; byte++)
@@ -880,7 +883,7 @@ Race:
                 if (input == tempStr[1])
                     {
                     flag1=TRUE;
-                    UPrint(tempStr,tx,ty);
+                    U3RenderPrintPascalStringAt(tempStr,tx,ty);
                     }
                 }
             if (flag1 == FALSE && gDone!=TRUE) goto Race;
@@ -888,7 +891,7 @@ Type:
             flag1 = FALSE;
             tx = 19;
             ty = 16;
-            input = CursorKey(false);
+            input = U3PlatformCursorKey(false);
             if (input>95) input -=  32;
             Player[player][23] = input;
             for (byte=0; byte<11; byte++)
@@ -897,7 +900,7 @@ Type:
                     {
                     GetPascalStringFromArrayByIndex(tempStr, CFSTR("Classes"), byte);
                     flag1=TRUE;
-                    UPrint(tempStr,tx,ty);
+                    U3RenderPrintPascalStringAt(tempStr,tx,ty);
                     }
                 }
             if (flag1 == FALSE && gDone!=TRUE) goto Type;
@@ -925,9 +928,9 @@ Type:
 CreateOK:
             tx = 19;
             ty = 21;
-            input = CursorKey(false);
+            input = U3PlatformCursorKey(false);
             if (input>95) input -= 32;
-            if (input == 'Y') { UPrintChar('Y',tx,ty); goto CreateSave; }
+            if (input == 'Y') { U3RenderPrintCharAt('Y',tx,ty); goto CreateSave; }
             if (input!='N') goto CreateOK;
             goto CreateBegin;
 CreateSave:
@@ -953,8 +956,8 @@ CreateSave:
 void ShowPoints(char points) {
     tx = 27;
     ty = 11;
-    UPrintNum(points, tx, ty);
-    UPrintChar(' ', tx, ty);
+    U3RenderPrintNumberAt(points, tx, ty);
+    U3RenderPrintCharAt(' ', tx, ty);
 }
 
 void KillChar(void) {
@@ -966,7 +969,7 @@ void KillChar(void) {
         DrawOrganizeMenu();
     }
     /*  char    byte, input;
-    ClearBottom();
+    U3RenderClearBottom();
     CenterMessage(22,15);
     Message(17,16,18);
     input = UInputNum(22,18);
@@ -974,7 +977,7 @@ void KillChar(void) {
         {
         CenterMessage(18,20);
         ShowClickMessage();
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
         }
     else
         {
@@ -982,7 +985,7 @@ void KillChar(void) {
             {
             CenterMessage(23,20);
             ShowClickMessage();
-            WaitKeyMouse();
+            U3PlatformWaitKeyMouse();
             }
         else
             {
@@ -990,7 +993,7 @@ void KillChar(void) {
                 {
                 CenterMessage(24,21);
                 ShowClickMessage();
-                WaitKeyMouse();
+                U3PlatformWaitKeyMouse();
                 }
             else
                 {
@@ -1001,7 +1004,7 @@ void KillChar(void) {
                 PutRoster();
                 CenterMessage(25,21);
                 ShowClickMessage();
-                WaitKeyMouse();
+                U3PlatformWaitKeyMouse();
                 }
             }
         } */
@@ -1035,14 +1038,14 @@ void Game(void) {
         gResurrect = FALSE;
         ShowChars(false);
         CheckAllDead();
-        DrawPrompt();
+        U3RenderDrawPrompt();
         gMouseState = 1;
         count = 60; /* SUPPOSED TO BE 0x25! */
-        Boolean allowDiagonal = !(CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL));
+        Boolean allowDiagonal = !(U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals));
         while (count > 0) {
             WhirlPool();
             //FullUpdate();
-            key = GetKeyMouse(0);
+            key = U3PlatformGetKeyMouse(0);
             if (key)
                 count = 0;
             count--;
@@ -1089,8 +1092,8 @@ void Game(void) {
             }
             Routine6E35();
             if (StillDown()) {
-                time = TickCount() + 6;
-                while (TickCount() < time) {
+                time = U3PlatformTickCount() + 6;
+                while (U3PlatformTickCount() < time) {
                 }
             }
             while (StillDown()) {
@@ -1101,47 +1104,47 @@ void Game(void) {
                 CursorUpdate();
                 switch (gCurCursor) {
                     case 0:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         Pass();
                         StillDownPause();
                         break;
                     case 1:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         North();
                         StillDownPause();
                         break;
                     case 2:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         South();
                         StillDownPause();
                         break;
                     case 3:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         West();
                         StillDownPause();
                         break;
                     case 4:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         East();
                         StillDownPause();
                         break;
                     case 22:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         NorthWest();
                         StillDownPause();
                         break;
                     case 23:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         NorthEast();
                         StillDownPause();
                         break;
                     case 24:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         SouthWest();
                         StillDownPause();
                         break;
                     case 25:
-                        DrawPrompt();
+                        U3RenderDrawPrompt();
                         SouthEast();
                         StillDownPause();
                         break;
@@ -1153,14 +1156,12 @@ void Game(void) {
 }
 
 void StillDownPause(void) {
-    long time = TickCount() + 1;
+    long time = U3PlatformTickCount() + 1;
 
     Routine6E35();
-    if (CFPreferencesGetAppBooleanValue(U3PrefSpeedUnconstrain, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceUnconstrainedSpeed))
         return;
     IdleUntil(time);
-    //time = TickCount()+2;
-    //while (TickCount()<time) { }
 }
 
 void LetterCommand(char key) {
@@ -1197,11 +1198,11 @@ void LetterCommand(char key) {
 /* ------------------- Run-time game code begins here ------------------------ */
 
 void Pass(void) {
-    UPrintMessage(23);
+    U3RenderPrintMessage(23);
 }
 
 void North(void) {
-    UPrintMessage(24);
+    U3RenderPrintMessage(24);
     if (ValidTrans(1) == 0) {
         NoGo();
     } else {
@@ -1215,7 +1216,7 @@ void North(void) {
 }
 
 void South(void) {
-    UPrintMessage(25);
+    U3RenderPrintMessage(25);
     if (ValidTrans(3) == 0) {
         NoGo();
     } else {
@@ -1230,7 +1231,7 @@ void South(void) {
 
 void East(void) {
     gHorseFacingEast = true;
-    UPrintMessage(26);
+    U3RenderPrintMessage(26);
     if (ValidTrans(2) == 0) {
         NoGo();
     } else {
@@ -1245,7 +1246,7 @@ void East(void) {
 
 void West(void) {
     gHorseFacingEast = false;
-    UPrintMessage(27);
+    U3RenderPrintMessage(27);
     if (ValidTrans(4) == 0) {
         NoGo();
     } else {
@@ -1260,7 +1261,7 @@ void West(void) {
 
 void SouthEast(void) {
     gHorseFacingEast = true;
-    UPrintMessage(251);
+    U3RenderPrintMessage(251);
     if ((ValidTrans(2) == 0) || (ValidTrans(3) == 0)) {
         NoGo();
     } else {
@@ -1277,7 +1278,7 @@ void SouthEast(void) {
 
 void SouthWest(void) {
     gHorseFacingEast = false;
-    UPrintMessage(250);
+    U3RenderPrintMessage(250);
     if ((ValidTrans(3) == 0) || (ValidTrans(4) == 0)) {
         NoGo();
     } else {
@@ -1294,7 +1295,7 @@ void SouthWest(void) {
 
 void NorthEast(void) {
     gHorseFacingEast = true;
-    UPrintMessage(253);
+    U3RenderPrintMessage(253);
     if ((ValidTrans(1) == 0) || (ValidTrans(2) == 0)) {
         NoGo();
     } else {
@@ -1311,7 +1312,7 @@ void NorthEast(void) {
 
 void NorthWest(void) {
     gHorseFacingEast = false;
-    UPrintMessage(252);
+    U3RenderPrintMessage(252);
     if ((ValidTrans(1) == 0) || (ValidTrans(4) == 0)) {
         NoGo();
     } else {
@@ -1329,8 +1330,8 @@ void NorthWest(void) {
 void Attack(void) {
     short monNum;
 
-    UPrintMessage(28);
-    GetDirection(0);
+    U3RenderPrintMessage(28);
+    U3PlatformGetDirection(0);
     monNum = MonsterHere(xs, ys);
     if (monNum == 255) {
         NotHere();
@@ -1362,22 +1363,22 @@ void AttackCode(short whichMon) { /* $52B3 */
 void Board(void) {
     short tileOn;
     if (Party[1] != 0x7E) { /* Not 'Ranger' shape? */
-        UPrintMessage(29); /*Board*/
+        U3RenderPrintMessage(29); /*Board*/
         What2();
     } else {
         tileOn = GetXYVal(xpos, ypos);
         if (tileOn == 0x28) { /* horse */
             PutXYVal(0x04, xpos, ypos); /* replace with grass */
             Party[1] = 0x14;
-            UPrintMessage(30);
-            PlaySoundFile(CFSTR("MountHorse"), TRUE);    // was 0xDB
+            U3RenderPrintMessage(30);
+            U3AudioPlaySound(U3SoundEffectMountHorse, true);    // was 0xDB
         } else if (tileOn == 0x2C)                       /* ship */
         {
             PutXYVal(0x00, xpos, ypos); /* replace with water */
             Party[1] = 0x16;
-            UPrintMessage(31);
+            U3RenderPrintMessage(31);
         } else {
-            UPrintMessage(29); /*Board*/
+            U3RenderPrintMessage(29); /*Board*/
             What2();
         }
     }
@@ -1387,11 +1388,11 @@ void Board(void) {
 
 void Descend(void) {
     if (Party[16] == 0) {
-        UPrintMessage(32);
+        U3RenderPrintMessage(32);
         What2();
         return;
     }
-    UPrintWin("\pDiorama\n");
+    U3RenderPrintPascalString("\pDiorama\n");
     DrawDioramaMap();
 }
 
@@ -1399,9 +1400,9 @@ void Enter(void) {
     short x, placeNum, tile, newval, chnum;
     Str255 str, addStr;
 
-    //  UPrintMessage(33);
+    //  U3RenderPrintMessage(33);
     if (Party[3] != 0xFF && Party[3] != 00) {
-        UPrintMessage(33);
+        U3RenderPrintMessage(33);
         What();
         return;
     }
@@ -1414,7 +1415,7 @@ void Enter(void) {
                 placeNum = x;
         }
         if (placeNum == 666) {
-            UPrintMessage(33);
+            U3RenderPrintMessage(33);
             What2();
             return;
         }
@@ -1425,7 +1426,7 @@ void Enter(void) {
             GetPascalStringFromArrayByIndex(str, CFSTR("Messages"), 32);
             GetPascalStringFromArrayByIndex(addStr, CFSTR("Messages"), 33);
             AddString(str, addStr);
-            UPrintWin(str);
+            U3RenderPrintPascalString(str);
             newval = 1;
             dungeonLevel = 0;
             xpos = 1;
@@ -1437,7 +1438,7 @@ void Enter(void) {
             GetPascalStringFromArrayByIndex(str, CFSTR("Messages"), 32);
             GetPascalStringFromArrayByIndex(addStr, CFSTR("Messages"), 34);
             AddString(str, addStr);
-            UPrintWin(str);
+            U3RenderPrintPascalString(str);
             newval = 2;
             ypos = 32;
             xpos = 1;
@@ -1448,7 +1449,7 @@ void Enter(void) {
             GetPascalStringFromArrayByIndex(str, CFSTR("Messages"), 32);
             GetPascalStringFromArrayByIndex(addStr, CFSTR("Messages"), 35);
             AddString(str, addStr);
-            UPrintWin(str);
+            U3RenderPrintPascalString(str);
             newval = 3;
             xpos = 32;
             ypos = 62;
@@ -1460,18 +1461,18 @@ void Enter(void) {
     }
     if (Party[3] == 0xFF) {   // Ambrosia
         if (GetXYVal(xpos, ypos) != 0xF8) {
-            UPrintMessage(33);
+            U3RenderPrintMessage(33);
             What2();
             return;
         }
-        //      UPrintMessage(37);
+        //      U3RenderPrintMessage(37);
         GetPascalStringFromArrayByIndex(str, CFSTR("Messages"), 32);
         GetPascalStringFromArrayByIndex(addStr, CFSTR("Messages"), 36);
         AddString(str, addStr);
-        UPrintWin(str);
+        U3RenderPrintPascalString(str);
         chnum = GetChar();
         if (chnum < 1 || chnum > 4) {
-            ErrorTone();
+            U3AudioPlaySound(U3SoundEffectError1, true);
             return;
         }
         if (CheckAlive(chnum - 1) == FALSE) {
@@ -1485,7 +1486,7 @@ void Enter(void) {
     }
 enterdone: /* $59C9 */
     gSongCurrent = gSongNext = 0;
-    if (CFPreferencesGetAppBooleanValue(U3PrefAutoSave, kCFPreferencesCurrentApplication, NULL)) {
+    if (U3PlatformGetBooleanPreference(U3PreferenceAutoSave)) {
         PutRoster();
         PutParty();
         PutSosaria();
@@ -1522,13 +1523,13 @@ enterdone: /* $59C9 */
 
 void Fire(void) {
     short x, value, store;
-    UPrintMessage(38);
+    U3RenderPrintMessage(38);
     if (Party[1] != 0x16) {
         What2();
     } else {
-        UPrintMessage(39);
-        GetDirection(0);
-        PlaySoundFile(CFSTR("Shoot"), TRUE);    // was 0xEA
+        U3RenderPrintMessage(39);
+        U3PlatformGetDirection(0);
+        U3AudioPlaySound(U3SoundEffectShoot, true);    // was 0xEA
         xs = xpos;
         ys = ypos;
         x = 4;
@@ -1560,20 +1561,20 @@ void Fire(void) {
         gBallTileBackground = (monster == 255) ? value : Monsters[monster + TILEON] / 2;
         PutXYVal(0xF4, xs, ys);
         DrawMap(xpos, ypos);
-        PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
-        if (Monsters[store] == 0x3C && RandNum(0, 255) < 128) {
+        U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
+        if (Monsters[store] == 0x3C && U3PlatformRandom(0, 255) < 128) {
             PutXYVal(value, xs, ys);
             DrawTiles();
             return;
         }
-        if (RandNum(0, 255) < 128) {
+        if (U3PlatformRandom(0, 255) < 128) {
             PutXYVal(value, xs, ys);
             DrawTiles();
             return;
         } else {
             ShowHit(xs - xpos + 5, ys - ypos + 5, 0x7A, Monsters[store + TILEON] / 2);
             PrintMonster(Monsters[store] / 2, true, Monsters[store + VARMON]);
-            UPrintMessage(117);
+            U3RenderPrintMessage(117);
             PutXYVal(Monsters[store + TILEON], xs, ys);
             Monsters[store] = 0;
         }
@@ -1591,11 +1592,11 @@ void GetChest(short spell, short chnum) {
     }
     if (spell == 0) {
         m5BDC = 0xFF;
-        UPrintMessage(40);
+        U3RenderPrintMessage(40);
         chnum = GetChar();
         if (chnum < 1 || chnum > 4) {
-            UPrintMessage(41);
-            ErrorTone();
+            U3RenderPrintMessage(41);
+            U3AudioPlaySound(U3SoundEffectError1, true);
             return;
         }
         if (CheckAlive(chnum - 1) == FALSE) {
@@ -1623,56 +1624,56 @@ void GetChest(short spell, short chnum) {
         }
         PutXYDng(0, xpos, ypos);
     }
-    if ((m5BDC == 0) || (RandNum(0, 255) > 127))
+    if ((m5BDC == 0) || (U3PlatformRandom(0, 255) > 127))
         goto GetChestBooty;
-    switch ((RandNum(0, 255) & RandNum(0, 255)) & 0x03) {
+    switch ((U3PlatformRandom(0, 255) & U3PlatformRandom(0, 255)) & 0x03) {
         case 0:
-            UPrintMessage(42);
+            U3RenderPrintMessage(42);
             if (StealDisarmFail(rosNum) == FALSE) {
-                UPrintMessage(46);
-                PlaySoundFile(CFSTR("Ouch"), FALSE);    // was 0xFA
+                U3RenderPrintMessage(46);
+                U3AudioPlaySound(U3SoundEffectOuch, false);    // was 0xFA
                 goto GetChestBooty;
             } else {
                 InverseChar(chnum - 1);
-                PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+                U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
                 InverseChar(chnum - 1);
-                HPSubtract(rosNum, RandNum(0, 255) & 0x37);
+                HPSubtract(rosNum, U3PlatformRandom(0, 255) & 0x37);
                 goto GetChestBooty;
             }
         case 1:
-            UPrintMessage(43);
+            U3RenderPrintMessage(43);
             if (StealDisarmFail(rosNum) == FALSE) {
-                UPrintMessage(46);
-                PlaySoundFile(CFSTR("Ouch"), FALSE);    // was 0xFA
+                U3RenderPrintMessage(46);
+                U3AudioPlaySound(U3SoundEffectOuch, false);    // was 0xFA
                 goto GetChestBooty;
             } else {
                 InverseChar(chnum - 1);
-                PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+                U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
                 InverseChar(chnum - 1);
                 Player[rosNum][17] = 'P';
                 goto GetChestBooty;
             }
         case 2:
-            UPrintMessage(44);
+            U3RenderPrintMessage(44);
             if (StealDisarmFail(rosNum) == FALSE) {
-                UPrintMessage(46);
-                PlaySoundFile(CFSTR("Ouch"), FALSE);    // was 0xFA
+                U3RenderPrintMessage(46);
+                U3AudioPlaySound(U3SoundEffectOuch, false);    // was 0xFA
                 goto GetChestBooty;
             } else {
                 BombTrap();
                 return;
             }
         case 3:
-            UPrintMessage(45);
+            U3RenderPrintMessage(45);
             if (StealDisarmFail(rosNum) == FALSE) {
-                UPrintMessage(46);
-                PlaySoundFile(CFSTR("Ouch"), FALSE);    // was 0xFA
+                U3RenderPrintMessage(46);
+                U3AudioPlaySound(U3SoundEffectOuch, false);    // was 0xFA
                 goto GetChestBooty;
             } else {
                 for (x = 0; x < 4; x++) {
                     if (CheckAlive(x) == TRUE) {
                         InverseChar(x);
-                        PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+                        U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
                         InverseChar(x);
                         Player[Party[7 + x]][17] = 'P';
                     }
@@ -1681,45 +1682,45 @@ void GetChest(short spell, short chnum) {
             }
     }
 GetChestBooty:
-    PlaySoundFile(CFSTR("Creak"), TRUE);    // was 0xEB
+    U3AudioPlaySound(U3SoundEffectCreak, true);    // was 0xEB
     GetPascalStringFromArrayByIndex(str1, CFSTR("Messages"), 46);
-    gold = RandNum(0, 100);
+    gold = U3PlatformRandom(0, 100);
     if (gold < 30)
         gold += 30;
     NumToString(gold, str2);
     AddString(str1, str2);
     str1[++str1[0]] = '\n';
-    UPrintWin(str1);
-    //  UPrintNumPad(gold,2);
-    //  UPrintWin("\p\n");
+    U3RenderPrintPascalString(str1);
+    //  U3RenderPrintNumberPadded(gold,2);
+    //  U3RenderPrintPascalString("\p\n");
     if (AddGold(rosNum, gold, TRUE) == FALSE) {
-        UPrintMessage(48);
-        ErrorTone();
+        U3RenderPrintMessage(48);
+        U3AudioPlaySound(U3SoundEffectError1, true);
     }
-    if (RandNum(0, 255) > 63)
+    if (U3PlatformRandom(0, 255) > 63)
         return;
-    wpn = RandNum(0, 255);
+    wpn = U3PlatformRandom(0, 255);
     if (wpn < 128) {
-        wpn = (RandNum(0, 255) & wpn) & 0x07;
+        wpn = (U3PlatformRandom(0, 255) & wpn) & 0x07;
         if (wpn != 0) {
             GetPascalStringFromArrayByIndex(str1, CFSTR("Messages"), 48);
             GetPascalStringFromArrayByIndex(str2, CFSTR("WeaponsArmour"), wpn);
             AddString(str1, str2);
             str1[++str1[0]] = '\n';
-            UPrintWin(str1);
+            U3RenderPrintPascalString(str1);
             AddItem(rosNum, 48 + wpn, 1);
             return;
         }
     }
-    arm = RandNum(0, 255);
+    arm = U3PlatformRandom(0, 255);
     if (arm < 128) {
-        arm = (RandNum(0, 255) & arm) & 0x03;
+        arm = (U3PlatformRandom(0, 255) & arm) & 0x03;
         if (arm != 0) {
             GetPascalStringFromArrayByIndex(str1, CFSTR("Messages"), 49);
             GetPascalStringFromArrayByIndex(str2, CFSTR("WeaponsArmour"), arm + 16);
             AddString(str1, str2);
             str1[++str1[0]] = '\n';
-            UPrintWin(str1);
+            U3RenderPrintPascalString(str1);
             AddItem(rosNum, 40 + arm, 1);
         }
     }
@@ -1731,9 +1732,9 @@ void BombTrap(void) { /* $5C63 */
         if (CheckAlive(chnum) == TRUE) {
             InverseChar(chnum);
             ForceUpdateMain();
-            PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+            U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
             InverseChar(chnum);
-            HPSubtract(Party[7 + chnum], RandNum(0, 255) & 0x77);
+            HPSubtract(Party[7 + chnum], U3PlatformRandom(0, 255) & 0x77);
             HPSubtract(Party[7 + chnum], (zp[0x13] + 1) * 8);
             ForceUpdateMain();
         }
@@ -1747,63 +1748,63 @@ void HandEquip(short chnum1, short chnum2, short item, char what2, short value) 
 
     preset = (chnum1 > 0);
     if (!preset) {   // Standard mode, ask for everything
-        UPrintMessage(51);
+        U3RenderPrintMessage(51);
         chnum1 = GetChar();
         if (chnum1 < 1 || chnum1 > 4) {
-            UPrintMessage(41);
-            ErrorTone();
+            U3RenderPrintMessage(41);
+            U3AudioPlaySound(U3SoundEffectError1, true);
             return;
         }
         if (!Player[Party[6 + chnum1]][17]) {
-            UPrintMessage(41);
-            ErrorTone();
+            U3RenderPrintMessage(41);
+            U3AudioPlaySound(U3SoundEffectError1, true);
             return;
         }
-        UPrintMessage(52);
+        U3RenderPrintMessage(52);
         chnum2 = GetChar();
         if (chnum2 < 1 || chnum2 > 4) {
-            UPrintMessage(41);
-            ErrorTone();
+            U3RenderPrintMessage(41);
+            U3AudioPlaySound(U3SoundEffectError1, true);
             return;
         }
         if (!Player[Party[6 + chnum2]][17]) {
-            UPrintMessage(41);
-            ErrorTone();
+            U3RenderPrintMessage(41);
+            U3AudioPlaySound(U3SoundEffectError1, true);
             return;
         }
     }
     if (chnum1 == chnum2) {
-        ErrorTone();
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }    // hand to-from same char
     rosNum1 = Party[6 + chnum1];
     rosNum2 = Party[6 + chnum2];
     if (!Player[rosNum1][17] || !Player[rosNum2][17]) {
-        ErrorTone();
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     if (!preset) {
-        UPrintMessage(53);
+        U3RenderPrintMessage(53);
         item = GetKey();
     }
 
     switch (item) {
         case 'F':
             if (!preset) {
-                UPrintMessage(54);
+                U3RenderPrintMessage(54);
                 value = UInputBigNum(tx, ty);
-                UPrintWin("\p\n");
+                U3RenderPrintPascalString("\p\n");
             }
             fromAmount = (Player[rosNum1][32] * 100) + Player[rosNum1][33];
             toAmount = (Player[rosNum2][32] * 100) + Player[rosNum2][33];
             if (value > fromAmount) {
-                UPrintMessage(55);
-                ErrorTone();
+                U3RenderPrintMessage(55);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             if (toAmount + value > 9999) {
-                UPrintMessage(56);
-                ErrorTone();
+                U3RenderPrintMessage(56);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             fromAmount -= value;
@@ -1813,24 +1814,24 @@ void HandEquip(short chnum1, short chnum2, short item, char what2, short value) 
             Player[rosNum2][32] = toAmount / 100;
             Player[rosNum2][33] = toAmount - (Player[rosNum2][32] * 100);
             if (!preset)
-                UPrintMessage(57);
+                U3RenderPrintMessage(57);
             break;
         case 'G':
             if (!preset) {
-                UPrintMessage(54);
+                U3RenderPrintMessage(54);
                 value = UInputBigNum(tx, ty);
-                UPrintWin("\p\n");
+                U3RenderPrintPascalString("\p\n");
             }
             fromAmount = (Player[rosNum1][35] * 256) + Player[rosNum1][36];
             toAmount = (Player[rosNum2][35] * 256) + Player[rosNum2][36];
             if (value > fromAmount) {
-                UPrintMessage(55);
-                ErrorTone();
+                U3RenderPrintMessage(55);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             if (toAmount + value > 9999) {
-                UPrintMessage(56);
-                ErrorTone();
+                U3RenderPrintMessage(56);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             fromAmount -= value;
@@ -1840,11 +1841,11 @@ void HandEquip(short chnum1, short chnum2, short item, char what2, short value) 
             Player[rosNum2][35] = toAmount / 256;
             Player[rosNum2][36] = toAmount - (Player[rosNum2][35] * 256);
             if (!preset)
-                UPrintMessage(57);
+                U3RenderPrintMessage(57);
             break;
         case 'E':
             if (!preset) {
-                UPrintMessage(58);
+                U3RenderPrintMessage(58);
                 what2 = GetKey();
             }
             i = 0;
@@ -1857,23 +1858,23 @@ void HandEquip(short chnum1, short chnum2, short item, char what2, short value) 
             if (what2 == 'T')
                 i = 15;
             if (i == 0) {
-                UPrintMessage(59);
-                ErrorTone();
+                U3RenderPrintMessage(59);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             if (!preset) {
-                UPrintMessage(60);
+                U3RenderPrintMessage(60);
                 value = UInputNum(tx, ty);
-                UPrintWin("\p\n");
+                U3RenderPrintPascalString("\p\n");
             }
             if (value > Player[rosNum1][i]) {
-                UPrintMessage(55);
-                ErrorTone();
+                U3RenderPrintMessage(55);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             if (value + Player[rosNum2][i] > 99) {
-                UPrintMessage(56);
-                ErrorTone();
+                U3RenderPrintMessage(56);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             Player[rosNum1][i] -= value;
@@ -1881,30 +1882,30 @@ void HandEquip(short chnum1, short chnum2, short item, char what2, short value) 
             if (Player[rosNum2][i] > 99)
                 Player[rosNum2][i] = 99;
             if (!preset)
-                UPrintMessage(57);
+                U3RenderPrintMessage(57);
             break;
         case 'W':
             if (!preset) {
-                UPrintMessage(61);
+                U3RenderPrintMessage(61);
                 what2 = GetKey();
             }
             if (what2 < 'B' || what2 > 'P') {
                 if (!preset)
-                    UPrintMessage(59);
-                ErrorTone();
+                    U3RenderPrintMessage(59);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             what2 -= 'A';
             if (Player[rosNum1][48] == what2 && Player[rosNum1][48 + what2] < 2) {
                 if (!preset)
-                    UPrintMessage(63);
-                ErrorTone();
+                    U3RenderPrintMessage(63);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             if (Player[rosNum1][48 + what2] == 0) {
                 if (!preset)
-                    UPrintMessage(59);
-                ErrorTone();
+                    U3RenderPrintMessage(59);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             Player[rosNum1][48 + what2]--;
@@ -1912,29 +1913,29 @@ void HandEquip(short chnum1, short chnum2, short item, char what2, short value) 
             if (Player[rosNum2][48 + what2] > 99)
                 Player[rosNum2][48 + what2] = 99;
             if (!preset)
-                UPrintMessage(57);
+                U3RenderPrintMessage(57);
             break;
         case 'A':
             if (!preset) {
-                UPrintMessage(62);
+                U3RenderPrintMessage(62);
                 what2 = GetKey();
             }
             if (what2 < 'B' || what2 > 'H') {
-                UPrintMessage(59);
-                ErrorTone();
+                U3RenderPrintMessage(59);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             what2 -= 'A';
             if (Player[rosNum1][40] == what2 && Player[rosNum1][40 + what2] < 2) {
                 if (!preset)
-                    UPrintMessage(63);
-                ErrorTone();
+                    U3RenderPrintMessage(63);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             if (Player[rosNum1][40 + what2] == 0) {
                 if (!preset)
-                    UPrintMessage(59);
-                ErrorTone();
+                    U3RenderPrintMessage(59);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 return;
             }
             Player[rosNum1][40 + what2]--;
@@ -1942,34 +1943,34 @@ void HandEquip(short chnum1, short chnum2, short item, char what2, short value) 
             if (Player[rosNum2][40 + what2] > 99)
                 Player[rosNum2][40 + what2] = 99;
             if (!preset)
-                UPrintMessage(57);
+                U3RenderPrintMessage(57);
             break;
         default:
             if (!preset)
-                UPrintMessage(59);
-            ErrorTone();
+                U3RenderPrintMessage(59);
+            U3AudioPlaySound(U3SoundEffectError1, true);
             break;
     }
 }
 
 void Ignite(void) { /* $5FF1 */
     short chnum, rosNum;
-    UPrintMessage(64);
+    U3RenderPrintMessage(64);
     if (Party[3] != 1) {
         NotHere();
         return;
     }
-    UPrintMessage(65);
+    U3RenderPrintMessage(65);
     chnum = GetChar();
     if (chnum < 1 || chnum > 4)
         return;
     rosNum = Party[6 + chnum];
     if (Player[rosNum][15] < 1) {
-        UPrintMessage(67);
+        U3RenderPrintMessage(67);
         return;
     }
     Player[rosNum][15]--;
-    PlaySoundFile(CFSTR("TorchIgnite"), TRUE);    // was 0xDF
+    U3AudioPlaySound(U3SoundEffectTorchIgnite, true);    // was 0xDF
     gTorch = 255;
 }
 
@@ -1977,12 +1978,12 @@ void JoinGold(short chnum) {   // 1-4, 0=ask
     short x, mainRosNum, rosNum, total, gold, transfer;
 
     if (!chnum) {
-        UPrintMessage(66);
+        U3RenderPrintMessage(66);
         chnum = GetChar();
     }
     if (chnum < 1 || chnum > 4) {
-        UPrintMessage(41);
-        ErrorTone();
+        U3RenderPrintMessage(41);
+        U3AudioPlaySound(U3SoundEffectError1, true);
     } else {
         mainRosNum = Party[6 + chnum];
         total = ((Player[mainRosNum][35]) * 256) + Player[mainRosNum][36];
@@ -2011,14 +2012,14 @@ void Klimb(void) {
     unsigned char keyPressed;
 
     if (Party[16] != 1 || Party[3] != 0) {
-        UPrintMessage(68);
+        U3RenderPrintMessage(68);
         What2();
         /*      // This code steps through EVERY 'talk' message.
         short person, perNum;
         PushSosaria();
         for (keyPressed=0; keyPressed<19; keyPressed++)
             {
-            UPrintWin("\p\nPlace #"); UPrintNum(keyPressed, tx, ty); UPrintChar('\n', tx, ty);
+            U3RenderPrintPascalString("\p\nPlace #"); U3RenderPrintNumberAt(keyPressed, tx, ty); U3RenderPrintCharAt('\n', tx, ty);
             if (keyPressed>18) { LoadUltimaMap(BASERES+keyPressed+3); } else
                              { LoadUltimaMap(BASERES+keyPressed); }
             if (keyPressed>11) // Dungeon
@@ -2026,8 +2027,8 @@ void Klimb(void) {
                 for (person=1; person<=8; person++)
                     {
                     Speak(person, 23);
-                    UPrintWin("\p\n");
-                    if (CursorKey(false)=='q') person=32;
+                    U3RenderPrintPascalString("\p\n");
+                    if (U3PlatformCursorKey(false)=='q') person=32;
                     }
                 }
             else
@@ -2038,17 +2039,17 @@ void Klimb(void) {
                     if (Monsters[person]>0 && perNum>0)
                         {
                         Speak(perNum,Monsters[person]/4);
-                        if (CursorKey(false)=='q') person=32;
+                        if (U3PlatformCursorKey(false)=='q') person=32;
                         }
                     }
                 }
-            UPrintWin("\p\n\nEnd of place #"); UPrintNum(keyPressed, tx, ty); UPrintChar('\n', tx, ty);
-            if (CursorKey(false)=='q') keyPressed=32;
+            U3RenderPrintPascalString("\p\n\nEnd of place #"); U3RenderPrintNumberAt(keyPressed, tx, ty); U3RenderPrintCharAt('\n', tx, ty);
+            if (U3PlatformCursorKey(false)=='q') keyPressed=32;
             }
         PullSosaria();
 */
     } else {
-        UPrintWin("\pKreate (Y/N):");
+        U3RenderPrintPascalString("\pKreate (Y/N):");
         keyPressed = GetKey();
         if (keyPressed == 'Y') {
             CreateNewMap();
@@ -2062,9 +2063,9 @@ void Klimb(void) {
 
 void Look(void) {
     short temp, mon;
-    UPrintMessage(69);
-    GetDirection(0);
-    UPrintWin("\p->");
+    U3RenderPrintMessage(69);
+    U3PlatformGetDirection(0);
+    U3RenderPrintPascalString("\p->");
     temp = (GetXYVal(xs, ys));
     mon = MonsterHere(xs, ys);
     if (mon == 255) {
@@ -2090,20 +2091,20 @@ void Look(void) {
     } else {    // plural if not in town or castle.
         PrintMonster(Monsters[mon] / 2, (Party[3] != 2 && Party[3] != 3), Monsters[mon + VARMON]);
     }
-    UPrintWin("\p\n");
+    U3RenderPrintPascalString("\p\n");
 }
 
 void ModifyOrder(void) {
     short chnum1, chnum2, temp;
-    UPrintMessage(70);
+    U3RenderPrintMessage(70);
     chnum1 = GetChar();
     if (chnum1 < 1 || chnum1 > 4) {
-        UPrintMessage(71);
+        U3RenderPrintMessage(71);
     } else {
-        UPrintMessage(72);
+        U3RenderPrintMessage(72);
         chnum2 = GetChar();
         if (chnum2 < 1 || chnum2 > 4 || chnum1 == chnum2) {
-            UPrintMessage(71);
+            U3RenderPrintMessage(71);
         } else {
             temp = Party[6 + chnum1];
             Party[6 + chnum1] = Party[6 + chnum2];
@@ -2114,7 +2115,7 @@ void ModifyOrder(void) {
             ForeColor(whiteColor);
             DrawFrame(gCurFrame);
             ShowChars(true);
-            UPrintMessage(73);
+            U3RenderPrintMessage(73);
         }
     }
 }
@@ -2122,16 +2123,16 @@ void ModifyOrder(void) {
 void NegateTime(short mode, short chnum) {
     short rosNum;
     if (mode == 0) {
-        UPrintMessage(74);
+        U3RenderPrintMessage(74);
         chnum = GetChar();
         if (chnum < 1 || chnum > 4) {
-            UPrintWin("\p\n");
+            U3RenderPrintPascalString("\p\n");
             return;
         }
     }
     rosNum = Party[6 + chnum];
     if (Player[rosNum][39] < 1) {
-        UPrintMessage(67);
+        U3RenderPrintMessage(67);
         return;
     }
     Player[rosNum][39]--;
@@ -2142,16 +2143,16 @@ void NegateTime(short mode, short chnum) {
 
 void PeerGem(void) {
     short chnum, rosnum;
-    UPrintMessage(75);
+    U3RenderPrintMessage(75);
     chnum = GetChar();
     if (chnum < 1 || chnum > 4) {
-        UPrintWin("\p\n");
+        U3RenderPrintPascalString("\p\n");
         return;
     }
     rosnum = Party[6 + chnum];
-    UPrintWin("\p\n");
+    U3RenderPrintPascalString("\p\n");
     if (Player[rosnum][37] < 1) {
-        UPrintMessage(67);
+        U3RenderPrintMessage(67);
     } else {
         Player[rosnum][37]--;
         DrawMiniMap();
@@ -2162,12 +2163,12 @@ Boolean QuitSave(short mode) {   // 0 = verbose
     Str32 str, str2;
 
     if (mode == 0)
-        UPrintMessage(76);
+        U3RenderPrintMessage(76);
     if (Party[3] != 0) {
         if (mode == 0)
-            UPrintMessage(77);
+            U3RenderPrintMessage(77);
         if (mode == 0)
-            ErrorTone();
+            U3AudioPlaySound(U3SoundEffectError1, true);
         return FALSE;
     }
 
@@ -2177,7 +2178,7 @@ Boolean QuitSave(short mode) {   // 0 = verbose
         //GetIndString(str2, BASERES+12, 78);
         NumToString(number, str);
         AddString(str, str2);
-        UPrintWin(str);
+        U3RenderPrintPascalString(str);
     }
     lastSaveNumberOfMoves = number;
     PutRoster();
@@ -2193,27 +2194,27 @@ void ReadyWeapon(short chnum, char weapon) {
     Boolean preset = FALSE;
 
     if (chnum == 0) {
-        UPrintMessage(79);
+        U3RenderPrintMessage(79);
         chnum = GetChar();
     }
     if (chnum < 1 || chnum > 4) {
-        UPrintMessage(41);
-        ErrorTone();
+        U3RenderPrintMessage(41);
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     if (weapon == 0) {
-        UPrintMessage(80);
-        key = WaitKeyMouse();
+        U3RenderPrintMessage(80);
+        key = U3PlatformWaitKeyMouse();
         if (key > 96)
             key -= 32;
-        UPrintChar(key, wx, wy);
+        U3RenderPrintCharAt(key, wx, wy);
         weapon = key;
     } else {
         preset = TRUE;
     }
     if (weapon < 'A' || weapon > 'P') {
-        UPrintMessage(81);
-        ErrorTone();
+        U3RenderPrintMessage(81);
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     rosNum = Party[6 + chnum];
@@ -2223,31 +2224,31 @@ void ReadyWeapon(short chnum, char weapon) {
             typeNum = x;
     }
     if (weapon != 'P' && weapon >= wpnUseTable[typeNum]) {
-        UPrintMessage(82);
-        ErrorTone();
+        U3RenderPrintMessage(82);
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     weapon -= 'A';
     if ((weapon > 0) && (Player[rosNum][weapon + 48] < 1)) {
-        UPrintMessage(81);
-        ErrorTone();
+        U3RenderPrintMessage(81);
+        U3AudioPlaySound(U3SoundEffectError1, true);
     } else {
         Player[rosNum][48] = weapon;
         if (!preset) {
             Str255 outStr, readyStr;
-            UPrintWin("\p\n");
+            U3RenderPrintPascalString("\p\n");
             GetPascalStringFromArrayByIndex(outStr, CFSTR("WeaponsArmour"), weapon);
             GetPascalStringFromArrayByIndex(readyStr, CFSTR("Messages"), 82);
             //GetIndString(readyStr, BASERES+12, 83);
             AddString(outStr, readyStr);
-            UPrintWin(outStr);
+            U3RenderPrintPascalString(outStr);
         }
     }
 }
 
 void Steal(void) { /* $66C5 */
     short chnum, rosNum, byte;
-    UPrintMessage(84);
+    U3RenderPrintMessage(84);
     chnum = GetChar();
     if (chnum < 1 || chnum > 4)
         return;
@@ -2256,21 +2257,21 @@ void Steal(void) { /* $66C5 */
         return;
     }
     rosNum = Party[6 + chnum];
-    UPrintMessage(85);
-    GetDirection(0);
+    U3RenderPrintMessage(85);
+    U3PlatformGetDirection(0);
     if (StealDisarmFail(rosNum) == TRUE) {
     fail:
-        if ((RandNum(0, 255) & 0x03) != 0) {
-            UPrintMessage(86);
+        if ((U3PlatformRandom(0, 255) & 0x03) != 0) {
+            U3RenderPrintMessage(86);
             return;
         }
         for (byte = 63; byte >= 0; byte--) {
             if (Monsters[byte] == 0x48)
                 Monsters[byte + HPMON] = 0xC0;
         }
-        UPrintMessage(87);
-        PlaySoundFile(CFSTR("Ouch"), FALSE);    // was 0xFA
-        PlaySoundFile(CFSTR("Alarm"), TRUE);    // was 0xE8
+        U3RenderPrintMessage(87);
+        U3AudioPlaySound(U3SoundEffectOuch, false);    // was 0xFA
+        U3AudioPlaySound(U3SoundEffectAlarm, true);    // was 0xE8
         return;
     } else {
         byte = GetXYVal(xs, ys);
@@ -2293,7 +2294,7 @@ void Transact(void) {
     storeDir = 0;
     if (gMouseKey)
         storeDir = gCurMouseDir;
-    UPrintMessageRewrapped(88);
+    U3RenderPrintMessageRewrapped(88);
     chnum = GetChar();
     if (chnum < 1 || chnum > 4) {
         return;
@@ -2303,10 +2304,10 @@ void Transact(void) {
         Incap();
         return;
     }
-    UPrintMessage(85);
+    U3RenderPrintMessage(85);
     if (storeDir)
         AddMacro(storeDir);
-    GetDirection(0);
+    U3PlatformGetDirection(0);
     monNum = MonsterHere(xs, ys);
     if (monNum > 127) {
         tile = GetXYVal(xs, ys);
@@ -2333,12 +2334,12 @@ void Transact(void) {
             perNum = (Monsters[monNum + HPMON] & 0x0F);
             if (perNum == 0) {
                 if (Party[16] == 1) {
-                    UPrintMessageRewrapped(262);
-                    SpeakMessages(262, 0, Monsters[monNum] / 4);
+                    U3RenderPrintMessageRewrapped(262);
+                    U3AudioSpeakMessages(262, 0, Monsters[monNum] / 4);
                     //Speech(GetLocalizedPascalString("\pExodus is no more!"), Monsters[monNum]/4);
                 } else {
-                    UPrintMessage(89);
-                    SpeakMessages(89, 0, Monsters[monNum] / 4);
+                    U3RenderPrintMessage(89);
+                    U3AudioSpeakMessages(89, 0, Monsters[monNum] / 4);
                     //Speech(GetLocalizedPascalString("\pGood day!"), Monsters[monNum]/4);
                 }
                 return;
@@ -2347,8 +2348,8 @@ void Transact(void) {
             return;
         }
         gSongCurrent = 8;
-        MusicUpdate();    // is Lord British
-        UPrintMessage(90);
+        U3AudioUpdateMusic();    // is Lord British
+        U3RenderPrintMessage(90);
         level = Player[rosNum][30];
         hpmax = (Player[rosNum][28] * 256) + Player[rosNum][29];
         if ((hpmax % 100) == 50) {   // old 150/250 etc.
@@ -2357,25 +2358,25 @@ void Transact(void) {
         hpmax = hpmax / 100;
         if (level < hpmax) {
             if (Party[16] == 1) {
-                UPrintMessageRewrapped(263);
-                SpeakMessages(90, 263, 19);
+                U3RenderPrintMessageRewrapped(263);
+                U3AudioSpeakMessages(90, 263, 19);
                 //Speech(GetLocalizedPascalString("\pWelcome, my child. Sosaria thanks you!"),19);
             } else {
-                UPrintMessage(91);
-                SpeakMessages(90, 91, 19);
+                U3RenderPrintMessage(91);
+                U3AudioSpeakMessages(90, 91, 19);
                 //Speech(GetLocalizedPascalString("\pWelcome, my child. Experience more!"),19);
             }
             return;
         }
         if (hpmax >= 25 && Party[16] == 0) {
-            UPrintMessage(92);
-            SpeakMessages(90, 92, 19);
+            U3RenderPrintMessage(92);
+            U3AudioSpeakMessages(90, 92, 19);
             //Speech(GetLocalizedPascalString("\pWelcome, my child. No more!"),19);
             return;
         }
         if (hpmax > 4 && (Player[rosNum][14] & 0x80) == 0) {
-            UPrintMessage(93);
-            SpeakMessages(90, 93, 19);
+            U3RenderPrintMessage(93);
+            U3AudioSpeakMessages(90, 93, 19);
             //Speech(GetLocalizedPascalString("\pWelcome, my child. Seek ye, the mark of kings!"),19);
             return;
         }
@@ -2385,11 +2386,11 @@ void Transact(void) {
             hpmax = 9950;
         Player[rosNum][28] = hpmax / 256;
         Player[rosNum][29] = hpmax - (Player[rosNum][28] * 256);
-        UPrintMessage(94);
-        SpeakMessages(90, 94, 19);
+        U3RenderPrintMessage(94);
+        U3AudioSpeakMessages(90, 94, 19);
         //Speech(GetLocalizedPascalString("\pWelcome, my child. Thou art greater!"),19);
         InverseTiles();
-        PlaySoundFile(CFSTR("LBLevelRise"), FALSE);    // was 0xEF
+        U3AudioPlaySound(U3SoundEffectLBLevelRise, false);    // was 0xEF
         InverseTiles();
         return;
     }
@@ -2397,13 +2398,13 @@ void Transact(void) {
 
 void Unlock(void) {
     short temp, rosNum, chnum;
-    UPrintMessage(95);
-    Boolean allowDiagonal = !(CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL));
+    U3RenderPrintMessage(95);
+    Boolean allowDiagonal = !(U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals));
     if (allowDiagonal)
-        CFPreferencesSetAppValue(U3PrefNoDiagonals, kCFBooleanTrue, kCFPreferencesCurrentApplication);
-    GetDirection(0);
+        U3PlatformSetBooleanPreference(U3PreferenceNoDiagonals, true);
+    U3PlatformGetDirection(0);
     if (allowDiagonal)
-        CFPreferencesSetAppValue(U3PrefNoDiagonals, kCFBooleanFalse, kCFPreferencesCurrentApplication);
+        U3PlatformSetBooleanPreference(U3PreferenceNoDiagonals, false);
     if ((ys != ypos) && (xs == xpos)) {
         NotHere();
     } else {
@@ -2411,20 +2412,20 @@ void Unlock(void) {
         if (temp != 184) { /* not a door */
             NotHere();
         } else {
-            UPrintMessage(96);
+            U3RenderPrintMessage(96);
             chnum = GetChar();
             if (chnum < 1)
                 return;
             if (chnum > 4) {
-                UPrintMessage(41);
-                ErrorTone();
+                U3RenderPrintMessage(41);
+                U3AudioPlaySound(U3SoundEffectError1, true);
             } else {
                 rosNum = Party[6 + chnum];
                 if (Player[rosNum][38] < 1) {
-                    UPrintMessage(67);
+                    U3RenderPrintMessage(67);
                 } else {
                     Player[rosNum][38]--;
-                    PlaySoundFile(CFSTR("Creak"), TRUE);    // was 0xEB
+                    U3AudioPlaySound(U3SoundEffectCreak, true);    // was 0xEB
                     // see HideMonsters for visual under-tile choice equivalent
                     int mon = MonsterHere(xs - 1, ys);
                     value = (mon < 255) ? Monsters[mon + TILEON] : GetXYVal(xs - 1, ys);
@@ -2439,19 +2440,18 @@ void Unlock(void) {
 }
 
 void Volume(void) {
-    UPrintMessage(97);
+    U3RenderPrintMessage(97);
     if (gSoundIncapable) {
-        UPrintMessage(118);
+        U3RenderPrintMessage(118);
         return;
     }
-    CFStringRef key = U3PrefSoundInactive;
-    Boolean newSoundOff = !CFPreferencesGetAppBooleanValue(key, kCFPreferencesCurrentApplication, NULL);
-    CFPreferencesSetAppValue(key, (newSoundOff) ? kCFBooleanTrue : kCFBooleanFalse, kCFPreferencesCurrentApplication);
+    Boolean newSoundOff = !U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled);
+    U3PlatformSetBooleanPreference(U3PreferenceSoundDisabled, newSoundOff);
     ReflectPrefs();
     if (!newSoundOff)
-        UPrintMessage(98);
+        U3RenderPrintMessage(98);
     else
-        UPrintMessage(99);
+        U3RenderPrintMessage(99);
 }
 
 void WearArmour(short chnum, char armour) {
@@ -2459,27 +2459,27 @@ void WearArmour(short chnum, char armour) {
     Boolean preset = FALSE;
 
     if (chnum == 0) {
-        UPrintMessage(100);
+        U3RenderPrintMessage(100);
         chnum = GetChar();
     }
     if (chnum < 1 || chnum > 4) {
-        UPrintMessage(41);
-        ErrorTone();
+        U3RenderPrintMessage(41);
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     if (armour == 0) {
-        UPrintMessage(101);
-        key = WaitKeyMouse();
+        U3RenderPrintMessage(101);
+        key = U3PlatformWaitKeyMouse();
         if (key > 96)
             key -= 32;
-        UPrintChar(key, wx, wy);
+        U3RenderPrintCharAt(key, wx, wy);
         armour = key;
     } else {
         preset = TRUE;
     }
     if (armour < 'A' || armour > 'H') {
-        UPrintMessage(81);
-        ErrorTone();
+        U3RenderPrintMessage(81);
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     rosNum = Party[6 + chnum];
@@ -2489,25 +2489,25 @@ void WearArmour(short chnum, char armour) {
             typeNum = x;
     }
     if (armour != 'H' && armour >= armUseTable[typeNum]) {
-        UPrintMessage(82);
-        ErrorTone();
+        U3RenderPrintMessage(82);
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     armour -= 'A';
     if ((armour > 0) && (Player[rosNum][armour + 40] < 1)) {
-        UPrintMessage(81);
-        ErrorTone();
+        U3RenderPrintMessage(81);
+        U3AudioPlaySound(U3SoundEffectError1, true);
         return;
     }
     Player[rosNum][40] = armour;
     if (!preset) {
         Str255 outStr, readyStr;
-        UPrintWin("\p\n");
+        U3RenderPrintPascalString("\p\n");
         GetPascalStringFromArrayByIndex(outStr, CFSTR("WeaponsArmour"), armour + 16);
         GetPascalStringFromArrayByIndex(readyStr, CFSTR("Messages"), 82);
         //GetIndString(readyStr, BASERES+12, 83);
         AddString(outStr, readyStr);
-        UPrintWin(outStr);
+        U3RenderPrintPascalString(outStr);
     }
 }
 
@@ -2521,21 +2521,21 @@ void Exit(void) {
         //GetIndString(outStr, BASERES+12, 102); // X-it
         //GetIndString(addStr, BASERES+12, 107); // <-WHAT?\n
         AddString(outStr, addStr);
-        UPrintWin(outStr);
-        ErrorTone();
+        U3RenderPrintPascalString(outStr);
+        U3AudioPlaySound(U3SoundEffectError1, true);
     } else {
         tileOn = GetXYVal(xpos, ypos);
         if (tileOn > 4) { /* not water or grass */
-            UPrintMessage(102);    // X-it
-            UPrintWin("\p\n");
-            UPrintMessage(108);    // Not here!\n
-            ErrorTone();
+            U3RenderPrintMessage(102);    // X-it
+            U3RenderPrintPascalString("\p\n");
+            U3RenderPrintMessage(108);    // Not here!\n
+            U3AudioPlaySound(U3SoundEffectError1, true);
         } else {
             PutXYVal(Party[1] * 2, xpos, ypos);
             if (Party[1] == 0x14)
-                UPrintMessage(17);    // Dismount\n
+                U3RenderPrintMessage(17);    // Dismount\n
             else
-                UPrintMessage(103);    // X-it craft
+                U3RenderPrintMessage(103);    // X-it craft
             Party[1] = 0x7E;
         }
     }
@@ -2545,7 +2545,7 @@ void Yell(short mode) {
     short chnum, rosNum, oy;
     if (mode == 0) {
         YellStat = 0;
-        UPrintMessage(104);
+        U3RenderPrintMessage(104);
         OtherCommand(1);
         return;
     }
@@ -2582,10 +2582,10 @@ void Yell(short mode) {
         ypos=56;
         } */
     ypos = oy;
-    ClearTiles();
+    U3RenderClearTiles();
     ForceUpdateMain();
-    PlaySoundFile(CFSTR("Invocation"), FALSE);    // was 0xF4, and  was Whine(0xC0,0x40)
-    ThreadSleepTicks(60);
+    U3AudioPlaySound(U3SoundEffectInvocation, false);    // was 0xF4, and  was Whine(0xC0,0x40)
+    U3PlatformWaitTicks(60);
     DrawMap(xpos, ypos);
 }
 
@@ -2593,175 +2593,175 @@ void Stats(short mode, short chnum) {
     short rosnum, temp, x;
 
     if (mode == 0) {
-        UPrintMessage(105);
+        U3RenderPrintMessage(105);
         chnum = GetChar();
         if (chnum < 1 || chnum > 4) {
-            UPrintWin("\p\n");
+            U3RenderPrintPascalString("\p\n");
             return;
         }
     }
 
-    if (!CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL))
+    if (!U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance))
         DoStats(chnum);
     else {
         rosnum = Party[6 + chnum];
         for (x = 0; x < 13; x++) {
             temp = Player[rosnum][x];
             if (temp > 0)
-                UPrintChar(temp, tx, ty);
+                U3RenderPrintCharAt(temp, tx, ty);
         }
-        UPrintWin("\p\nSTR...");
-        UPrintNumPad(Player[rosnum][18], 2);
-        UPrintWin("\p\nDEX...");
-        UPrintNumPad(Player[rosnum][19], 2);
-        UPrintWin("\p\nINT...");
-        UPrintNumPad(Player[rosnum][20], 2);
-        UPrintWin("\p\nWIS...");
-        UPrintNumPad(Player[rosnum][21], 2);
+        U3RenderPrintPascalString("\p\nSTR...");
+        U3RenderPrintNumberPadded(Player[rosnum][18], 2);
+        U3RenderPrintPascalString("\p\nDEX...");
+        U3RenderPrintNumberPadded(Player[rosnum][19], 2);
+        U3RenderPrintPascalString("\p\nINT...");
+        U3RenderPrintNumberPadded(Player[rosnum][20], 2);
+        U3RenderPrintPascalString("\p\nWIS...");
+        U3RenderPrintNumberPadded(Player[rosnum][21], 2);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nH.P...");
+        U3RenderPrintPascalString("\p\nH.P...");
         temp = Player[rosnum][26] * 256 + Player[rosnum][27];
-        UPrintNumPad(temp, 4);
+        U3RenderPrintNumberPadded(temp, 4);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nH.M...");
+        U3RenderPrintPascalString("\p\nH.M...");
         temp = Player[rosnum][28] * 256 + Player[rosnum][29];
-        UPrintNumPad(temp, 4);
+        U3RenderPrintNumberPadded(temp, 4);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nGOLD: ");
+        U3RenderPrintPascalString("\p\nGOLD: ");
         temp = Player[rosnum][35] * 256 + Player[rosnum][36];
-        UPrintNumPad(temp, 4);
+        U3RenderPrintNumberPadded(temp, 4);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nEXP...");
+        U3RenderPrintPascalString("\p\nEXP...");
         temp = Player[rosnum][30] * 100 + Player[rosnum][31];
-        UPrintNumPad(temp, 4);
+        U3RenderPrintNumberPadded(temp, 4);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nGEMS..");
-        UPrintNumPad(Player[rosnum][37], 2);
+        U3RenderPrintPascalString("\p\nGEMS..");
+        U3RenderPrintNumberPadded(Player[rosnum][37], 2);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nKEYS..");
-        UPrintNumPad(Player[rosnum][38], 2);
+        U3RenderPrintPascalString("\p\nKEYS..");
+        U3RenderPrintNumberPadded(Player[rosnum][38], 2);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nPOWD..");
-        UPrintNumPad(Player[rosnum][39], 2);
+        U3RenderPrintPascalString("\p\nPOWD..");
+        U3RenderPrintNumberPadded(Player[rosnum][39], 2);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nTRCH..");
-        UPrintNumPad(Player[rosnum][15], 2);
+        U3RenderPrintPascalString("\p\nTRCH..");
+        U3RenderPrintNumberPadded(Player[rosnum][15], 2);
         temp = StatWait();
         if (temp)
             return;
         value = Player[rosnum][14];
         if (value & 0x08) {
-            UPrintWin("\p\nCARD OF DEATH");
+            U3RenderPrintPascalString("\p\nCARD OF DEATH");
             temp = StatWait();
             if (temp)
                 return;
         }
         if (value & 0x02) {
-            UPrintWin("\p\nCARD OF SOL");
+            U3RenderPrintPascalString("\p\nCARD OF SOL");
             temp = StatWait();
             if (temp)
                 return;
         }
         if (value & 0x01) {
-            UPrintWin("\p\nCARD OF LOVE");
+            U3RenderPrintPascalString("\p\nCARD OF LOVE");
             temp = StatWait();
             if (temp)
                 return;
         }
         if (value & 0x04) {
-            UPrintWin("\p\nCARD OF MOONS");
+            U3RenderPrintPascalString("\p\nCARD OF MOONS");
             temp = StatWait();
             if (temp)
                 return;
         }
         if (value & 0x10) {
-            UPrintWin("\p\nMARK OF FORCE");
+            U3RenderPrintPascalString("\p\nMARK OF FORCE");
             temp = StatWait();
             if (temp)
                 return;
         }
         if (value & 0x20) {
-            UPrintWin("\p\nMARK OF FIRE");
+            U3RenderPrintPascalString("\p\nMARK OF FIRE");
             temp = StatWait();
             if (temp)
                 return;
         }
         if (value & 0x40) {
-            UPrintWin("\p\nMARK OF SNAKE");
+            U3RenderPrintPascalString("\p\nMARK OF SNAKE");
             temp = StatWait();
             if (temp)
                 return;
         }
         if (value & 0x80) {
-            UPrintWin("\p\nMARK OF KINGS");
+            U3RenderPrintPascalString("\p\nMARK OF KINGS");
             temp = StatWait();
             if (temp)
                 return;
         }
-        UPrintWin("\p\nWEAPON:");
+        U3RenderPrintPascalString("\p\nWEAPON:");
         PrintWeapon(Player[rosnum][48]);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\nARMOUR:");
+        U3RenderPrintPascalString("\p\nARMOUR:");
         PrintArmour(Player[rosnum][40]);
         temp = StatWait();
         if (temp)
             return;
-        UPrintWin("\p\n**WEAPONS**\n");
+        U3RenderPrintPascalString("\p\n**WEAPONS**\n");
         for (x = 15; x >= 0; x--) {
             if (x == 0) {
-                UPrintWin("\p02-Hands-(A)\n**ARMOUR**\n");
+                U3RenderPrintPascalString("\p02-Hands-(A)\n**ARMOUR**\n");
             } else {
                 if (Player[rosnum][x + 48]) {
-                    UPrintNumPad(Player[rosnum][x + 48], 2);
+                    U3RenderPrintNumberPadded(Player[rosnum][x + 48], 2);
                     wx += 2;
-                    UPrintWin("\p-");
+                    U3RenderPrintPascalString("\p-");
                     PrintWeapon(x);
-                    UPrintWin("\p-(");
-                    UPrintChar(x + 65, tx, ty);
+                    U3RenderPrintPascalString("\p-(");
+                    U3RenderPrintCharAt(x + 65, tx, ty);
                     wx++;
-                    UPrintWin("\p)");
+                    U3RenderPrintPascalString("\p)");
                     temp = StatWait();
                     if (temp)
                         return;
-                    UPrintWin("\p\n");
+                    U3RenderPrintPascalString("\p\n");
                 }
             }
         }
         for (x = 7; x >= 0; x--) {
             if (x == 0) {
-                UPrintWin("\p01-Skin-(A)\n");
+                U3RenderPrintPascalString("\p01-Skin-(A)\n");
             } else {
                 if (Player[rosnum][x + 40]) {
-                    UPrintNumPad(Player[rosnum][x + 40], 2);
+                    U3RenderPrintNumberPadded(Player[rosnum][x + 40], 2);
                     wx += 2;
-                    UPrintWin("\p-");
+                    U3RenderPrintPascalString("\p-");
                     PrintArmour(x);
-                    UPrintWin("\p-(");
-                    UPrintChar(x + 65, tx, ty);
+                    U3RenderPrintPascalString("\p-(");
+                    U3RenderPrintCharAt(x + 65, tx, ty);
                     wx++;
-                    UPrintWin("\p)");
+                    U3RenderPrintPascalString("\p)");
                     temp = StatWait();
                     if (temp)
                         return;
-                    UPrintWin("\p\n");
+                    U3RenderPrintPascalString("\p\n");
                 }
             }
         }
@@ -2769,18 +2769,18 @@ void Stats(short mode, short chnum) {
 }
 
 void What(void) { /* $5135 */
-    UPrintMessage(106);
-    PlaySoundFile(CFSTR("Error2"), TRUE);    // was 0xFE
+    U3RenderPrintMessage(106);
+    U3AudioPlaySound(U3SoundEffectError2, true);    // was 0xFE
 }
 
 void What2(void) { /* $5279 */
-    UPrintMessage(107);
-    ErrorTone();
+    U3RenderPrintMessage(107);
+    U3AudioPlaySound(U3SoundEffectError1, true);
 }
 
 void NotHere(void) { /* $5288 */
-    UPrintMessage(108);
-    ErrorTone();
+    U3RenderPrintMessage(108);
+    U3AudioPlaySound(U3SoundEffectError1, true);
 }
 
 void CheckAllDead(void) { /* $71B4 */
@@ -2799,37 +2799,37 @@ void CheckAllDead(void) { /* $71B4 */
     if (!alive) {
         wx = 25;
         wy = 23;
-        UPrintMessage(109);    // ALL PLAYERS OUT!
-        if (CFPreferencesGetAppBooleanValue(U3PrefAutoSave, kCFPreferencesCurrentApplication, NULL)) {
+        U3RenderPrintMessage(109);    // ALL PLAYERS OUT!
+        if (U3PlatformGetBooleanPreference(U3PreferenceAutoSave)) {
             PutParty();
             PutRoster();
             PutSosaria();
         }
         gMouseState = 666;
         gSongCurrent = gSongNext = 0;
-        MusicUpdate();
-        FlushEvents(everyEvent, 0);
-        WaitKeyMouse();
+        U3AudioUpdateMusic();
+        U3PlatformFlushAllEvents();
+        U3PlatformWaitKeyMouse();
         gMouseState = 0;
         CursorUpdate();
         button = Alert(BASERES + 13, nil);    // 0=resurrect, 1=stay dead
         gMouseState = 666;
         CursorUpdate();
         ForceUpdateMain();
-        time = TickCount() + 60;
-        while (TickCount() < time) {
-            GetKeyMouse(0);
-            ThreadSleepTicks(1);
+        time = U3PlatformTickCount() + 60;
+        while (U3PlatformTickCount() < time) {
+            U3PlatformGetKeyMouse(0);
+            U3PlatformWaitTicks(1);
         }    // handle update
         if (button == 2) {
             while (!gDone) {
-                WaitKeyMouse();
+                U3PlatformWaitKeyMouse();
             }
             return;
         } else {
-            UPrintMessage(249);    // Resurrecting!
-            time = TickCount() + 300;
-            PlaySoundFile(CFSTR("BigDeath"), TRUE);    // was 0xE0
+            U3RenderPrintMessage(249);    // Resurrecting!
+            time = U3PlatformTickCount() + 300;
+            U3AudioPlaySound(U3SoundEffectBigDeath, true);    // was 0xE0
             DrawGamePortToMain(1);
             SetGWorld(gamePort, 0);
             color.red = color.green = color.blue = 32768;
@@ -2882,11 +2882,11 @@ void CheckAllDead(void) { /* $71B4 */
             ShowChars(false);
             ForceUpdateMain();
             //IdleUntil(time);
-            while (TickCount() < time) {
+            while (U3PlatformTickCount() < time) {
                 MoviesTask(nil, 0);
             }
-            UPrintWin("\p\n\n\n\n\n\n\n\n");
-            PlaySoundFile(CFSTR("BigDeath"), TRUE);    // was 0xE0
+            U3RenderPrintPascalString("\p\n\n\n\n\n\n\n\n");
+            U3AudioPlaySound(U3SoundEffectBigDeath, true);    // was 0xE0
             gResurrect = TRUE;
         }
     }
@@ -2971,7 +2971,7 @@ void WhirlPool(void) { /* $7665 */
         return;
     }
 
-    byte = RandNum(0, 7);
+    byte = U3PlatformRandom(0, 7);
     if (byte == 0)
         goto Whirl1;
     newx = MapConstrain(WhirlX + WhirlDX);
@@ -2990,13 +2990,13 @@ void WhirlPool(void) { /* $7665 */
     newy = swap;
     PutXYVal(0, newx, newy);
     DrawMap(xpos, ypos);
-    PlaySoundFile(CFSTR("Sink"), TRUE);    // was 0xF5
-    UPrintMessageRewrapped(110);
-    UPrintWin("\p\n");
-    DrawPrompt();
+    U3AudioPlaySound(U3SoundEffectSink, true);    // was 0xF5
+    U3RenderPrintMessageRewrapped(110);
+    U3RenderPrintPascalString("\p\n");
+    U3RenderDrawPrompt();
     return;
 Whirl1: /* $76E6 */
-    byte = RandNum(0, 7);
+    byte = U3PlatformRandom(0, 7);
     WhirlDX = WhirlXtable[byte];
     WhirlDY = WhirlYtable[byte];
     goto Whirl3;
@@ -3017,25 +3017,25 @@ void GoWhirlPool(void) { /* 772D */
     long time;
     Party[1] = 24; /* Be one with the whirlpool */
     DrawMap(xpos, ypos);
-    if (CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL))
-        UPrintMessage(111);
+    if (U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance))
+        U3RenderPrintMessage(111);
     else
-        UPrintMessageRewrapped(256);
+        U3RenderPrintMessageRewrapped(256);
 
     short saveCurSong = gSongCurrent;
     gSongCurrent = gSongNext = 0;
-    MusicUpdate();
-    PlaySoundFile(CFSTR("Sink"), TRUE);    // was 0xF5
+    U3AudioUpdateMusic();
+    U3AudioPlaySound(U3SoundEffectSink, true);    // was 0xF5
     temp = gUpdateWhere;
     gUpdateWhere = 8;
     CursorUpdate();
-    time = TickCount();
-    while ((time + 320) > TickCount()) {
-        long endTime = TickCount() + 1;
+    time = U3PlatformTickCount();
+    while ((time + 320) > U3PlatformTickCount()) {
+        long endTime = U3PlatformTickCount() + 1;
         AnimateTiles();
         //DrawTiles();
         //ForceUpdateMain();
-        GetKeyMouse(0);
+        U3PlatformGetKeyMouse(0);
         IdleUntil(endTime);
     }
     gUpdateWhere = temp;
@@ -3050,26 +3050,26 @@ void GoWhirlPool(void) { /* 772D */
         Party[1] = 0x16; /* frigate */
         //gSongCurrent=gSongNext=0;
         PushSosaria();
-        if (CFPreferencesGetAppBooleanValue(U3PrefAutoSave, kCFPreferencesCurrentApplication, NULL)) {
+        if (U3PlatformGetBooleanPreference(U3PreferenceAutoSave)) {
             PutRoster();
             PutParty();
             PutSosaria();
         }
-        ClearTiles();
-        Boolean classic = (CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL));
+        U3RenderClearTiles();
+        Boolean classic = (U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance));
         if (classic)
-            UPrintMessage(112);
+            U3RenderPrintMessage(112);
         else
-            UPrintMessageRewrapped(257);
+            U3RenderPrintMessageRewrapped(257);
         LoadUltimaMap(421);
         temp = gUpdateWhere;
         gUpdateWhere = 0;
         CursorUpdate();
-        time = TickCount();
-        while ((time + 320) > TickCount()) {
-            GetKeyMouse(0);
+        time = U3PlatformTickCount();
+        while ((time + 320) > U3PlatformTickCount()) {
+            U3PlatformGetKeyMouse(0);
             AnimateTiles();
-            ThreadSleepTicks(10);
+            U3PlatformWaitTicks(10);
         }
         gUpdateWhere = temp;
         gSongNext = 0x0B;
@@ -3078,24 +3078,24 @@ void GoWhirlPool(void) { /* 772D */
         ypos = 54;
         Party[3] = 255;
         if (classic)
-            UPrintMessage(113);
+            U3RenderPrintMessage(113);
         else
-            UPrintMessageRewrapped(258);
+            U3RenderPrintMessageRewrapped(258);
         DrawMap(xpos, ypos);
-        DrawPrompt();
+        U3RenderDrawPrompt();
         return;
     } else if (Party[3] == 0xFF) {
         gUpdateWhere = temp;
         //gSongCurrent=gSongNext=0;
         PullSosaria();
-        UPrintMessage(114);
-        ClearTiles();
-        UPrintMessage(115);
+        U3RenderPrintMessage(114);
+        U3RenderClearTiles();
+        U3RenderPrintMessage(115);
         xpos = Party[4];
         ypos = Party[5];
         Party[3] = 0;
         Party[1] = 0x16;
-        if (CFPreferencesGetAppBooleanValue(U3PrefAutoSave, kCFPreferencesCurrentApplication, NULL)) {
+        if (U3PlatformGetBooleanPreference(U3PreferenceAutoSave)) {
             PutRoster();
             PutParty();
         }
@@ -3104,15 +3104,15 @@ void GoWhirlPool(void) { /* 772D */
         gUpdateWhere = temp;
         temp = 0xFF;
         while (temp != 0) {
-            xpos = RandNum(0, gCurMapSize - 1);
-            ypos = RandNum(0, gCurMapSize - 1);
+            xpos = U3PlatformRandom(0, gCurMapSize - 1);
+            ypos = U3PlatformRandom(0, gCurMapSize - 1);
             temp = GetXYVal(xpos, ypos);
         }
         gSongNext = saveCurSong;
-        MusicUpdate();
+        U3AudioUpdateMusic();
     }
     DrawMap(xpos, ypos);
-    DrawPrompt();
+    U3RenderDrawPrompt();
 }
 
 void InverseChnum(char which) {
@@ -3132,7 +3132,7 @@ void UnInverseChnum(char which) {
 }
 
 void InverseTiles(void) {
-    long endTime = TickCount() + 6;
+    long endTime = U3PlatformTickCount() + 6;
 
     SetRect(&myRect, blkSiz, blkSiz, blkSiz * 23, blkSiz * 23);
     MyInvertRect(&myRect);
@@ -3141,7 +3141,7 @@ void InverseTiles(void) {
 }
 
 void InverseChar(char which) {
-    if (CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL)) {
+    if (U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance)) {
         myRect.top = which * (blkSiz * 4) + blkSiz;
         myRect.bottom = myRect.top + (blkSiz * 3);
         myRect.left = blkSiz * 24;
@@ -3177,12 +3177,12 @@ Boolean ValidDir(unsigned char value) { /* $4702 */
     } else {
         if (value == 128) { /* Forcefield */
             InverseTiles();
-            PlaySoundFile(CFSTR("ForceField"), FALSE);    // was 0xFC
+            U3AudioPlaySound(U3SoundEffectForceField, false);    // was 0xFC
             for (byte = 0; byte < 4; byte++) {
                 if (!(Player[Party[byte + 7]][14] & 0x10)) {
                     HPSubtract(Party[byte + 7], 99);
                     InverseChar(byte);
-                    PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+                    U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
                     InverseChar(byte);
                     InverseTiles();
                     byte = 5;
@@ -3193,14 +3193,14 @@ Boolean ValidDir(unsigned char value) { /* $4702 */
         }
         if (value == 132) { /* Lava */
             GoodPlace = TRUE;
-            PlaySoundFile(CFSTR("Attack"), FALSE);    // was 0xF8
+            U3AudioPlaySound(U3SoundEffectAttack, false);    // was 0xF8
             for (byte = 0; byte < 4; byte++) {
                 byte2 = Party[byte + 7];
                 if (!(Player[byte2][14] & 0x20)) {
                     if ((Player[byte2][17] == 'G') || (Player[byte2][17] == 'P')) {
                         HPSubtract(Party[byte + 7], 50);
                         InverseChar(byte);
-                        PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+                        U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
                         InverseChar(byte);
                     }
                 }
@@ -3211,9 +3211,9 @@ Boolean ValidDir(unsigned char value) { /* $4702 */
         if ((value < 48) && (value != 0) && (value != 16)) {
             GoodPlace = TRUE;
             if (Party[1] == 20)
-                PlaySoundFile(CFSTR("HorseWalk"), TRUE);    // was 0xEC, TRUE
+                U3AudioPlaySound(U3SoundEffectHorseWalk, true);    // was 0xEC, TRUE
             else
-                PlaySoundFile(CFSTR("Step"), TRUE);    // was 0xF6, TRUE
+                U3AudioPlaySound(U3SoundEffectStep, true);    // was 0xF6, TRUE
         }
     }
     return GoodPlace;
@@ -3224,7 +3224,7 @@ Boolean ValidTrans(char value) {
         return TRUE;
     }
     Boolean cango = true;
-    if (Party[1] == 0x16 && (CFPreferencesGetAppBooleanValue(U3PrefIncludeWind, kCFPreferencesCurrentApplication, NULL))) {
+    if (Party[1] == 0x16 && (U3PlatformGetBooleanPreference(U3PreferenceIncludeWind))) {
         if ((value != WindDir) && (WindDir != 0)) {
             cango = TRUE;
         } else {
@@ -3256,7 +3256,7 @@ Boolean HPSubtract(short rosNum, short amount) { /* $7181 */
         Player[rosNum][26] = 0;
         Player[rosNum][27] = 0;
         Player[rosNum][17] = 'D';
-        if (CFPreferencesGetAppBooleanValue(U3PrefAutoSave, kCFPreferencesCurrentApplication, NULL)) {
+        if (U3PlatformGetBooleanPreference(U3PreferenceAutoSave)) {
             Party[4] = xpos;
             Party[5] = ypos;
             PutParty();
@@ -3264,9 +3264,9 @@ Boolean HPSubtract(short rosNum, short amount) { /* $7181 */
         }
         if (originalHP > 0) {
             if (Player[rosNum][24] == 'F')
-                PlaySoundFile(CFSTR("DeathFemale"), TRUE);    // was 0xE6, TRUE
+                U3AudioPlaySound(U3SoundEffectDeathFemale, true);    // was 0xE6, TRUE
             else
-                PlaySoundFile(CFSTR("DeathMale"), TRUE);    // was 0xE5, TRUE
+                U3AudioPlaySound(U3SoundEffectDeathMale, true);    // was 0xE5, TRUE
         }
         return TRUE;
     }
@@ -3276,9 +3276,9 @@ Boolean HPSubtract(short rosNum, short amount) { /* $7181 */
 }
 
 void NoGo(void) {
-    UPrintMessage(116);
-    PlaySoundFile(CFSTR("Bump"), TRUE);    // was 0xE7
-    FlushEvents(keyDownMask | keyUpMask, 0);
+    U3RenderPrintMessage(116);
+    U3AudioPlaySound(U3SoundEffectBump, true);    // was 0xE7
+    U3PlatformFlushInputEvents();
 }
 
 void DoWind(void) { /* $4C3C */
@@ -3291,7 +3291,7 @@ void DoWind(void) { /* $4C3C */
         WindCtr = 32; /* SUPPOSED TO BE 8! */
         newdir = WindDir;
         while (newdir == WindDir) {
-            newdir = RandNum(0, 8);
+            newdir = U3PlatformRandom(0, 8);
             if (newdir > 4)
                 newdir -= 4;
         }
@@ -3310,7 +3310,7 @@ void ShowWind(void) {
         DngInfo();
         return;
     }
-    if (Party[3] == 0x80 || !CFPreferencesGetAppBooleanValue(U3PrefIncludeWind, kCFPreferencesCurrentApplication, NULL)) {
+    if (Party[3] == 0x80 || !U3PlatformGetBooleanPreference(U3PreferenceIncludeWind)) {
         for (x = 6; x <= 17; x++) {
             DrawFramePiece(10, x, 23);
         }
@@ -3425,12 +3425,12 @@ short StatWait(void) {
     short RetOrEsc;
     char key;
     RetOrEsc = 0;
-    key = WaitKeyMouse();
+    key = U3PlatformWaitKeyMouse();
     if (gDone)
         key = 27;
     if (key == 27) {
         RetOrEsc = 1;
-        UPrintWin("\p\n");
+        U3RenderPrintPascalString("\p\n");
     }
     return RetOrEsc;
 }
@@ -3444,7 +3444,7 @@ Boolean GetKeyMouse(unsigned char mode) {
     long nowTick;
     short updateStore, mouseStateStore;
 
-    Boolean constrain = (!CFPreferencesGetAppBooleanValue(U3PrefSpeedUnconstrain, kCFPreferencesCurrentApplication, NULL));
+    Boolean constrain = (!U3PlatformGetBooleanPreference(U3PreferenceUnconstrainedSpeed));
     key = FALSE;
     gKeyPress = 0;
     if (Macro[0] != 0) {
@@ -3458,11 +3458,11 @@ Boolean GetKeyMouse(unsigned char mode) {
     gMouseKey = FALSE;
     long ticksToWait = (mode == 2) ? 0 : constrain * 5;
     //printf("gkm %d (%d ticks) gUpdateWhere=%d\n", mode, ticksToWait, gUpdateWhere);
-    Boolean musicOn = !CFPreferencesGetAppBooleanValue(U3PrefMusicInactive, kCFPreferencesCurrentApplication, NULL);
+    Boolean musicOn = !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled);
     WaitNextEvent(everyEvent, &gTheEvent, ticksToWait, nil);
     switch (gTheEvent.what) {
         case nullEvent:
-            nowTick = TickCount();
+            nowTick = U3PlatformTickCount();
             if (nowTick >= nextNullTick) {
                 if (musicOn)
                     MoviesTask(nil, 0);
@@ -3472,11 +3472,11 @@ Boolean GetKeyMouse(unsigned char mode) {
                     ScrollThings();
                     DrawTiles();
                 }
-                MusicUpdate();
+                U3AudioUpdateMusic();
                 ShowHideReference();
                 CursorUpdate();
                 ShowMenuBarIfNecessary();
-                if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL) && !gInBackground &&
+                if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen) && !gInBackground &&
                     nowTick > nextHideTick) {
                     if (!ShouldSuppressMenuBarHiding())
                         MyHideMenuBar();
@@ -3501,7 +3501,7 @@ Boolean GetKeyMouse(unsigned char mode) {
         case autoKey:
             gKeyPress = LoWord(gTheEvent.message);
             if ((gTheEvent.modifiers & cmdKey)) {
-                if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL))
+                if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
                     MyShowMenuBar();
                 HandleMenuChoice(MenuKey(gKeyPress));
             } else {
@@ -3519,18 +3519,18 @@ Boolean GetKeyMouse(unsigned char mode) {
                 if (gTheEvent.modifiers & cmdKey)
                     SpawnUntilFull();
                 ShowMonsterList();
-                WaitKeyMouse();
+                U3PlatformWaitKeyMouse();
                 gMouseState = mouseStateStore;
                 gUpdateWhere = updateStore;
             }
             if ((gTheEvent.modifiers & cmdKey)) {
                 if (gKeyPress == '.')
                     gAutoCombat = FALSE;
-                if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL))
+                if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
                     MyShowMenuBar();
                 HandleMenuChoice(MenuKey(gKeyPress));
             } else {
-                ObscureCursor();
+                U3PlatformObscureCursor();
                 key = TRUE;
             }
             break;
@@ -3553,16 +3553,16 @@ Boolean GetKeyMouse(unsigned char mode) {
 void IdleUntil(long endTime) {
     if (gDone)
         return;
-    ThreadSleepTicks(endTime - TickCount());
+    U3PlatformWaitTicks(endTime - U3PlatformTickCount());
 }
 
 void DrawMapPause(void) {
-    if (!CFPreferencesGetAppBooleanValue(U3PrefSpeedUnconstrain, kCFPreferencesCurrentApplication, NULL))
-        ThreadSleepTicks(4);
+    if (!U3PlatformGetBooleanPreference(U3PreferenceUnconstrainedSpeed))
+        U3PlatformWaitTicks(4);
 }
 
 void DoSplashScreen(void) {
-    OpenChannel();
+    U3AudioOpenEffects();
     SetUpFont();
     DisableMenus();
     SetUpGWorlds();
@@ -3571,10 +3571,10 @@ void DoSplashScreen(void) {
     GetMiscStuff(100);
     GetRoster();
     GetParty();
-    SetUpSpeech();
-    SetUpMusic();
+    U3AudioSetUpSpeech();
+    U3AudioSetUpMusic();
     SetUpDragRect();
     InitMacro();
     InitCursor();
-    ObscureCursor();
+    U3PlatformObscureCursor();
 }

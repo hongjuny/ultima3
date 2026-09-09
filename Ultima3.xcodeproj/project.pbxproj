@@ -18,6 +18,10 @@
 		357ACC701707467E00FE8C4E /* MenuSpells.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC6C1707467E00FE8C4E /* MenuSpells.png */; };
 		8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0867D6AAFE840B52C02AAC07 /* InfoPlist.strings */; };
 		8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20286C33FDCF999611CA2CEA /* Carbon.framework */; };
+		B30000070000000000000000 /* U3AudioLegacy.m in Sources */ = {isa = PBXBuildFile; fileRef = B30000060000000000000000 /* U3AudioLegacy.m */; };
+		B300000A0000000000000000 /* U3RendererLegacy.m in Sources */ = {isa = PBXBuildFile; fileRef = B30000090000000000000000 /* U3RendererLegacy.m */; };
+		B300000C0000000000000000 /* U3PlatformLegacy.m in Sources */ = {isa = PBXBuildFile; fileRef = B300000B0000000000000000 /* U3PlatformLegacy.m */; };
+		B300000E0000000000000000 /* U3IOLegacy.m in Sources */ = {isa = PBXBuildFile; fileRef = B300000D0000000000000000 /* U3IOLegacy.m */; };
 		A80AB8700AF563FC0073E150 /* CocoaBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A88109D00AF3EC080064A33C /* CocoaBridge.m */; };
 		A821B31D0A31CDAC0079FF83 /* UltimaSound.m in Sources */ = {isa = PBXBuildFile; fileRef = A821B30B0A31CDAC0079FF83 /* UltimaSound.m */; };
 		A821B31E0A31CDAC0079FF83 /* UltimaText.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B30C0A31CDAC0079FF83 /* UltimaText.c */; };
@@ -111,6 +115,16 @@
 		4A9504CAFFE6A41611CA0CBA /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = /System/Library/Frameworks/CoreServices.framework; sourceTree = "<absolute>"; };
 		8D0C4E960486CD37000505A6 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D0C4E970486CD37000505A6 /* Ultima III.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Ultima III.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B30000010000000000000000 /* U3Types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U3Types.h; path = Sources/U3Types.h; sourceTree = SOURCE_ROOT; };
+		B30000020000000000000000 /* U3GameState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U3GameState.h; path = Sources/U3GameState.h; sourceTree = SOURCE_ROOT; };
+		B30000030000000000000000 /* U3Platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U3Platform.h; path = Sources/U3Platform.h; sourceTree = SOURCE_ROOT; };
+		B30000040000000000000000 /* U3Renderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U3Renderer.h; path = Sources/U3Renderer.h; sourceTree = SOURCE_ROOT; };
+		B30000050000000000000000 /* U3Audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U3Audio.h; path = Sources/U3Audio.h; sourceTree = SOURCE_ROOT; };
+		B30000060000000000000000 /* U3AudioLegacy.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = U3AudioLegacy.m; path = Sources/U3AudioLegacy.m; sourceTree = SOURCE_ROOT; };
+		B30000080000000000000000 /* U3IO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U3IO.h; path = Sources/U3IO.h; sourceTree = SOURCE_ROOT; };
+		B30000090000000000000000 /* U3RendererLegacy.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = U3RendererLegacy.m; path = Sources/U3RendererLegacy.m; sourceTree = SOURCE_ROOT; };
+		B300000B0000000000000000 /* U3PlatformLegacy.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = U3PlatformLegacy.m; path = Sources/U3PlatformLegacy.m; sourceTree = SOURCE_ROOT; };
+		B300000D0000000000000000 /* U3IOLegacy.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = U3IOLegacy.m; path = Sources/U3IOLegacy.m; sourceTree = SOURCE_ROOT; };
 		A821B30B0A31CDAC0079FF83 /* UltimaSound.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = UltimaSound.m; path = Sources/UltimaSound.m; sourceTree = SOURCE_ROOT; };
 		A821B30C0A31CDAC0079FF83 /* UltimaText.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaText.c; path = Sources/UltimaText.c; sourceTree = SOURCE_ROOT; };
 		A821B30D0A31CDAC0079FF83 /* UltimaSpellCombat.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaSpellCombat.c; path = Sources/UltimaSpellCombat.c; sourceTree = SOURCE_ROOT; };
@@ -215,6 +229,16 @@
 			isa = PBXGroup;
 			children = (
 				A8F5D6AC0A96317900E6755A /* main.m */,
+				B30000010000000000000000 /* U3Types.h */,
+				B30000020000000000000000 /* U3GameState.h */,
+				B30000030000000000000000 /* U3Platform.h */,
+				B30000040000000000000000 /* U3Renderer.h */,
+				B30000050000000000000000 /* U3Audio.h */,
+				B30000060000000000000000 /* U3AudioLegacy.m */,
+				B30000080000000000000000 /* U3IO.h */,
+				B30000090000000000000000 /* U3RendererLegacy.m */,
+				B300000B0000000000000000 /* U3PlatformLegacy.m */,
+				B300000D0000000000000000 /* U3IOLegacy.m */,
 				A821B3150A31CDAC0079FF83 /* UltimaIncludes.h */,
 				A8BD746E0AF01991003647FE /* UltimaIncludes.m */,
 				A821B31A0A31CDAC0079FF83 /* CarbonShunts.h */,
@@ -500,6 +524,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				A821B31D0A31CDAC0079FF83 /* UltimaSound.m in Sources */,
+				B30000070000000000000000 /* U3AudioLegacy.m in Sources */,
+				B300000A0000000000000000 /* U3RendererLegacy.m in Sources */,
+				B300000C0000000000000000 /* U3PlatformLegacy.m in Sources */,
+				B300000E0000000000000000 /* U3IOLegacy.m in Sources */,
 				351BF177195EDA9B00B9E489 /* LWIntegerTransformer.m in Sources */,
 				A821B31E0A31CDAC0079FF83 /* UltimaText.c in Sources */,
 				A821B31F0A31CDAC0079FF83 /* UltimaSpellCombat.c in Sources */,

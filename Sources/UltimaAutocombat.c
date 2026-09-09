@@ -2,6 +2,7 @@
 
 #import "UltimaAutocombat.h"
 
+#import "U3Platform.h"
 #import "UltimaIncludes.h"
 #import "UltimaMacIF.h"
 #import "UltimaMain.h"
@@ -44,7 +45,7 @@ void AutoCombat(short chnum) {
     long hp;
     Boolean isWiz, isCler, isMulti, castMittar;
 
-    GetKeyMouse(0);
+    U3PlatformGetKeyMouse(0);
     rosNum = Party[7 + chnum];
     magic = Player[rosNum][25];
     clss = Player[rosNum][23];
@@ -55,7 +56,7 @@ void AutoCombat(short chnum) {
     y = CharY[chnum];
     // Nearly dead, run away!
     if (NearlyDead(chnum + 1) && MonsterCanAttack(x, y)) {
-        Boolean allowDiagonal = !(CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL));
+        Boolean allowDiagonal = !(U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals));
         if (!MonsterCanAttack(x, y + 1) && !CombatCharHere(x, y + 1)) {
             AddMacro('2');
             return;
@@ -221,7 +222,7 @@ char MonsterNearby(short chnum) {
         return '6';    // East
     if (CombatMonsterHere(x, y + 1) != 255)
         return '2';    // South
-    if (CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals))
         return 0;
     if (CombatMonsterHere(x - 1, y - 1) != 255)
         return '7';    // Northwest
@@ -408,7 +409,7 @@ char LineUpToMonster(short chnum) {  // returns key to 'press' to end up lined u
         dir = MonsterLinedUp(chnum, CharX[chnum], CharY[chnum] + 1);
         if (dir)
             return AutoMoveChar(chnum, 0, 1);
-        if (CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL))
+        if (U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals))
             return DirToNearestMonster(chnum);
         dir = MonsterLinedUp(chnum, CharX[chnum] + 1, CharY[chnum] - 1);
         if (dir)
@@ -436,7 +437,7 @@ char LineUpToMonster(short chnum) {  // returns key to 'press' to end up lined u
         dir = MonsterLinedUp(chnum, CharX[chnum], CharY[chnum] + 1);
         if (dir)
             return AutoMoveChar(chnum, 0, 1);
-        if (CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL))
+        if (U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals))
             return DirToNearestMonster(chnum);
         dir = MonsterLinedUp(chnum, CharX[chnum] - 1, CharY[chnum] - 1);
         if (dir)
@@ -468,7 +469,7 @@ char MonsterLinedUp(short chnum, short x, short y) {  // returns key to 'press' 
         if (MonsterHP[mon] != 0) {
             if (futureMonX[mon] == x || futureMonY[mon] == y)
                 thisOne = TRUE;
-            if (!CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL))
+            if (!U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals))
                 thisOne |= (Absolute(x - futureMonX[mon]) == Absolute(y - futureMonY[mon]));
         }
         if (thisOne) {
@@ -511,7 +512,7 @@ char AutoMoveChar(short chnum, short deltaX, short deltaY) {
 
     // if not allowed to move diagonally, and the nearest monster is diagonally
     // away, choose vertical over horizontal.
-    Boolean allowDiagonal = (!CFPreferencesGetAppBooleanValue(U3PrefNoDiagonals, kCFPreferencesCurrentApplication, NULL));
+    Boolean allowDiagonal = (!U3PlatformGetBooleanPreference(U3PreferenceNoDiagonals));
     if (allowDiagonal == 0 && deltaX != 0 && deltaY != 0)
         deltaX = 0;
     if (!CombatCharHere(CharX[chnum] + deltaX, CharY[chnum] + deltaY))

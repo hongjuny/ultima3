@@ -4,12 +4,14 @@
 
 #import "CarbonShunts.h"
 #import "CocoaBridge.h"
+#import "U3Audio.h"
+#import "U3Renderer.h"
+#import "U3Platform.h"
 #import "UltimaGraphics.h"
 #import "UltimaMacIF.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
 #import "UltimaNew.h"
-#import "UltimaSound.h"
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
@@ -100,21 +102,21 @@ dungstart: /* $8D13 */
     wx = 0x18;
     wy = 0x17;
     if (gTorch == 0) {
-        UPrintMessage(150);
-        ClearTiles();
+        U3RenderPrintMessage(150);
+        U3RenderClearTiles();
     }
     DrawDungeon();
-    UPrintWin("\p ");
-    DrawPrompt();
+    U3RenderPrintPascalString("\p ");
+    U3RenderDrawPrompt();
     gMouseState = 2;
-    nextPassTime = TickCount() + PASSTIME;
+    nextPassTime = U3PlatformTickCount() + PASSTIME;
     zp[0xD1] = zp[0xD2] = 0;
     zp[0x12] = 5;
 dungkeystart: /* $8D4A */
     if (zp[0xD1] == -2000)
         DoAutoHeal();
     zp[0xD1]--;
-    if (TickCount() < nextPassTime)
+    if (U3PlatformTickCount() < nextPassTime)
         goto dungkey;
     //if (zp[0xD1]>-5000) goto dungkey;
     gKeyPress = ' ';
@@ -122,7 +124,7 @@ dungkeystart: /* $8D4A */
 dungkey: /* $8D59 */
     if (gResurrect)
         return;
-    if (!GetKeyMouse(0))
+    if (!U3PlatformGetKeyMouse(0))
         goto dungkeystart;
 dungkeygot:
     if (gDone)
@@ -196,16 +198,16 @@ dungeonmech: /* $8FC2 */
     value = GetXYDng(xs, ys);
     if (value != 0)
         goto dngnotcombat;
-    if (RandNum(0, 0x82 + dungeonLevel) < 128)
+    if (U3PlatformRandom(0, 0x82 + dungeonLevel) < 128)
         goto dungstart;
-    value = RandNum(0, dungeonLevel + 2);
+    value = U3PlatformRandom(0, dungeonLevel + 2);
     if (value > 6)
         value = 6;
     value += 0x18;
     gMonType = value * 2;
     PutXYDng(0x40, xpos, ypos);
     Combat();
-    ClearTiles();
+    U3RenderClearTiles();
     goto dungstart;
     return;
 dngnotcombat: /* $9014 */
@@ -213,11 +215,11 @@ dngnotcombat: /* $9014 */
         case 1: /* $9076 time lord */
             ImageDisplay(8, TRUE);
             gSongCurrent = gSongNext = 10;
-            UPrintMessage(151);
+            U3RenderPrintMessage(151);
         timelord:
-            WaitKeyMouse();
+            U3PlatformWaitKeyMouse();
             ImageGoAway();
-            UPrintWin("\p\n");
+            U3RenderPrintPascalString("\p\n");
             DrawDungeon();
             gSongNext = 4;
             break;
@@ -227,7 +229,7 @@ dngnotcombat: /* $9014 */
         fountain:
             wx = 0x18;
             wy = 0x17;
-            UPrintMessage(152);
+            U3RenderPrintMessage(152);
             chnum = GetChar();
             if (chnum < 1 || chnum > 4) {
                 gSongCurrent = gSongNext = 4;
@@ -235,17 +237,17 @@ dngnotcombat: /* $9014 */
                 goto dungstart;
             }
             if (CheckAlive(chnum - 1) == FALSE) {
-                UPrintMessage(153);
-                ErrorTone();
+                U3RenderPrintMessage(153);
+                U3AudioPlaySound(U3SoundEffectError1, true);
                 goto fountain;
             }
             rosNum = Party[6 + chnum];
             switch (xpos & 0x03) {
                 case 0:    // Poison fountain
                     Player[rosNum][17] = 'P';
-                    UPrintMessage(154);
+                    U3RenderPrintMessage(154);
                     InverseChar(chnum - 1);
-                    PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+                    U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
                     InverseChar(chnum - 1);
                     ShowChars(false);
                     goto fountain;
@@ -253,23 +255,23 @@ dngnotcombat: /* $9014 */
                 case 1:    // Heal fountain
                     Player[rosNum][26] = Player[rosNum][28];
                     Player[rosNum][27] = Player[rosNum][29];
-                    UPrintMessage(155);
+                    U3RenderPrintMessage(155);
                     ShowChars(false);
                     goto fountain;
                     break;
                 case 2:    // Damage fountain
-                    UPrintMessage(156);
+                    U3RenderPrintMessage(156);
                     HPSubtract(rosNum, 25);
                     InverseTiles();
                     InverseChar(chnum - 1);
-                    PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+                    U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
                     InverseTiles();
                     InverseChar(chnum - 1);
                     ShowChars(false);
                     goto fountain;
                     break;
                 case 3:    // Cure poison fountain
-                    UPrintMessage(157);
+                    U3RenderPrintMessage(157);
                     if (Player[rosNum][17] == 'P')
                         Player[rosNum][17] = 'G';
                     ShowChars(false);
@@ -278,16 +280,16 @@ dngnotcombat: /* $9014 */
             }
             break;
         case 3: /* $92C1 strange wind */
-            UPrintMessage(158);
+            U3RenderPrintMessage(158);
             gTorch = 0;
             goto dungstart;
             break;
         case 4: /* $9135 trap */
             PutXYDng(0, xs, ys);
-            UPrintMessage(159);
-            PlaySoundFile(CFSTR("Step"), TRUE);    // was 0xF6, TRUE
+            U3RenderPrintMessage(159);
+            U3AudioPlaySound(U3SoundEffectStep, true);    // was 0xF6, TRUE
             if (StealDisarmFail(Party[7])) {
-                UPrintMessage(160);
+                U3RenderPrintMessage(160);
                 goto dungstart;
             }
             BombTrap();
@@ -298,7 +300,7 @@ dngnotcombat: /* $9014 */
             gSongCurrent = gSongNext = 10;
             wx = 0x18;
             wy = 0x17;
-            UPrintMessage(161);
+            U3RenderPrintMessage(161);
             chnum = GetChar();
             if (chnum < 1 || chnum > 4) {
             mark:
@@ -310,15 +312,15 @@ dngnotcombat: /* $9014 */
             rosNum = Party[6 + chnum];
             Player[rosNum][14] = Player[rosNum][14] | bits[(xpos & 3) + 4];
             InverseChar(chnum - 1);
-            PlaySoundFile(CFSTR("Hit"), FALSE);    // was 0xF7
+            U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
             InverseChar(chnum - 1);
             HPSubtract(rosNum, 50);
-            UPrintMessage(162);
+            U3RenderPrintMessage(162);
             goto mark;
             break;
         case 6: /* $92DA gremlins */
             PutXYDng(0, xs, ys);
-            chnum = RandNum(0, Party[2] - 1);
+            chnum = U3PlatformRandom(0, Party[2] - 1);
             if (CheckAlive(chnum) == FALSE)
                 goto dungstart;
             rosNum = Party[7 + chnum];
@@ -327,14 +329,14 @@ dngnotcombat: /* $9014 */
             } else {
                 Player[rosNum][32]--;
             }
-            PlaySoundFile(CFSTR("Ouch"), FALSE);    // was 0xFA
-            UPrintMessage(163);
+            U3AudioPlaySound(U3SoundEffectOuch, false);    // was 0xFA
+            U3RenderPrintMessage(163);
             ShowChars(false);
             break;
         case 8: /* $9053 writing */
-            UPrintMessage(164);
+            U3RenderPrintMessage(164);
             Speak(dungeonLevel + 1, 23);
-            UPrintWin("\p\n");
+            U3RenderPrintPascalString("\p\n");
             break;
     }
     if (gExitDungeon == 0)
@@ -342,11 +344,11 @@ dngnotcombat: /* $9014 */
 }
 
 void dPass(void) { /* $8DE6 */
-    UPrintMessage(23);
+    U3RenderPrintMessage(23);
 }
 
 void Forward(void) { /* $8DF2 */
-    UPrintMessage(165);
+    U3RenderPrintMessage(165);
     xs = HeadX[heading] + xpos & 0x0F;
     if (xs < 0)
         xs += 16;
@@ -363,7 +365,7 @@ void Forward(void) { /* $8DF2 */
 }
 
 void Retreat(void) { /* $8E2C */
-    UPrintMessage(166);
+    U3RenderPrintMessage(166);
     xs = HeadX[(heading + 2) & 3] + xpos & 0x0F;
     if (xs < 0)
         xs += 16;
@@ -380,7 +382,7 @@ void Retreat(void) { /* $8E2C */
 }
 
 void Right(void) { /* $8E67 */
-    UPrintMessage(167);
+    U3RenderPrintMessage(167);
     xs = xpos;
     ys = ypos;
     if (GetXYDng(xs, ys) >= 0xA0) {
@@ -394,7 +396,7 @@ void Right(void) { /* $8E67 */
 }
 
 void Left(void) { /* $8E93 */
-    UPrintMessage(168);
+    U3RenderPrintMessage(168);
     xs = xpos;
     ys = ypos;
     if (GetXYDng(xs, ys) >= 0xA0) {
@@ -408,7 +410,7 @@ void Left(void) { /* $8E93 */
 }
 
 void dDescend(void) { /* $8F0C */
-    UPrintMessage(169);
+    U3RenderPrintMessage(169);
     if (GetXYDng(xpos, ypos) > 127) {
         InvalCmd();
         return;
@@ -422,7 +424,7 @@ void dDescend(void) { /* $8F0C */
 }
 
 void dKlimb(void) { /* $8F37 */
-    UPrintMessage(170);
+    U3RenderPrintMessage(170);
     if ((GetXYDng(xpos, ypos) & 0x10) == 0) {
         InvalCmd();
         return;
@@ -439,18 +441,18 @@ void dKlimb(void) { /* $8F37 */
 
 void dPeer(void) { /* $8F60 */
     short chnum, rosNum;
-    UPrintMessage(75);
+    U3RenderPrintMessage(75);
     chnum = GetChar();
     if (chnum < 1 || chnum > 4)
         return;
     rosNum = Party[6 + chnum];
     if (Player[rosNum][37] < 1) {
-        UPrintMessage(67);
+        U3RenderPrintMessage(67);
         return;
     }
     Player[rosNum][37]--;
     DrawMiniDng(0);
-    ClearTiles();
+    U3RenderClearTiles();
 }
 
 void DngInfo(void) { /* $7CC6 */
@@ -464,7 +466,7 @@ void DngInfo(void) { /* $7CC6 */
     DrawFramePiece(10, 7, 0);
     DrawFramePiece(10, 16, 0);
     //  Message(48,9,0);
-    //  UPrintNumPad(dungeonLevel+1,1);
+    //  U3RenderPrintNumberPadded(dungeonLevel+1,1);
     GetPascalStringFromArrayByIndex(str, CFSTR("MoreMessages"), 47);    //GetIndString(str, BASERES+14, 48);
     str[++str[0]] = '1' + dungeonLevel;
     UCenterAt(str, 9, 0);
@@ -485,20 +487,20 @@ void DngInfo(void) { /* $7CC6 */
 }
 
 void InvalCmd(void) { /* $8ED8 */
-    UPrintMessage(171);
-    ErrorTone();
+    U3RenderPrintMessage(171);
+    U3AudioPlaySound(U3SoundEffectError1, true);
 }
 
 void NotDngCmd(void) { /* $8EF1 */
-    UPrintMessage(172);
-    ErrorTone();
+    U3RenderPrintMessage(172);
+    U3AudioPlaySound(U3SoundEffectError1, true);
 }
 
 void DrawDungeon(void) { /* $1800 */
     short value;
     Rect FromRect, ToRect;
     if (gTorch < 1) {
-        ClearTiles();
+        U3RenderClearTiles();
         return;
     }
     DrawDungeonBackGround();
@@ -872,53 +874,6 @@ void GetDungeonGraphics(void) {
     gError = NewGWorld(&dungPort, 32, &theRect, nil, nil, 0);
     if (gError)
         gError = NewGWorld(&dungPort, 32, &theRect, nil, nil, 0);
-
-    /*
-    PicHandle       picture;
-    Rect            FromRect;
-    
-    picture = GetPicture(10000);
-    if (!picture)
-        { HandleError(ResError(), 3, 10000); return; }
-    
-    SetRect (&FromRect, 0, 0, 1500, 256);
-    gError = NewGWorld(&nDngShapes, 0, &FromRect, nil, nil, 0);
-    if (gError) gError = NewGWorld(&nDngShapes, 8, &FromRect, nil, nil, 0);
-    if (gError) { HandleError(gError, 2, 0); return; }
-    nDngShapesPixMap = GetGWorldPixMap(nDngShapes);
-    //( *( ( *nDngShapesPixMap )->pmTable ) )->ctSeed = ( *( ( *( ( *( GetGDevice() ) )->gdPMap ) )->pmTable ) )->ctSeed;
-    LockPixels(nDngShapesPixMap);
-    SetGWorld(nDngShapes, nil);
-    DrawPicture(picture, &FromRect);
-    ReleaseResource((Handle)picture);
-    SetRect(&FromRect, 0, 0, 600, 256);
-    gError = NewGWorld(&nDngMasks, 1, &FromRect, nil, nil, 0);
-    if (gError!=0)
-        {
-        HandleError(gError, 4, 0);
-        return;
-        }
-    nDngMasksPixMap = GetGWorldPixMap(nDngMasks);
-    //( *( ( *nDngMasksPixMap )->pmTable ) )->ctSeed = ( *( ( *( ( *( GetGDevice() ) )->gdPMap ) )->pmTable ) )->ctSeed;
-    LockPixels(nDngMasksPixMap);
-    SetGWorld(nDngMasks, nil);
-    picture = GetPicture(10001);
-    if (picture==0)
-        {
-        HandleError(ResError(), 5, 10001);
-        return;
-        }
-    DrawPicture(picture, &FromRect);
-    ReleaseResource((Handle)picture);
-    SetGWorld(mainPort,nil);
-    SetRect(&FromRect, 0, 0, 300, 256);
-    gError = NewGWorld(&dungPort, 0, &FromRect, nil, nil, 0);
-    if (gError) gError = NewGWorld(&dungPort, 8, &FromRect, nil, nil, 0);
-    if (gError!=0) { HandleError(gError, 4, 1); return; }
-    dungPixMap = GetGWorldPixMap(dungPort);
-    //( *( ( *dungPixMap )->pmTable ) )->ctSeed = ( *( ( *( ( *( GetGDevice() ) )->gdPMap ) )->pmTable ) )->ctSeed;
-    LockPixels(dungPixMap);
-*/
 }
 
 void DisposeDungeonGraphics(void) {

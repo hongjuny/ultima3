@@ -1,16 +1,20 @@
 // Low-level graphic routines
 
+#include <string.h>
+
 #import "UltimaGraphics.h"
 
 #import "UltimaIncludes.h"
 #import "CarbonShunts.h"
 #import "CocoaBridge.h"
+#import "U3Audio.h"
+#import "U3IO.h"
+#import "U3Platform.h"
 #import "UltimaDngn.h"
 #import "UltimaMacIF.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
 #import "UltimaNew.h"
-#import "UltimaSound.h"
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
@@ -35,9 +39,8 @@ extern GDHandle         mainDevice;
 extern int              tx, ty, xpos, ypos, xs, ys;
 extern EventRecord      gTheEvent;
 extern short            gCurMapSize, gUpdateWhere, gMouseState, stx, sty;
-extern Handle           gDemoData;
-extern short            zp[255], animFlag[4], gMonType, gDepth, gTorch, gCurChan, gMaxChan;
-extern SndChannelPtr    gSampChan[5], gToneChan;
+extern U3DataBuffer     gDemoData;
+extern short            zp[255], animFlag[4], gMonType, gDepth, gTorch;
 extern Str255           gString;
 extern short            gDemoSong, gSongCurrent, gSongNext, gSongPlaying;
 extern Boolean          gShapeSwapped[], gHorseFacingEast;
@@ -125,7 +128,7 @@ void DrawFrame(short which)
                 str[1] = '1' + x;
                 UCenterAt(str, 31, x * 4);
             }
-            if (CFPreferencesGetAppBooleanValue(U3PrefIncludeWind, kCFPreferencesCurrentApplication, NULL)) {
+            if (U3PlatformGetBooleanPreference(U3PreferenceIncludeWind)) {
                 UCenterAt("\p          ", 7, 23);
                 DrawFramePiece(12, 6, 23);
                 DrawFramePiece(13, 17, 23);
@@ -324,9 +327,12 @@ void GetGraphics(void) {
     CFStringRef defaultTilesRef = CFSTR("Standard");
     CFURLRef tilesBaseURL = (CFURLRef)GraphicsDirectoryURL();
     CFArrayRef graphicsArrayRef = (CFArrayRef)CopyGraphicsDirectoryItems();
-    CFStringRef tilesNameRef = CFPreferencesCopyAppValue(U3PrefTileSet, kCFPreferencesCurrentApplication);
+    Str255 tilesName;
+    CFStringRef tilesNameRef = NULL;
+    if (U3PlatformCopyPascalStringPreference(U3PreferenceTileSet, tilesName, sizeof(tilesName)))
+        tilesNameRef = CFStringCreateWithPascalString(kCFAllocatorDefault, tilesName, kCFStringEncodingMacRoman);
     if (!tilesNameRef)
-        tilesNameRef = defaultTilesRef;
+        tilesNameRef = CFRetain(defaultTilesRef);
 
 tilesAgain:
     // Set up Tiles
@@ -345,7 +351,7 @@ tilesAgain:
     // If there was a problem and this wasn't the default, go up and try again.
     if (!success && CFStringCompare(tilesNameRef, defaultTilesRef, 0) != kCFCompareEqualTo) {
         CFRelease(tilesNameRef);
-        tilesNameRef = defaultTilesRef;
+        tilesNameRef = CFRetain(defaultTilesRef);
         goto tilesAgain;
     }
 
@@ -454,7 +460,7 @@ UIAgain:
     // If there was a problem and this wasn't the default, go up and try again.
     if (!success && CFStringCompare(tilesNameRef, defaultTilesRef, 0) != kCFCompareEqualTo) {
         CFRelease(tilesNameRef);
-        tilesNameRef = defaultTilesRef;
+        tilesNameRef = CFRetain(defaultTilesRef);
         goto UIAgain;
     }
 
@@ -647,7 +653,7 @@ void DrawTiles(void) {
 
     if (gDone)
         return;
-    MusicUpdate();
+    U3AudioUpdateMusic();
 
     SetGWorld(gamePort, nil);
     HideMonsters();
@@ -722,7 +728,7 @@ void DrawDemo(void) {
 
     if (gDone)
         return;
-    gTime = TickCount();
+    gTime = U3PlatformTickCount();
     ScrollThings();
     AnimateTiles();
     TwiddleFlags();
@@ -789,7 +795,7 @@ char CursorKey(Boolean usePenLoc) {
         SaveWideArea();
     CursorUpdate();
     while (GotKey != TRUE && gDone != TRUE) {
-        time = TickCount();
+        time = U3PlatformTickCount();
         shape++;
         if (shape > 6)
             shape = 0;
@@ -798,8 +804,8 @@ char CursorKey(Boolean usePenLoc) {
         ForeColor(blackColor);
         BackColor(whiteColor);
         CopyBits(LWPortCopyBits(framePort), LWPortCopyBits(mainPort), &CursorRect, &myRect, srcCopy, nil);
-        GotKey = GetKeyMouse(1);
-        while (TickCount() <= time + 2) {
+        GotKey = U3PlatformGetKeyMouse(1);
+        while (U3PlatformTickCount() <= time + 2) {
         }
         if (GotKey) {
             theChar = gKeyPress;
@@ -818,7 +824,7 @@ char CursorKey(Boolean usePenLoc) {
 
 void HandleUpdate(void) {
     SetGWorld(mainPort, nil); /*was mainDevice*/
-    if (CFPreferencesGetAppBooleanValue(U3PrefFullScreen, kCFPreferencesCurrentApplication, NULL) && gShroudWindow != 0) {
+    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen) && gShroudWindow != 0) {
         BeginUpdate(gShroudWindow);
         ClearShroud();
         EndUpdate(gShroudWindow);
@@ -925,8 +931,12 @@ void DemoUpdate(short ptr) {
         gSongNext = songnum[gDemoSong];
         gDemoSong++;
     }
-    unsigned char where = *(*gDemoData + ptr);
-    unsigned char what = *(*gDemoData + ptr + 512);
+    if (ptr < 0)
+        return;
+    if (gDemoData.size <= (size_t)(ptr + 512))
+        return;
+    unsigned char where = gDemoData.bytes[ptr];
+    unsigned char what = gDemoData.bytes[ptr + 512];
     unsigned char repet;
 
     if (where != 255) {
@@ -960,15 +970,14 @@ void FadeOnExodusUltima(void) {
     register int byte;
     Rect FromRect, ToRect;
     short chunk;
-    Handle Sound;
-    SndCommand soundCommand;
+    U3DataBuffer soundBuffer;
 
     gInterrupt = FALSE;
     Stalagtites();
     DrawIntro(2, -25);
     ForceUpdateMain();
     if (!gInterrupt) {
-        delayTime = TickCount() + 80;
+        delayTime = U3PlatformTickCount() + 80;
     }
     SetRect(&FromRect, 0, 0, blkSiz * 29.5, blkSiz * 8.375);
     ToRect = FromRect;
@@ -985,12 +994,12 @@ void FadeOnExodusUltima(void) {
     gToRowByteCount = (0x7FFF & (**exodusToPixMap).rowBytes);
     pass = -32767;
     lastByte = (FromRect.bottom * gFromRowByteCount);
-    time = TickCount();
+    time = U3PlatformTickCount();
     for (offset = 0; offset < lastByte; offset++) {
-        Random();
+        U3PlatformRandomRaw();
         byte = gToPixMapBase[offset];
     }
-    time = TickCount() - time;
+    time = U3PlatformTickCount() - time;
     if (time > 100)
         time = 100;
     if (time < 10)
@@ -1002,46 +1011,40 @@ void FadeOnExodusUltima(void) {
     if (gDepth == 32)
         chunk = (chunk / 4) + 4;
     if (!gInterrupt) {
-        while (TickCount() < delayTime) {
+        while (U3PlatformTickCount() < delayTime) {
             CheckInterrupted();
         }
     }
-    Sound = GetResource('snd ', BASERES);
-    HLock(Sound);
-    lastByte2 = lastByte - chunk;
-    soundCommand.cmd = initCmd;
-    soundCommand.param1 = 0;
-    soundCommand.param2 = initMono;
-    for (byte = 1; byte <= gMaxChan; byte++) {
-        SndDoImmediate(gSampChan[byte], &soundCommand);
-        soundCommand.cmd = soundCmd;
-        soundCommand.param1 = 0;
-        soundCommand.param2 = (long)(*Sound + 0x14);
-        SndDoImmediate(gSampChan[byte], &soundCommand);
+    if (!U3IOLoadResource(U3ResourceKindSoundResource, BASERES, &soundBuffer)) {
+        UnlockPixels(exodusToPixMap);
+        DisposeGWorld(exodusToPort);
+        return;
     }
-    Boolean soundInactive = CFPreferencesGetAppBooleanValue(U3PrefSoundInactive, kCFPreferencesCurrentApplication, NULL);
+    if (soundBuffer.size <= 0x14) {
+        U3IOReleaseResource(&soundBuffer);
+        UnlockPixels(exodusToPixMap);
+        DisposeGWorld(exodusToPort);
+        return;
+    }
+    lastByte2 = lastByte - chunk;
+    U3AudioPrimeLegacySample(soundBuffer.bytes);
+    Boolean soundInactive = U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled);
     while (pass < 32768 && !gInterrupt) {
-        frameTime = TickCount() + 5;
+        frameTime = U3PlatformTickCount() + 5;
         if (!soundInactive) {
-            soundCommand.cmd = freqDurationCmd;
-            soundCommand.param1 = 60;
-            soundCommand.param2 = (0xFF00E0A0 | ((32768 - pass) / 2048));
-            gCurChan++;
-            if (gCurChan > gMaxChan)
-                gCurChan = 1;
-            SndDoImmediate(gSampChan[gCurChan], &soundCommand);
+            U3AudioPlayLegacyFadeTone(pass);
         }
         (gDepth > 8) ? (byte = 0) : (byte = 255);
         for (offset = 0; offset < lastByte; offset++)
             gToPixMapBase[offset] = byte;
         for (offset = 0; offset < lastByte2; offset += chunk) {
-            if (Random() < pass)
-                BlockMoveData(gFromPixMapBase + offset, gToPixMapBase + offset, chunk);
+            if (U3PlatformRandomRaw() < pass)
+                memcpy(gToPixMapBase + offset, gFromPixMapBase + offset, chunk);
         }
         CopyBits(LWPortCopyBits(exodusToPort), LWPortCopyBits(mainPort), &FromRect, &ToRect, srcCopy, nil);
         ForceUpdateMain();
         CheckInterrupted();
-        while (TickCount() < frameTime) {
+        while (U3PlatformTickCount() < frameTime) {
             CheckInterrupted();
         }
         pass += 1536;
@@ -1052,8 +1055,8 @@ void FadeOnExodusUltima(void) {
     UnlockPixels(exodusToPixMap);
     DisposeGWorld(exodusToPort);
     if (!gInterrupt) {
-        delayTime = TickCount() + 60;
-        while (TickCount() < delayTime) {
+        delayTime = U3PlatformTickCount() + 60;
+        while (U3PlatformTickCount() < delayTime) {
             CheckInterrupted();
         }
     }
@@ -1080,28 +1083,22 @@ void FadeOnExodusUltima(void) {
         chunk = (chunk / 4) + 4;
     lastByte2 = lastByte - chunk;
     while (pass < 32768 && !gInterrupt) {
-        frameTime = TickCount() + 4;
+        frameTime = U3PlatformTickCount() + 4;
         if (!soundInactive) {
-            soundCommand.cmd = freqDurationCmd;
-            soundCommand.param1 = 60;
-            soundCommand.param2 = (0xFF00E0A0 | ((32768 - pass) / 2048));
-            gCurChan++;
-            if (gCurChan > gMaxChan)
-                gCurChan = 1;
-            SndDoImmediate(gSampChan[gCurChan], &soundCommand);
+            U3AudioPlayLegacyFadeTone(pass);
         }
         (gDepth > 8) ? (byte = 0) : (byte = 255);
         for (offset = 0; offset < lastByte; offset++) {
             gToPixMapBase[offset] = byte;
         }
         for (offset = 0; offset < lastByte2; offset += chunk) {
-            if (Random() < pass)
-                BlockMoveData(gFromPixMapBase + offset, gToPixMapBase + offset, chunk);
+            if (U3PlatformRandomRaw() < pass)
+                memcpy(gToPixMapBase + offset, gFromPixMapBase + offset, chunk);
         }
         CopyBits(LWPortCopyBits(logoToPort), LWPortCopyBits(mainPort), &FromRect, &ToRect, srcCopy, nil);
         ForceUpdateMain();
         CheckInterrupted();
-        while (TickCount() < frameTime) {
+        while (U3PlatformTickCount() < frameTime) {
             CheckInterrupted();
         }
         pass += 1536;
@@ -1112,28 +1109,28 @@ void FadeOnExodusUltima(void) {
     UnlockPixels(logoToPixMap);
     DisposeGWorld(logoToPort);
     if (!gInterrupt) {
-        delayTime = TickCount() + 120;
-        while (TickCount() < delayTime) {
+        delayTime = U3PlatformTickCount() + 120;
+        while (U3PlatformTickCount() < delayTime) {
             CheckInterrupted();
         }
     }
-    HUnlock(Sound);
+    U3IOReleaseResource(&soundBuffer);
 }
 
 void WriteLordBritish(void) {
-    Handle sigdata;
+    U3DataBuffer sigdata;
     Rect rectum;
     long time;
     Boolean done, near;
     short value, cx, cy, offset;
 
-    sigdata = GetResource('SGNT', BASERES);
-    LoadResource(sigdata);
+    if (!U3IOLoadResource(U3ResourceKindSignature, BASERES, &sigdata))
+        return;
     SetRect(&rectum, blkSiz * 11.25, blkSiz * 15.75, blkSiz * 12.875, blkSiz * 17.1875);
     DrawNamedImage(CFSTR("By.png"), mainPort, &rectum);
     if (!gInterrupt) {
-        time = TickCount() + 10;
-        while (TickCount() < time) {
+        time = U3PlatformTickCount() + 10;
+        while (U3PlatformTickCount() < time) {
             CheckInterrupted();
         }
     }
@@ -1144,14 +1141,16 @@ void WriteLordBritish(void) {
     done = near = FALSE;
     while (!done) {
         PlotSig(cx * 2, cy * 2);
-        time = TickCount() + 1;
+        time = U3PlatformTickCount() + 1;
         if (!gInterrupt && (offset % 2)) {
             ForceUpdateMain();
-            while (TickCount() < time) {
+            while (U3PlatformTickCount() < time) {
                 CheckInterrupted();
             }
         }
-        value = (unsigned char)*(*sigdata + offset);
+        if ((size_t)offset >= sigdata.size)
+            break;
+        value = sigdata.bytes[offset];
         offset++;
         if (value == 0) {
             PlotSig((cx * 2 - 1), (cy * 2 - 1));
@@ -1190,8 +1189,10 @@ void WriteLordBritish(void) {
             cy++;
         }
         if (value == 8) {
-            cx = (signed char)*(*sigdata + offset);
-            cy = (signed char)*(*sigdata + offset + 1);
+            if ((size_t)(offset + 1) >= sigdata.size)
+                break;
+            cx = (signed char)sigdata.bytes[offset];
+            cy = (signed char)sigdata.bytes[offset + 1];
             offset += 2;
         }
         if (value == 0xFF)
@@ -1201,6 +1202,7 @@ void WriteLordBritish(void) {
     SetRect(&rectum, blkSiz, blkSiz * 17.5625, blkSiz * 39, blkSiz * 19);
     DrawNamedImage(CFSTR("Credits.png"), mainPort, &rectum);
     ForceUpdateMain();
+    U3IOReleaseResource(&sigdata);
 }
 
 void PlotSig(short x, short y) {
@@ -1248,10 +1250,10 @@ void FightScene(void) {
     DrawIntro(animorder[anim], 10);
     DrawIntro(animorder[anim], 10);
     if (!gInterrupt) {
-        PlaySoundFile(CFSTR("Immolate"), TRUE);    // was 0xE9
+        U3AudioPlaySound(U3SoundEffectImmolate, true);    // was 0xE9
         DrawIntro(4, 4);
         ForceUpdateMain();
-        ThreadSleepTicks(30);
+        U3PlatformWaitTicks(30);
     }
     DrawIntro(5, 22);
 }
@@ -1260,7 +1262,7 @@ void DrawIntro(unsigned char shape, short offset) {
     long time;
     Rect myRect;
     if (!gInterrupt) {
-        time = TickCount() + 8;
+        time = U3PlatformTickCount() + 8;
         float scaler = (float)blkSiz / 16.0;
         myRect.left = (192 + offset) * scaler;
         myRect.right = myRect.left + (255 * scaler);
@@ -1275,9 +1277,9 @@ void DrawIntro(unsigned char shape, short offset) {
         }
 
         ForceUpdateMain();
-        while (TickCount() < time) {
+        while (U3PlatformTickCount() < time) {
             CheckInterrupted();
-            ThreadSleepTicks(1);
+            U3PlatformWaitTicks(1);
         }
     }
 }
@@ -1373,7 +1375,7 @@ void DrawMenu(void) {
     Rect myRect;
     short centre;
     RGBColor color;
-    Boolean classic = CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL);
+    Boolean classic = U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance);
 
     if (gDone)
         return;
@@ -1404,9 +1406,9 @@ void DrawMenu(void) {
 
     // The copyright message is displayed in "modern" appearance no matter what.
     if (classic) {
-        CFPreferencesSetAppValue(U3PrefClassicAppearance, kCFBooleanFalse, kCFPreferencesCurrentApplication);
+        U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, false);
         CenterMessage(26, 22);
-        CFPreferencesSetAppValue(U3PrefClassicAppearance, kCFBooleanTrue, kCFPreferencesCurrentApplication);
+        U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, true);
     } else
         CenterMessage(26, 22);    // � LB
 
@@ -1448,7 +1450,7 @@ void DrawMiniMap(void) {
     if (minSize == 0)
         minSize++;
     gSongCurrent = 10;
-    MusicUpdate();
+    U3AudioUpdateMusic();
     watchCurs = GetCursor(watchCursor);
     SetCursor(*watchCurs);
     ForeColor(blackColor);
@@ -1505,7 +1507,7 @@ void DrawMiniMap(void) {
     const unsigned short maxBrightness = 65535 - fadeJump;
     Boolean fadeToWhite = TRUE;
     color.red = color.green = color.blue = maxBrightness;
-    while (!GetKeyMouse(2)) {
+    while (!U3PlatformGetKeyMouse(2)) {
         unsigned short value = color.red;
         if (value <= minBrightness || value >= maxBrightness)
             fadeToWhite = !fadeToWhite;
@@ -1516,7 +1518,7 @@ void DrawMiniMap(void) {
         color.red = color.green = color.blue = value;
         RGBForeColor(&color);
         PaintRect(&myRect);
-        ThreadSleepTicks(2);
+        U3PlatformWaitTicks(2);
     }
     gUpdateWhere = UpdateStore;
     gMouseState = mouseStore;
@@ -1570,11 +1572,11 @@ void DrawMiniDng(unsigned char mode) { /* $8F9A */
     while (done == 0) {
         DngPiece(8);
         ForceUpdateMain();
-        ThreadSleepTicks(10);
+        U3PlatformWaitTicks(10);
         DngPiece(under);
         ForceUpdateMain();
-        ThreadSleepTicks(10);
-        done = GetKeyMouse(0) | Button();
+        U3PlatformWaitTicks(10);
+        done = U3PlatformGetKeyMouse(0) | Button();
     }
     gUpdateWhere = updateStore;
     gMouseState = mouseStore;
@@ -1674,7 +1676,7 @@ void RectCopy(Rect tSourceRect, Rect tDestRect, Boolean hideCurs) {
     width = tSourceRect.right - tSourceRect.left;
     while (yRect < tSourceRect.bottom) {
         yRect++;
-        BlockMoveData(gFromPixMapBase + fromOffset, gToPixMapBase + toOffset, width);
+        memcpy(gToPixMapBase + toOffset, gFromPixMapBase + fromOffset, width);
         fromOffset += gFromRowByteCount;
         toOffset += gToRowByteCount;
     }

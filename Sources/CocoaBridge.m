@@ -317,12 +317,6 @@ void ThreadSleepTicks(int numTicks) {
     [pool release];
 }
 
-short NumberForPrefsKey(CFStringRef prefsKey) {
-    int asInt = [[NSUserDefaults standardUserDefaults] integerForKey:(NSString *)prefsKey];
-    short result = asInt;
-    return result;
-}
-
 CFURLRef GraphicsDirectoryURL(void) {
     static CFURLRef sResult = nil;
     if (!sResult) {
@@ -719,4 +713,3 @@ void SetRefMenuIcons(MenuRef theMenu) {
     }
     [myPool release];
 }
-

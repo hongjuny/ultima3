@@ -4,6 +4,7 @@
 
 #import "UltimaIncludes.h"
 #import "CocoaBridge.h"
+#import "U3Platform.h"
 #import "UltimaMacIF.h"
 #import "UltimaText.h"
 
@@ -29,13 +30,13 @@ Movie                   songMovie = nil;
 short                   gQTMusicVolume = 255;
 
 void ApplyVolumePreferences(void) {
-    short soundVolume = NumberForPrefsKey(U3PrefSoundVolume);
+    short soundVolume = U3PlatformGetIntegerPreference(U3PreferenceSoundVolume);
     if (soundVolume < 1)
         soundVolume = 100;
     SetSoundVolumePercent(soundVolume);
 
     Boolean isPlayingMusic = (songMovie && gSongPlaying != 0);
-    Boolean shouldPlayMusic = !CFPreferencesGetAppBooleanValue(U3PrefMusicInactive, kCFPreferencesCurrentApplication, NULL);
+    Boolean shouldPlayMusic = !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled);
     if (isPlayingMusic != shouldPlayMusic) {
         if (shouldPlayMusic) {
             gSongPlaying = 0xFF;
@@ -47,7 +48,7 @@ void ApplyVolumePreferences(void) {
         }
     }
 
-    short musicVolume = NumberForPrefsKey(U3PrefMusicVolume);
+    short musicVolume = U3PlatformGetIntegerPreference(U3PreferenceMusicVolume);
     if (musicVolume < 1)
         musicVolume = 100;
     gQTMusicVolume = (short)((float)musicVolume * 2.55);
@@ -61,8 +62,8 @@ void ErrorTone(void) {
 }
 
 void PlaySoundFile(CFStringRef soundName, Boolean forceAsync) {
-    if (!CFPreferencesGetAppBooleanValue(U3PrefSoundInactive, kCFPreferencesCurrentApplication, NULL)) {
-        Boolean async = (forceAsync || CFPreferencesGetAppBooleanValue(U3PrefAsyncSound, kCFPreferencesCurrentApplication, NULL));
+    if (!U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled)) {
+        Boolean async = (forceAsync || U3PlatformGetBooleanPreference(U3PreferenceAsyncSound));
         PlaySoundFileQT(soundName, async);
     }
 }
@@ -74,12 +75,12 @@ void PlaySound(unsigned short what,Boolean async) // $4705
     SCStatus            status;
     short               saveMouseState;
     if (gDone) return;
-    if (!CFPreferencesGetAppBooleanValue(U3PrefSoundInactive, kCFPreferencesCurrentApplication, NULL))
+    if (!U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled))
         {
         clearChan=FALSE;
         saveMouseState = gMouseState;
         if (!async)
-            async = CFPreferencesGetAppBooleanValue(U3PrefAsyncSound, kCFPreferencesCurrentApplication, NULL);
+            async = U3PlatformGetBooleanPreference(U3PreferenceAsyncSound);
         if (!async) { gMouseState = 0; CursorUpdate(); }
         while (clearChan==FALSE)
             {
@@ -184,7 +185,7 @@ void SetUpSpeech(void) {
 
 void DisableSpeech(void) {
     gSpeech = FALSE;
-    CFPreferencesSetAppValue(U3PrefSpeechInactive, kCFBooleanTrue, kCFPreferencesCurrentApplication);
+    U3PlatformSetBooleanPreference(U3PreferenceSpeechDisabled, true);
     ReflectPrefs();
 }
 
@@ -273,7 +274,7 @@ void Speech(Str255 string, short shnum) {
 
     if (gSpeech == FALSE || gDone == TRUE)
         return;
-    if (CFPreferencesGetAppBooleanValue(U3PrefSpeechInactive, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceSpeechDisabled))
         return;
     if (lastVoice != shnum) {
         GetPascalStringFromArrayByIndex(speakString, CFSTR("TilesVoices"), shnum);
@@ -356,7 +357,7 @@ void MusicUpdate(void) {
     Boolean wasChanged;
     static Boolean last7;
 
-    if (CFPreferencesGetAppBooleanValue(U3PrefMusicInactive, kCFPreferencesCurrentApplication, NULL))
+    if (U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled))
         return;
     if (!songMovie || IsMovieDone(songMovie) || (strk == 7 && last7)) {   // current time >= full time
         if (gSongNext == gSongCurrent) {

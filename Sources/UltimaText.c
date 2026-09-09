@@ -5,11 +5,12 @@
 #import "UltimaIncludes.h"
 #import "CarbonShunts.h"
 #import "CocoaBridge.h"
+#import "U3Audio.h"
+#import "U3Platform.h"
 #import "UltimaGraphics.h"
 #import "UltimaMacIF.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
-#import "UltimaSound.h"
 
 extern RgnHandle        UpdateRgn;
 extern int              wx, wy, tx, ty;
@@ -50,8 +51,8 @@ void UTextScroll(void) {
     Rect myRect;
 
     DrawFramePiece(9, 23, 23);
-    Boolean classic = CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL);
-    Boolean constrained = !CFPreferencesGetAppBooleanValue(U3PrefSpeedUnconstrain, kCFPreferencesCurrentApplication, NULL);
+    Boolean classic = U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance);
+    Boolean constrained = !U3PlatformGetBooleanPreference(U3PreferenceUnconstrainedSpeed);
     unsigned char scrollAmount = (constrained && !classic) ? blkSiz / 4 : blkSiz;
     unsigned char i;
     for (i = 0; i < blkSiz; i += scrollAmount) {
@@ -64,7 +65,7 @@ void UTextScroll(void) {
         TextScrollAreaUpdate();
         ForceUpdateMain();
         if (constrained)
-            ThreadSleepTicks(1);
+            U3PlatformWaitTicks(1);
     }
     ForeColor(blackColor);
     BackColor(whiteColor);
@@ -145,7 +146,7 @@ void UPrintMessage(short msgNum) {
 
 void UPrintMessageRewrapped(short msgNum) {
     GetPascalStringFromArrayByIndex(gString, CFSTR("Messages"), msgNum - 1);    //GetIndString(gString, BASERES+12, msgNum);
-    if (!CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL))
+    if (!U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance))
         RewrapString(gString, false);
     UPrintWin(gString);
 }
@@ -232,7 +233,7 @@ void Message(short which, short x, short y) {
 }
 
 short PixelsWideString(Str255 gString) {
-    if (!CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL)) {
+    if (!U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance)) {
         SetNewFont(false);
         return UThemePascalStringWidth(gString, kThemeCurrentPortFont);
     } else
@@ -247,17 +248,8 @@ void SetNewFont(Boolean force) {
         sFontNum = -1;
 
     if (sFontNum == -1) {
-        CFStringRef fontNameRef = CFPreferencesCopyAppValue(U3PrefGameFont, kCFPreferencesCurrentApplication);
-        if (fontNameRef) {
-            ConstStringPtr fontStr = CFStringGetPascalStringPtr(fontNameRef, kCFStringEncodingMacRoman);
-            if (!fontStr) {
-                CFStringGetPascalString(fontNameRef, fontName, 255, kCFStringEncodingMacRoman);
-                fontStr = fontName;
-            }
-            if (fontStr)
-                GetFNum(fontStr, &sFontNum);
-            CFRelease(fontNameRef);
-        }
+        if (U3PlatformCopyPascalStringPreference(U3PreferenceGameFont, fontName, sizeof(fontName)))
+            GetFNum(fontName, &sFontNum);
 
         if (sFontNum >= -1 && sFontNum < 1) {   // try default if not available
             GetIndString(fontName, BASERES + 11, 7);
@@ -286,7 +278,7 @@ void UCenterAt(Str255 gString, short x, short y) {
     short width;
     Rect rect;
 
-    if (CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL)) {
+    if (U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance)) {
         UPrint(gString, x, y);
         return;
     }
@@ -350,7 +342,7 @@ void UPrint(Str255 gString, char x, char y) {
     inScrollArea = (x > 23 && y > 15 && gCurFrame == 1);
     tx = x;
     ty = y;
-    if (!CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL)) {
+    if (!U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance)) {
         // step thru & deal with CRs!
         str[0] = 0;
         pos = 1;
@@ -443,7 +435,7 @@ void UInputText(short x, short y, Str255 dest, short maxChar, Boolean numOnly) {
         UPrint(dest, x, y);
         dest[0] -= 3;
         UPrint(dest, x, y);
-        ch = CursorKey(true);
+        ch = U3PlatformCursorKey(true);
         if (gDone)
             ch = 13;
         if (ch > 'Z')
@@ -477,47 +469,6 @@ short UInputNum(short x, short y) {
     if (number < 0)
         number = Absolute(number);
     return number;
-
-    /*
-    char    key, digit1, digit2;
-    tx=x;
-    ty=y;
-UInpBegin:
-    if (gUpdateWhere==7) SaveWideArea();
-    key=CursorKey(false);
-    if (gDone) return 0;
-    if ((key<'0') || (key>'9')) goto UInpBegin;
-    UPrintChar(key,tx,ty);
-    digit1=key-48;
-UInp2nd:
-    if (gUpdateWhere==7) SaveWideArea();
-    key=CursorKey(false);
-    if (gDone) return 0;
-    if (key!=13 && key!=3) goto UINotCR;
-    digit2=digit1;
-    digit1=0;
-    goto UIFinalCR;
-UINotCR:
-    if (key!=8) goto UINotBS;
-    UPrint("\p ",tx-1,ty);
-    tx--;
-    goto UInpBegin;
-UINotBS:
-    if ((key<'0') || (key>'9')) goto UInp2nd;
-    UPrintChar(key,tx,ty);
-    digit2=key-48;
-UInp3rd:
-    if (gUpdateWhere==7) SaveWideArea();
-    key=CursorKey(false);
-    if (gDone) return 0;
-    if (key==13 || key==3) goto UIFinalCR;
-    if (key!=8) goto UInp3rd;
-    UPrint("\p ",tx-1,ty);
-    tx--;
-    goto UInp2nd;
-UIFinalCR:
-    return (digit1*10)+digit2;
-*/
 }
 
 long UInputBigNum(short x, short y) {
@@ -531,40 +482,6 @@ long UInputBigNum(short x, short y) {
     if (number < 0)
         number = Absolute(number);
     return number;
-    /*
-    long        value;
-    short       length;
-    Str255      number;
-    Boolean     numDone;
-    char        key;
-     
-    tx=x;
-    ty=y;
-    if (gDone) return 0;
-    length=0;
-    numDone=FALSE;
-    while (!numDone && !gDone)
-        {
-        key=CursorKey(false);
-        if (key==13 || key==3) numDone=TRUE;
-        if (key==8 && length>0) { UPrint("\p ",tx-1,ty); tx--; length--; }
-        if (key>='0' && key<='9' && length<4)
-            {
-            UPrintChar(key,tx,ty);
-            length++;
-            number[length]=key;
-            }
-        }
-    number[0]=length;
-    if (length<1)
-        {
-        number[0]=1;
-        number[1]='0';
-        }
-    StringToNum(number, &value);
-    if (value<0) value=Absolute(value);
-    return value;
-*/
 }
 
 void DrawPrompt(void) {
@@ -596,7 +513,7 @@ void PrintWeaponList(short weapon) {
     GetPascalStringFromArrayByIndex(gString, CFSTR("WeaponsArmour"), weapon + 24);
     gString[++gString[0]] = 'g';
     gString[++gString[0]] = 'p';
-    if (!CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL))
+    if (!U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance))
         NewPrint(gString, 40 * blkSiz - UThemePascalStringWidth(gString, kThemeCurrentPortFont), wy * blkSiz);
     else
         UPrint(gString, 40 - gString[0], wy);
@@ -620,7 +537,7 @@ void PrintArmourList(short armour) {
     GetPascalStringFromArrayByIndex(gString, CFSTR("WeaponsArmour"), armour + 40);
     gString[++gString[0]] = 'g';
     gString[++gString[0]] = 'p';
-    if (!CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL))
+    if (!U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance))
         NewPrint(gString, 40 * blkSiz - UThemePascalStringWidth(gString, kThemeCurrentPortFont), wy * blkSiz);
     else
         UPrint(gString, 40 - gString[0], wy);
@@ -640,7 +557,7 @@ if x is even, it's variant one (Brigand, Goblin, Ghoul, Golem ...)
 if x is odd, it's variant two (Cutpurse, Troll, Zombie, Titan ...)
 */
 void PrintMonster(short which, Boolean plural, char variant) { /* $8457 */
-    if (which > 44 && variant > 0) {   // Ö2 = >23
+    if (which > 44 && variant > 0) {   // divide-by-2 equivalent: >23
         PrintTile((which - 46) + 63 + variant, plural);
     } else {
         PrintTile(which / 2, plural);
@@ -674,7 +591,7 @@ short GetChar(void) {
 
 short GetKey(void) {
     short val;
-    while (!GetKeyMouse(0)) {
+    while (!U3PlatformGetKeyMouse(0)) {
     }
     val = gKeyPress;
     while (val > 95) {
@@ -717,12 +634,12 @@ void Speak(short perNum, short shnum) { /* $8924 */
         }
         tlkptr++;
     }
-    if (!CFPreferencesGetAppBooleanValue(U3PrefClassicAppearance, kCFPreferencesCurrentApplication, NULL)) {
+    if (!U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance)) {
         RewrapString(outStr, false);
     }
     UPrint(outStr, tx, ty);
     if (speechStr[0] > 2)
-        Speech(speechStr, shnum);
+        U3AudioSpeakPascalString(speechStr, shnum);
 }
 
 void WinText(short grey) {
@@ -846,4 +763,3 @@ void AddString(Str255 str1, Str255 str2) {
     BlockMove(str2 + 1, str1 + str1[0] + 1, str2[0]);
     str1[0] += str2[0];
 }
-

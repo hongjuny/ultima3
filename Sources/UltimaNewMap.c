@@ -4,10 +4,12 @@
 
 #import "UltimaIncludes.h"
 #import "CarbonShunts.h"
+#import "U3Audio.h"
+#import "U3IO.h"
+#import "U3Platform.h"
 #import "UltimaGraphics.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
-#import "UltimaSound.h"
 
 extern CGrafPtr         mainPort, minitilesPort;
 extern int              xpos, ypos;
@@ -67,27 +69,27 @@ void CreateNewMap(void) {
             storeIcons[byte] = 0x18; /* dawn */
     }
     AllWater();
-    PlaySoundFile(CFSTR("BigDeath"), TRUE);    // was 0xE0
-    value = RandNum(8, 72);
+    U3AudioPlaySound(U3SoundEffectBigDeath, true);    // was 0xE0
+    value = U3PlatformRandom(8, 72);
     for (byte = 0; byte < value; byte++) {
-        range = RandNum(4, (gCurMapSize / 2));
+        range = U3PlatformRandom(4, (gCurMapSize / 2));
         halfrange = range / 2;
-        MapSplat(RandNum(halfrange, gCurMapSize - halfrange), RandNum(halfrange, gCurMapSize - halfrange), range, 0, 4);
+        MapSplat(U3PlatformRandom(halfrange, gCurMapSize - halfrange), U3PlatformRandom(halfrange, gCurMapSize - halfrange), range, 0, 4);
         Progress((50.0 / value) * byte + 5);
     }
     CleanUpSingle();
     CleanSurround();
     CleanUpDiags(0x04);
     for (byte = 0; byte < 64; byte++) {
-        MapSplat(RandNum(2, gCurMapSize - 2), RandNum(2, gCurMapSize - 2), RandNum(2, 8), 0x04, 0x10);
+        MapSplat(U3PlatformRandom(2, gCurMapSize - 2), U3PlatformRandom(2, gCurMapSize - 2), U3PlatformRandom(2, 8), 0x04, 0x10);
     }
     Progress(60);
     for (byte = 0; byte < 16; byte++) {
-        MapSplat(RandNum(2, gCurMapSize - 2), RandNum(2, gCurMapSize - 2), RandNum(4, 16), 0x04, 0x0C);
+        MapSplat(U3PlatformRandom(2, gCurMapSize - 2), U3PlatformRandom(2, gCurMapSize - 2), U3PlatformRandom(4, 16), 0x04, 0x0C);
     }
     Progress(65);
     for (byte = 0; byte < 20; byte++) {
-        MapSplat(RandNum(2, gCurMapSize - 2), RandNum(2, gCurMapSize - 2), RandNum(4, 16), 0x04, 0x08);
+        MapSplat(U3PlatformRandom(2, gCurMapSize - 2), U3PlatformRandom(2, gCurMapSize - 2), U3PlatformRandom(4, 16), 0x04, 0x08);
     }
     Progress(70);
     CleanUpSingle();
@@ -97,7 +99,7 @@ void CreateNewMap(void) {
     CleanUpDiags(0x10);
     CleanUpDiags(0x04);
     for (byte = 0; byte < 3; byte++) {
-        MapSplat(RandNum(2, gCurMapSize - 2), RandNum(2, gCurMapSize - 2), RandNum(2, 12), 0x10, 0x84);
+        MapSplat(U3PlatformRandom(2, gCurMapSize - 2), U3PlatformRandom(2, gCurMapSize - 2), U3PlatformRandom(2, 12), 0x10, 0x84);
     }
     CleanUpDiags(0x84);
     CleanUpDiags(0x10);
@@ -116,8 +118,8 @@ void CreateNewMap(void) {
         counter = 0;
         proximityLimit = 18;
         while (value != target) {
-            x = RandNum(0, gCurMapSize - 1);
-            y = RandNum(0, gCurMapSize - 1);
+            x = U3PlatformRandom(0, gCurMapSize - 1);
+            y = U3PlatformRandom(0, gCurMapSize - 1);
             value = GetXYVal(x, y);
             if (target == 0x10 && value == target) {
                 if (GetXYVal(x, y + 1) > 0x0C && GetXYVal(x, y - 1) > 0x0C) {
@@ -184,8 +186,8 @@ void CreateNewMap(void) {
         proximityLimit = 20;
         value = 0;
         while (value != 0x04) {
-            x = RandNum(0, gCurMapSize - 1);
-            y = RandNum(0, gCurMapSize - 1);
+            x = U3PlatformRandom(0, gCurMapSize - 1);
+            y = U3PlatformRandom(0, gCurMapSize - 1);
             value = GetXYVal(x, y);
             if ((byte % 2) && (GetXYVal(x, y - 1) != 0x10) && (GetXYVal(x, y + 1) != 0x10))
                 value = 0;
@@ -212,8 +214,8 @@ void CreateNewMap(void) {
     if (Party[1] == 0x16)
         target = 0;
     while (value != target) {
-        x = RandNum(0, gCurMapSize - 1);
-        y = RandNum(0, gCurMapSize - 1);
+        x = U3PlatformRandom(0, gCurMapSize - 1);
+        y = U3PlatformRandom(0, gCurMapSize - 1);
         value = GetXYVal(x, y);
     }
     Progress(100);
@@ -224,12 +226,12 @@ void CreateNewMap(void) {
     /*  if (showCreation)
         {
         value = gUpdateWhere; gUpdateWhere=0;
-        WaitKeyMouse();
+        U3PlatformWaitKeyMouse();
         gUpdateWhere=value;
         }*/
     QuitSave(0);
     PutMiscStuff();
-    PlaySoundFile(CFSTR("LBLevelRise"), TRUE);
+    U3AudioPlaySound(U3SoundEffectLBLevelRise, true);
     gUpdateWhere = saveCursor;
     DrawMiniMap();
 }
@@ -262,8 +264,8 @@ void MapSplat(unsigned char startX, unsigned char startY, unsigned char size, un
             ShowDot(x, y);
         }
         while (oldx == x && oldy == y) {
-            x += (dir[Random() & 0x03]);
-            y += (dir[Random() & 0x03]);
+            x += (dir[U3PlatformRandomRaw() & 0x03]);
+            y += (dir[U3PlatformRandomRaw() & 0x03]);
             x = MapConstrain(x);
             y = MapConstrain(y);
             if (x != oldx && y != oldy) {
@@ -286,7 +288,7 @@ void CleanUpDiags(short what) {
         for (x = 1; x < gCurMapSize - 2; x++) {
             if (GetXYVal(x, y) == what) {
                 if (GetXYVal(x - 1, y - 1) == what && GetXYVal(x, y - 1) != what && GetXYVal(x - 1, y) != what) {
-                    if (RandNum(0, 255) > 127) {
+                    if (U3PlatformRandom(0, 255) > 127) {
                         PutXYVal(what, x - 1, y);
                         ShowDot(x - 1, y);
                     } else {
@@ -295,7 +297,7 @@ void CleanUpDiags(short what) {
                     }
                 }
                 if (GetXYVal(x - 1, y + 1) == what && GetXYVal(x - 1, y) != what && GetXYVal(x, y + 1) != what) {
-                    if (RandNum(0, 255) > 127) {
+                    if (U3PlatformRandom(0, 255) > 127) {
                         PutXYVal(what, x - 1, y);
                         ShowDot(x - 1, y);
                     } else {
@@ -436,7 +438,7 @@ void DrawDioramaMap(void) {
     ocean = GetPicture(BASERES + 3);
     drawOcean = (ocean != 0);
     gSongCurrent = 10;
-    MusicUpdate();
+    U3AudioUpdateMusic();
     watchCurs = GetCursor(watchCursor);
     SetCursor(*watchCurs);
     ForeColor(blackColor);
@@ -446,7 +448,7 @@ void DrawDioramaMap(void) {
     mapRect.bottom = mapRect.right;
     if (drawOcean) {
         DrawPicture(ocean, &mapRect);
-        ReleaseResource((Handle)ocean);
+        U3IOReleaseLegacyResourceHandle(ocean);
     } else {
         PaintRect(&mapRect);
     }
@@ -523,10 +525,10 @@ void DrawDioramaMap(void) {
     toRect.bottom = toRect.top + minSize;
     InitCursor();
     SetPort(savePort);
-    while (!GetKeyMouse(1)) {
-        time = TickCount();
+    while (!U3PlatformGetKeyMouse(1)) {
+        time = U3PlatformTickCount();
         InvertRect(&toRect);
-        while ((time + 10) > TickCount()) {
+        while ((time + 10) > U3PlatformTickCount()) {
         }
     }
     gUpdateWhere = updateStore;
