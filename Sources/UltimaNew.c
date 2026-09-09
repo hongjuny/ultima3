@@ -918,108 +918,13 @@ void GetGlobalWindowRect(WindowPtr win, Rect *rect) {
 }
 
 short GetWindowDevice(WindowPtr win) {
-    Rect gr;
-    Point wp;
-    Boolean gotDevice = FALSE;
-    short i = 0;
-    Rect wr;
-    Boolean displayMgrPresent;
-    long value = 0;
-    CGrafPtr curWorld;
-    GDHandle windowDevice;
-
-    Gestalt(gestaltDisplayMgrAttr, &value);
-    displayMgrPresent = value & (1 << gestaltDisplayMgrPresent);
-
-    if (displayMgrPresent) {   // && displayMgrVersion >= 0x00020000
-        GetGlobalWindowRect(win, &wr);
-        // First step through all devices to find if any
-        // corner is showing on one.
-        windowDevice = DMGetFirstScreenDevice(dmOnlyActiveDisplays);
-        while (windowDevice && i < 32 && !gotDevice) {
-            gr = (*windowDevice)->gdRect;
-            wp.h = wr.left;
-            wp.v = wr.top;
-            gotDevice = (PtInRect(wp, &gr));
-            if (!gotDevice) {
-                wp.h = wr.right;
-                wp.v = wr.top;
-                gotDevice = (PtInRect(wp, &gr));
-            }
-            if (!gotDevice) {
-                wp.h = wr.left;
-                wp.v = wr.bottom;
-                gotDevice = (PtInRect(wp, &gr));
-            }
-            if (!gotDevice) {
-                wp.h = wr.right;
-                wp.v = wr.bottom;
-                gotDevice = (PtInRect(wp, &gr));
-            }
-            if (!gotDevice) {   // no corner was on this device, so get next one.
-                windowDevice = DMGetNextScreenDevice(windowDevice, dmOnlyActiveDisplays);
-                i++;
-            }
-        }
-        if (!gotDevice) {
-            GetGWorld(&curWorld, &windowDevice);
-        }
-    } else {   // no display manager
-        GetGWorld(&curWorld, &windowDevice);
-    }
-    return (*(*windowDevice)->gdPMap)->pixelSize;
+    (void)win;
+    return 32;
 }
 
 void GetWindowDeviceRect(WindowPtr win, Rect *gr) {
-    Point wp;
-    Boolean gotDevice = FALSE;
-    short i = 0;
-    Rect wr;
-    GDHandle gd;
-    Boolean displayMgrPresent;
-    long value = 0;
-
-    Gestalt(gestaltDisplayMgrAttr, &value);
-    displayMgrPresent = value & (1 << gestaltDisplayMgrPresent);
-
-    if (displayMgrPresent) {   // && displayMgrVersion >= 0x00020000
-        GetGlobalWindowRect(win, &wr);
-        // First step through all devices to find if any
-        // corner is showing on one.
-        gd = DMGetFirstScreenDevice(dmOnlyActiveDisplays);
-        while (gd && i < 32 && !gotDevice) {
-            *gr = (*gd)->gdRect;
-            wp.h = wr.left;
-            wp.v = wr.top;
-            if (PtInRect(wp, gr))
-                gotDevice = TRUE;
-            if (!gotDevice) {
-                wp.h = wr.right;
-                wp.v = wr.top;
-                if (PtInRect(wp, gr))
-                    gotDevice = TRUE;
-            }
-            if (!gotDevice) {
-                wp.h = wr.left;
-                wp.v = wr.bottom;
-                if (PtInRect(wp, gr))
-                    gotDevice = TRUE;
-            }
-            if (!gotDevice) {
-                wp.h = wr.right;
-                wp.v = wr.bottom;
-                if (PtInRect(wp, gr))
-                    gotDevice = TRUE;
-            }
-            gd = DMGetNextScreenDevice(gd, dmOnlyActiveDisplays);
-            i++;
-        }
-        if (!gotDevice) {
-            LWGetScreenRect(gr);
-        }
-    } else {   // no display manager
-        LWGetScreenRect(gr);
-    }
+    (void)win;
+    LWGetScreenRect(gr);
 }
 
 Boolean SetUpHelpWorld(void) {

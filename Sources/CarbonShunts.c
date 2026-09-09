@@ -2,159 +2,108 @@
 
 #import "CarbonShunts.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 extern CGrafPtr mainPort;
 
 void ForceUpdateMain(void) {
-#if TARGET_CARBON
-    QDFlushPortBuffer(mainPort, nil);
-#endif
 }
 
 void LWSetArrowCursor(void) {
 }
 
 void LWSetDialogPort(DialogPtr theDialog) {
-#if TARGET_CARBON
-    SetPortDialogPort(theDialog);
-#else
-    SetPort(theDialog);
-#endif
+    (void)theDialog;
 }
 
 void LWGetScreenRect(Rect *rect) {
-#if TARGET_CARBON
-    BitMap qdbm;
+    CGRect bounds = CGDisplayBounds(CGMainDisplayID());
 
-    GetQDGlobalsScreenBits(&qdbm);
-    *rect = qdbm.bounds;
-#else
-    *rect = qd.screenBits.bounds;
-#endif
+    rect->left = (short)CGRectGetMinX(bounds);
+    rect->top = (short)CGRectGetMinY(bounds);
+    rect->right = (short)CGRectGetMaxX(bounds);
+    rect->bottom = (short)CGRectGetMaxY(bounds);
 }
 
 const BitMap *LWPortCopyBits(CGrafPtr port) {
-#if TARGET_CARBON
-    return GetPortBitMapForCopyBits(port);
-#else
-    return &((GrafPtr)port)->portBits;
-#endif
+    (void)port;
+    return nil;
 }
 
 OSErr LWGetDialogControl(DialogRef inDialog, SInt16 inItemNo, ControlRef *outControl) {
-#if TARGET_CARBON
-    return GetDialogItemAsControl(inDialog, inItemNo, outControl);
-#else
-    short temp;
-    Rect rect;
-    GetDialogItem(inDialog, inItemNo, &temp, (Handle *)outControl, &rect);
-    return nil;
-#endif
+    (void)inDialog;
+    (void)inItemNo;
+    if (outControl)
+        *outControl = nil;
+    return paramErr;
 }
 
 void LWGetPortForeColor(CGrafPtr port, RGBColor *color) {
-#if TARGET_CARBON
-    GetPortForeColor(port, color);
-#else
-    *color = port->rgbFgColor;
-#endif
+    (void)port;
+    color->red = 0;
+    color->green = 0;
+    color->blue = 0;
 }
 
 void LWGetPortBackColor(CGrafPtr port, RGBColor *color) {
-#if TARGET_CARBON
-    GetPortBackColor(port, color);
-#else
-    *color = port->rgbBkColor;
-#endif
+    (void)port;
+    color->red = 0xFFFF;
+    color->green = 0xFFFF;
+    color->blue = 0xFFFF;
 }
 
 void LWGetPortBounds(CGrafPtr port, Rect *bounds) {
-#if TARGET_CARBON
-    GetPortBounds(port, bounds);
-#else
-    *bounds = port->portRect;
-#endif
+    (void)port;
+    LWGetScreenRect(bounds);
 }
 
 void LWGetPortPenLocation(CGrafPtr port, Point *point) {
-#if TARGET_CARBON
-    GetPortPenLocation(port, point);
-#else
-    point->h = port->pnLoc.h;
-    point->v = port->pnLoc.v;
-#endif
+    (void)port;
+    point->h = 0;
+    point->v = 0;
 }
 
 void LWGetWindowBounds(WindowRef window, Rect *bounds) {
-#if TARGET_CARBON
-    GrafPtr curPort;
-
-    curPort = GetWindowPort(window);
-    GetPortBounds(curPort, bounds);
-#else
-    *bounds = window->portRect;
-#endif
+    (void)window;
+    LWGetScreenRect(bounds);
 }
 
 Boolean LWIsControlActive(ControlHandle control) {
-#if TARGET_CARBON
-    return IsControlActive(control);
-#else
-    return ((*control)->contrlHilite == 0);
-#endif
+    return control != nil;
 }
 
 Boolean LWIsMenuItemEnabled(MenuRef menu, MenuItemIndex item) {
-#if TARGET_CARBON
-    return IsMenuItemEnabled(menu, item);
-#else
-    return ((*menu)->enableFlags & (1 << (item + 1)));
-#endif
+    (void)menu;
+    (void)item;
+    return true;
 }
 
 void LWDisableMenuItem(MenuRef theMenu, short item) {
-#if TARGET_CARBON
-    DisableMenuItem(theMenu, item);
-#else
-    DisableItem(theMenu, item);
-#endif
+    (void)theMenu;
+    (void)item;
 }
 
 void LWEnableMenuItem(MenuRef theMenu, short item) {
-#if TARGET_CARBON
-    EnableMenuItem(theMenu, item);
-#else
-    EnableItem(theMenu, item);
-#endif
+    (void)theMenu;
+    (void)item;
 }
 
 OSStatus LWValidWindowRect(WindowRef window, const Rect *bounds) {
-#if TARGET_CARBON
-    ValidWindowRect(window, bounds);
-#else
-    ValidRect(bounds);
-#endif
+    (void)window;
+    (void)bounds;
     return noErr;
 }
 
 OSStatus LWInvalWindowRect(WindowRef window, const Rect *bounds) {
-#if TARGET_CARBON
-    InvalWindowRect(window, bounds);
-#else
-    InvalRect(bounds);
-#endif
+    (void)window;
+    (void)bounds;
     return noErr;
 }
 
 Boolean GoodHandle(Handle h) {
-    if (h == nil)
-        return false;
-#if TARGET_CARBON
-    return IsHandleValid(h);
-#else
-    return true;
-#endif
+    return h != nil;
 }
 
 void LWBlockZero(void *destPtr, Size byteCount) {
@@ -169,5 +118,44 @@ void LWBlockZero(void *destPtr, Size byteCount) {
 }
 
 void DefineDefaultItem(DialogPtr theDialog, short item) {
-    SetDialogDefaultItem(theDialog, item);
+    (void)theDialog;
+    (void)item;
+}
+
+void BlockMove(const void *srcPtr, void *destPtr, Size byteCount) {
+    memmove(destPtr, srcPtr, (size_t)byteCount);
+}
+
+void BlockMoveData(const void *srcPtr, void *destPtr, Size byteCount) {
+    memmove(destPtr, srcPtr, (size_t)byteCount);
+}
+
+short Random(void) {
+    return (short)arc4random();
+}
+
+void NumToString(long theNum, Str255 theString) {
+    char buffer[32];
+    int length = snprintf(buffer, sizeof(buffer), "%ld", theNum);
+
+    if (length < 0)
+        length = 0;
+    if (length > 255)
+        length = 255;
+    theString[0] = (unsigned char)length;
+    memcpy(theString + 1, buffer, (size_t)length);
+}
+
+void SysBeep(short duration) {
+    (void)duration;
+}
+
+Size FreeMem(void) {
+    return 0;
+}
+
+Size MaxMem(Size *grow) {
+    if (grow)
+        *grow = 0;
+    return 0;
 }

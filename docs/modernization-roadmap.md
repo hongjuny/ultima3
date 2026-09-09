@@ -447,3 +447,14 @@ Recommended immediate sequence:
      symbols; the next modernization pass should replace or shim those APIs at
      the renderer, audio, windowing, and save-file boundaries instead of
      scattering compatibility stubs through gameplay code
+33. remove low-risk removed Toolbox link blockers
+   - status: legacy memory-copy, numeric Pascal-string conversion, raw random,
+     system beep, and memory-query calls now resolve through `CarbonShunts`;
+     `CarbonShunts` itself no longer calls removed Carbon port/menu/window
+     helper APIs, and old Display Manager screen-device probing in
+     `UltimaNew.c` has been reduced to current-display bounds plus a fixed
+     32-bit display depth assumption
+   - remaining: the build still links against a broad set of removed
+     QuickDraw, Dialog Manager, Menu Manager, Resource Manager, Graphics
+     Importer, and Sound Manager symbols; those should be grouped behind
+     renderer, dialog/window, asset-loading, and audio compatibility seams next

@@ -33,6 +33,11 @@ check_absent \
     Ultima3.xcodeproj/project.pbxproj
 
 check_absent \
+    "runtime files should not depend on Display Manager APIs" \
+    "\\b(DMGetFirstScreenDevice|DMGetNextScreenDevice|dmOnlyActiveDisplays|gestaltDisplayMgrAttr|gestaltDisplayMgrPresent)\\b" \
+    $runtime_files
+
+check_absent \
     "runtime files should not access preference storage directly" \
     "CFPreferences|NSUserDefaults|NumberForPrefsKey" \
     $runtime_files

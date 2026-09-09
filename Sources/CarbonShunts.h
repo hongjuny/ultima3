@@ -39,10 +39,6 @@ enum {
 #define watchCursor 4
 #endif
 
-#ifndef dmOnlyActiveDisplays
-#define dmOnlyActiveDisplays 1
-#endif
-
 typedef Handle CursHandle;
 
 void ForceUpdateMain(void);
