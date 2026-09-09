@@ -20,8 +20,6 @@
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
-#import <QuickTime/QuickTime.h>
-
 extern short    gSongCurrent, gSongNext, gSongPlaying;
 extern Boolean  gSoundIncapable, gMusicIncapable;
 
@@ -261,7 +259,6 @@ void MainLoop(void) {
     MyShowMenuBar();
     if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
         RestoreDisplay();
-    ExitMovies();
 
     return;
 }
@@ -2883,7 +2880,7 @@ void CheckAllDead(void) { /* $71B4 */
             ForceUpdateMain();
             //IdleUntil(time);
             while (U3PlatformTickCount() < time) {
-                MoviesTask(nil, 0);
+                U3AudioUpdateMusic();
             }
             U3RenderPrintPascalString("\p\n\n\n\n\n\n\n\n");
             U3AudioPlaySound(U3SoundEffectBigDeath, true);    // was 0xE0
@@ -3464,8 +3461,6 @@ Boolean GetKeyMouse(unsigned char mode) {
         case nullEvent:
             nowTick = U3PlatformTickCount();
             if (nowTick >= nextNullTick) {
-                if (musicOn)
-                    MoviesTask(nil, 0);
                 if (gUpdateWhere == 3)
                     FullUpdate();
                 else if (gUpdateWhere == 8) {

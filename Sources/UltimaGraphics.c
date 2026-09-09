@@ -18,8 +18,6 @@
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
 
-#import <QuickTime/QuickTime.h>
-
 extern OSErr            gError;
 extern WindowPtr        gMainWindow, gShroudWindow;
 extern char             gKeyPress;
@@ -236,7 +234,11 @@ Boolean GetGraphicTiledFile(CFURLRef fileURLRef, CGrafPtr destWorld, int tileWid
 
             // Find out the size of the source image. If it's a PDF, we'll ignore its size.
             Rect importRect;
-            if (fss.name[fss.name[0] - 2] == 'p' && fss.name[fss.name[0] - 1] == 'd' && fss.name[fss.name[0]] == 'f')
+            CFStringRef extension = CFURLCopyPathExtension(fileURLRef);
+            Boolean isPDF = extension && CFStringCompare(extension, CFSTR("pdf"), kCFCompareCaseInsensitive) == kCFCompareEqualTo;
+            if (extension)
+                CFRelease(extension);
+            if (isPDF)
                 importRect = finalRect;
             else if (err == noErr)
                 err = GraphicsImportGetBoundsRect(gi, &importRect);
@@ -1288,7 +1290,6 @@ void CheckInterrupted(void) {
     EventRecord theEvent;
     WaitNextEvent(everyEvent, &theEvent, 1L, nil);
     switch (theEvent.what) {
-        case nullEvent: MoviesTask(nil, 0); break;
         case mouseDown:
         case keyDown:
             gInterrupt = TRUE;

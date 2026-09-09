@@ -6,6 +6,45 @@
 #ifndef CarbonShunts_h
 #define CarbonShunts_h
 
+#ifndef blackColor
+enum {
+    whiteColor = 30,
+    blackColor = 33,
+    yellowColor = 69,
+    magentaColor = 137,
+    redColor = 205,
+    cyanColor = 273,
+    greenColor = 341,
+    blueColor = 409
+};
+#endif
+
+#ifndef srcOr
+#define srcOr 1
+#endif
+
+#ifndef blend
+#define blend 32
+#endif
+
+#ifndef addOver
+#define addOver 34
+#endif
+
+#ifndef ditherCopy
+#define ditherCopy 64
+#endif
+
+#ifndef watchCursor
+#define watchCursor 4
+#endif
+
+#ifndef dmOnlyActiveDisplays
+#define dmOnlyActiveDisplays 1
+#endif
+
+typedef Handle CursHandle;
+
 void ForceUpdateMain(void);
 void LWSetArrowCursor(void);
 void LWSetDialogPort(DialogPtr theDialog);

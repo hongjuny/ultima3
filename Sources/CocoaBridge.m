@@ -10,14 +10,10 @@
 
 #import <Cocoa/Cocoa.h>
 #import <Carbon/Carbon.h>
-#import <QuickTime/QuickTime.h>
 
 extern short gUpdateWhere;
-extern CGrafPtr gMoviesPort;
 
 static short sQTSoundVolume = 100;    // was 254 but let's make sounds quieter.
-static int sNumSoundMovies = 0;
-static Movie *sSoundMovies[256];
 
 @implementation LWCocoaDialogController
 
@@ -522,7 +518,6 @@ Boolean SetCursorNamed(CFStringRef cursorName, float scale) {
     return (theCursor != nil);
 }
 
-// Expects QuickTime to have already been initialized with EnterMovies().
 void PlaySoundFileQT(CFStringRef soundName, Boolean async) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     static NSString *sSoundsDirectory = nil;
@@ -537,19 +532,16 @@ void PlaySoundFileQT(CFStringRef soundName, Boolean async) {
         if (!sSoundsCacheIndex)
             sSoundsCacheIndex = [[NSMutableDictionary alloc] init];
 
-        // Find an appropriate sound Movie in our cache.
-        NSNumber *thisMovieIndex = nil;
-        thisMovieIndex = [sSoundsCacheIndex objectForKey:key];
+        NSSound *sound = [sSoundsCacheIndex objectForKey:key];
         int dn = 1;
-        while (thisMovieIndex && dn < 3 && !IsMovieDone(*sSoundMovies[[thisMovieIndex intValue]])) {
+        while (sound && dn < 3 && [sound isPlaying]) {
             key = [NSString stringWithFormat:@"%@_alt%d", soundName, ++dn];
-            thisMovieIndex = [sSoundsCacheIndex objectForKey:key];
+            sound = [sSoundsCacheIndex objectForKey:key];
         }
-        if (thisMovieIndex && !IsMovieDone(*sSoundMovies[[thisMovieIndex intValue]]))
-            thisMovieIndex = [sSoundsCacheIndex objectForKey:(NSString *)soundName];
+        if (sound && [sound isPlaying])
+            sound = [sSoundsCacheIndex objectForKey:(NSString *)soundName];
 
-        // If we don't have a Movie sound ready for what we need, make one.
-        if (!thisMovieIndex) {
+        if (!sound) {
             NSString *prefix = [(NSString *)soundName stringByAppendingString:@"."];
             NSString *targetFile = nil;
             int i = 0;
@@ -559,45 +551,25 @@ void PlaySoundFileQT(CFStringRef soundName, Boolean async) {
                     targetFile = [sSoundsDirectory stringByAppendingPathComponent:aFilename];
             }
             if (targetFile) {
-                NSURL *asURL = [NSURL fileURLWithPath:targetFile];
-                FSRef fsr;
-                if (CFURLGetFSRef((CFURLRef)asURL, &fsr)) {
-                    FSSpec fss;
-                    if (noErr == FSGetCatalogInfo(&fsr, kFSCatInfoNone, nil, nil, &fss, nil)) {
-                        short movResFile;
-                        if (noErr == OpenMovieFile(&fss, &movResFile, fsRdPerm)) {
-                            Movie *soundMoviePtr;
-                            soundMoviePtr = malloc(sizeof(Movie));
-                            short movResID = 0;
-                            if (noErr == NewMovieFromFile(soundMoviePtr, movResFile, &movResID, nil, newMovieActive, nil)) {
-                                CloseMovieFile(movResFile);
-                                SetMovieGWorld(*soundMoviePtr, gMoviesPort, nil);    // it's only audio!
-                                SetMovieVolume(*soundMoviePtr, sQTSoundVolume);
-                                sSoundMovies[sNumSoundMovies] = soundMoviePtr;
-                                thisMovieIndex = [NSNumber numberWithInt:sNumSoundMovies++];
-                                [sSoundsCacheIndex setObject:thisMovieIndex forKey:key];
-                                //NSLog(@"#%@ %p = %@ (@ %d volume)", thisMovieIndex, *soundMoviePtr, key, sQTSoundVolume);
-                            }
-                        }
-                    }
+                sound = [[NSSound alloc] initWithContentsOfFile:targetFile byReference:YES];
+                if (sound) {
+                    [sound setVolume:(float)sQTSoundVolume / 100.0f];
+                    [sSoundsCacheIndex setObject:sound forKey:key];
+                    [sound release];
                 }
             }
         }
 
-        // Now if we have a movie index, play it.
-        if (thisMovieIndex) {
-            Movie *thisSoundMovie = sSoundMovies[[thisMovieIndex intValue]];
-            //NSLog(@"p:%@ (%p)", key, thisSoundMovie);
-            StopMovie(*thisSoundMovie);
-            GoToBeginningOfMovie(*thisSoundMovie);
+        if (sound) {
+            [sound stop];
+            [sound setCurrentTime:0.0];
             CFAbsoluteTime timeout = CFAbsoluteTimeGetCurrent() + 8.0;
-            StartMovie(*thisSoundMovie);
+            [sound play];
             if (!async) {
-                while (!IsMovieDone(*thisSoundMovie) && CFAbsoluteTimeGetCurrent() < timeout) {
+                while ([sound isPlaying] && CFAbsoluteTimeGetCurrent() < timeout) {
                     EventRecord theEvent;
                     WaitNextEvent(everyEvent, &theEvent, 6, nil);
                     switch (theEvent.what) {
-                        case nullEvent: MoviesTask(nil, 0);
                         case kHighLevelEvent: AEProcessAppleEvent(&theEvent); break;
                     }
                     [NSThread sleepUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
@@ -614,11 +586,6 @@ void SetSoundVolumePercent(short newVolume) {
         short newQTVolume = (short)((float)newVolume * 1.5);    // was 2.55 but sfx are so loud compared to music.
         if (newQTVolume != sQTSoundVolume) {
             sQTSoundVolume = newQTVolume;
-            int i;
-            for (i = 0; i < sNumSoundMovies; i++) {
-                //NSLog(@"adj vol to %d (%d): %p", newVolume, sQTSoundVolume, *sSoundMovies[i]);
-                SetMovieVolume(*sSoundMovies[i], sQTSoundVolume);
-            }
         }
     }
 }

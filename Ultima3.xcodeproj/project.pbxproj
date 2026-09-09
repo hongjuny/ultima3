@@ -38,7 +38,7 @@
 		A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B31C0A31CDAC0079FF83 /* UltimaGraphics.c */; };
 		A821B3530A31CE930079FF83 /* Music in Resources */ = {isa = PBXBuildFile; fileRef = A821B3450A31CE930079FF83 /* Music */; };
 		A83CE77E136389CA00ADADCA /* Strings in Resources */ = {isa = PBXBuildFile; fileRef = A83CE77D136389CA00ADADCA /* Strings */; };
-		A83CE8E213638CD000ADADCA /* MainResources.rsrc in Rez */ = {isa = PBXBuildFile; fileRef = A83CE8E113638CD000ADADCA /* MainResources.rsrc */; };
+		A83CE8E213638CD000ADADCA /* MainResources.rsrc in Resources */ = {isa = PBXBuildFile; fileRef = A83CE8E113638CD000ADADCA /* MainResources.rsrc */; };
 		A85A8B170B225AE600299E2B /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = A85A8AEF0B225AE600299E2B /* Sounds */; };
 		A862ADCA0B484CF20043DA3B /* Graphics in Resources */ = {isa = PBXBuildFile; fileRef = A862ADB10B484CF20043DA3B /* Graphics */; };
 		A86F25FC15CD2D3B005C3CA5 /* PrefsDialog.m in Sources */ = {isa = PBXBuildFile; fileRef = A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */; };
@@ -70,28 +70,14 @@
 		A896F5DC0B7492DA00A4045D /* Stalagtites.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C20B7492DA00A4045D /* Stalagtites.png */; };
 		A896F5DD0B7492DA00A4045D /* TimeLord.jpg in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C30B7492DA00A4045D /* TimeLord.jpg */; };
 		A896F5DE0B7492DA00A4045D /* UltimaLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = A896F5C40B7492DA00A4045D /* UltimaLogo.png */; };
-		A8AA78390A2F951A00F17165 /* QuickTime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8AA78370A2F951A00F17165 /* QuickTime.framework */; };
 		A8BD746F0AF01991003647FE /* UltimaIncludes.m in Sources */ = {isa = PBXBuildFile; fileRef = A8BD746E0AF01991003647FE /* UltimaIncludes.m */; };
 		A8BD75230AF01ADB003647FE /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */; };
 		A8ED548C0A34DC6C007A493A /* Application.icns in Resources */ = {isa = PBXBuildFile; fileRef = A8ED548B0A34DC6C007A493A /* Application.icns */; };
 		A8F5D6AE0A96318100E6755A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8AA791D0A2F9E4400F17165 /* Cocoa.framework */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXBuildRule section */
-		A8810BC40AF3FAD80064A33C /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.gcc.4_0;
-			fileType = sourcecode.c;
-			inputFiles = (
-			);
-			isEditable = 1;
-			outputFiles = (
-			);
-		};
-/* End PBXBuildRule section */
-
 /* Begin PBXFileReference section */
-		0867D6ABFE840B52C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		0867D6ABFE840B52C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		20286C33FDCF999611CA2CEA /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
 		350D488C17025865009499DC /* Cursors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Cursors; sourceTree = "<group>"; };
 		351BF175195EDA9B00B9E489 /* LWIntegerTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LWIntegerTransformer.h; path = Sources/LWIntegerTransformer.h; sourceTree = SOURCE_ROOT; };
@@ -181,7 +167,6 @@
 		A896F5C20B7492DA00A4045D /* Stalagtites.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Stalagtites.png; sourceTree = "<group>"; };
 		A896F5C30B7492DA00A4045D /* TimeLord.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = TimeLord.jpg; sourceTree = "<group>"; };
 		A896F5C40B7492DA00A4045D /* UltimaLogo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = UltimaLogo.png; sourceTree = "<group>"; };
-		A8AA78370A2F951A00F17165 /* QuickTime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickTime.framework; path = /System/Library/Frameworks/QuickTime.framework; sourceTree = "<absolute>"; };
 		A8AA791D0A2F9E4400F17165 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		A8BD746E0AF01991003647FE /* UltimaIncludes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = UltimaIncludes.m; path = Sources/UltimaIncludes.m; sourceTree = SOURCE_ROOT; };
 		A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = /System/Library/Frameworks/SystemConfiguration.framework; sourceTree = "<absolute>"; };
@@ -196,7 +181,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */,
-				A8AA78390A2F951A00F17165 /* QuickTime.framework in Frameworks */,
 				A8F5D6AE0A96318100E6755A /* Cocoa.framework in Frameworks */,
 				A8BD75230AF01ADB003647FE /* SystemConfiguration.framework in Frameworks */,
 			);
@@ -293,7 +277,6 @@
 			children = (
 				20286C33FDCF999611CA2CEA /* Carbon.framework */,
 				A8AA791D0A2F9E4400F17165 /* Cocoa.framework */,
-				A8AA78370A2F951A00F17165 /* QuickTime.framework */,
 				A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */,
 				4A9504CAFFE6A41611CA0CBA /* CoreServices.framework */,
 				4A9504C8FFE6A3BC11CA0CBA /* ApplicationServices.framework */,
@@ -367,13 +350,11 @@
 				8D0C4E8C0486CD37000505A6 /* Resources */,
 				8D0C4E8F0486CD37000505A6 /* Sources */,
 				8D0C4E910486CD37000505A6 /* Frameworks */,
-				A8AA78C60A2F987F00F17165 /* Rez */,
 				A8716FA4138AC23C00E77906 /* Info.plist from git */,
 				A86F26ED15CD6349005C3CA5 /* Code Sign */,
 				A80B30A4133926F900CD6D7D /* Create Disk Image */,
 			);
 			buildRules = (
-				A8810BC40AF3FAD80064A33C /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -417,6 +398,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */,
+				A83CE8E213638CD000ADADCA /* MainResources.rsrc in Resources */,
 				A821B3530A31CE930079FF83 /* Music in Resources */,
 				A8ED548C0A34DC6C007A493A /* Application.icns in Resources */,
 				A85A8B170B225AE600299E2B /* Sounds in Resources */,
@@ -461,17 +443,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXRezBuildPhase section */
-		A8AA78C60A2F987F00F17165 /* Rez */ = {
-			isa = PBXRezBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A83CE8E213638CD000ADADCA /* MainResources.rsrc in Rez */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXRezBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		A80B30A4133926F900CD6D7D /* Create Disk Image */ = {
@@ -595,7 +566,11 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Ultima3_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
-				OTHER_CFLAGS = "-fconstant-cfstrings";
+				OTHER_CFLAGS = (
+					"-fconstant-cfstrings",
+					"-Wno-error=implicit-function-declaration",
+					"-Wno-error=int-conversion",
+				);
 				PRODUCT_NAME = "Ultima III";
 				WRAPPER_EXTENSION = app;
 			};
@@ -609,7 +584,11 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Ultima3_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
-				OTHER_CFLAGS = "-fconstant-cfstrings";
+				OTHER_CFLAGS = (
+					"-fconstant-cfstrings",
+					"-Wno-error=implicit-function-declaration",
+					"-Wno-error=int-conversion",
+				);
 				PRODUCT_NAME = "Ultima III";
 				WRAPPER_EXTENSION = app;
 			};
@@ -618,46 +597,42 @@
 		C0E91ACA08A95435008D54AB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = i386;
+				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CODE_SIGNING_ALLOWED = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_VERSION = "";
-				GCC_VERSION_ppc = 4.0;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3.9;
-				OTHER_CFLAGS = "-fconstant-cfstrings";
-				SDKROOT = macosx10.6;
-				SDKROOT_ppc = "~/Documents/Legacy_Xcode/MacOSX10.5.sdk";
-				VALID_ARCHS = "i386 x86_64";
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				OTHER_CFLAGS = (
+					"-fconstant-cfstrings",
+					"-Wno-error=implicit-function-declaration",
+					"-Wno-error=int-conversion",
+				);
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
 		C0E91ACB08A95435008D54AB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					ppc,
-					i386,
-				);
+				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CODE_SIGNING_ALLOWED = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEPLOYMENT_POSTPROCESSING = YES;
-				GCC_VERSION = "";
-				GCC_VERSION_ppc = 4.0;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3.9;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				OTHER_CFLAGS = (
-					"-no_compact_linkedit",
 					"-fconstant-cfstrings",
+					"-Wno-error=implicit-function-declaration",
+					"-Wno-error=int-conversion",
 				);
-				SDKROOT = macosx10.6;
-				SDKROOT_ppc = "~/Documents/Legacy_Xcode/MacOSX10.5.sdk";
-				VALID_ARCHS = "i386 x86_64";
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};

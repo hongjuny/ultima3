@@ -436,3 +436,14 @@ Recommended immediate sequence:
      through modern image assets; obsolete commented PICT fallback code was
      removed, and the boundary script now guards the dungeon file against
      direct Resource Manager picture access
+32. modernize the first Xcode build boundary
+   - status: the project now targets the current macOS SDK with standard
+     architectures, code signing disabled for local builds, no legacy Rez
+     build phase, and no QuickTime framework dependency; QuickTime movie audio
+     playback has been replaced with a transitional `NSSound` backend, and the
+     source tree now compiles for arm64 until the link step
+   - remaining: the link step is blocked by removed Carbon, QuickDraw, Sound
+     Manager, Resource Manager, Display Manager, and Navigation Services
+     symbols; the next modernization pass should replace or shim those APIs at
+     the renderer, audio, windowing, and save-file boundaries instead of
+     scattering compatibility stubs through gameplay code

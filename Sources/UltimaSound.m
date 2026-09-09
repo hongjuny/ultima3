@@ -8,14 +8,23 @@
 #import "UltimaMacIF.h"
 #import "UltimaText.h"
 
-#import <QuickTime/QuickTime.h>
+#import <Cocoa/Cocoa.h>
 
 extern Boolean          gDone;
 extern short            zp[255];
 
+typedef struct SndChannel *SndChannelPtr;
+
+void PlaySoundFile(CFStringRef soundName, Boolean forceAsync);
+void DisableSpeech(void);
+void SetUpVoiceList(void);
+void GetVoice(Str255 voicename);
+void CloseSpeech(void);
+void MusicUpdate(void);
+void EndSong(void);
+
 short                   gCurChan, gMaxChan;
 short                   gSongCurrent, gSongNext, gSongPlaying;
-CGrafPtr                gMoviesPort;
 SndChannelPtr           gSampChan[6], gToneChan;
 Handle                  gSoundHandle[6];
 Boolean                 gSpeech, gSoundDone, gSoundIncapable, gMusicIncapable;
@@ -26,8 +35,8 @@ short                   gCountVoices, gCurrentVoiceIndex, gCurVoiceNum;
 short                   gCurSong, gSongVolRefNum;
 Str255                  gCurVoiceName;
 unsigned char           gVoiceName[64][64], strk;
-Movie                   songMovie = nil;
-short                   gQTMusicVolume = 255;
+static NSSound          *songSound = nil;
+short                   gQTMusicVolume = 100;
 
 void ApplyVolumePreferences(void) {
     short soundVolume = U3PlatformGetIntegerPreference(U3PreferenceSoundVolume);
@@ -35,7 +44,7 @@ void ApplyVolumePreferences(void) {
         soundVolume = 100;
     SetSoundVolumePercent(soundVolume);
 
-    Boolean isPlayingMusic = (songMovie && gSongPlaying != 0);
+    Boolean isPlayingMusic = (songSound && gSongPlaying != 0);
     Boolean shouldPlayMusic = !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled);
     if (isPlayingMusic != shouldPlayMusic) {
         if (shouldPlayMusic) {
@@ -51,9 +60,9 @@ void ApplyVolumePreferences(void) {
     short musicVolume = U3PlatformGetIntegerPreference(U3PreferenceMusicVolume);
     if (musicVolume < 1)
         musicVolume = 100;
-    gQTMusicVolume = (short)((float)musicVolume * 2.55);
-    if (songMovie) {
-        SetMovieVolume(songMovie, gQTMusicVolume);
+    gQTMusicVolume = musicVolume;
+    if (songSound) {
+        [songSound setVolume:(float)gQTMusicVolume / 100.0f];
     }
 }
 
@@ -105,24 +114,7 @@ void PlaySound(unsigned short what,Boolean async) // $4705
 }
 */
 void OpenChannel(void) {
-    short err, chanType;
-
-    chanType = sampledSynth;
     gCurChan = 1;
-    if (gSoundIncapable)
-        return;
-    err = SndNewChannel(&gSampChan[1], chanType, 0, nil);
-    if (err != 0) {
-        HandleError(err, 51, 1);
-        DisableSound();
-        return;
-    }
-    err = SndNewChannel(&gSampChan[2], chanType, 0, nil);
-    if (err != 0) {
-        //  HandleError(err, 51, 2);
-        gMaxChan = 1;
-        return;
-    }
     gMaxChan = 2;
 /*  err = SndNewChannel (&gSampChan[3], chanType, 0, nil);
     if (err != 0)
@@ -149,11 +141,6 @@ void OpenChannel(void) {
 */}
 
 void CloseChannel(void) {
-    if (gSoundIncapable) {
-        return;
-    }
-    SndDisposeChannel(gSampChan[1], FALSE);
-    SndDisposeChannel(gSampChan[2], FALSE);
 }
 
 void SetUpSpeech(void) {
@@ -323,16 +310,12 @@ void SpeakMessages(int msg1, int msg2, int voiceNum) {
 }
 
 void SetUpMusic(void) {
-    OSErr err;
     Boolean musicFailed;
 
     if (gMusicIncapable)
         return;
 
     musicFailed = false;
-    err = EnterMovies();
-    if (err)
-        gMusicIncapable = true;
     // try to start music-playing code
     if (musicFailed) {
         HandleError(1, 56, 0);
@@ -343,29 +326,27 @@ void SetUpMusic(void) {
 }
 
 void CloseMusic(void) {
+    EndSong();
+    [songSound release];
+    songSound = nil;
 }
 
 void SetMusicPortAndDevice(CGrafPtr thePort, GDHandle theDevice) {
-    SetMovieGWorld(songMovie, thePort, theDevice);
 }
 
 void MusicUpdate(void) {
-    FSSpec songSpec;
-    Str31 SongName = "\pSong_0.mov";
-    short songid, movResFile, movResID;    //, vRefNum;
-    OSErr err;
-    Boolean wasChanged;
+    short songid;
     static Boolean last7;
 
     if (U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled))
         return;
-    if (!songMovie || IsMovieDone(songMovie) || (strk == 7 && last7)) {   // current time >= full time
+    if (!songSound || ![songSound isPlaying] || (strk == 7 && last7)) {   // current time >= full time
         if (gSongNext == gSongCurrent) {
-            if (songMovie) {
+            if (songSound) {
                 //printf("replaying (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-                StopMovie(songMovie);
-                GoToBeginningOfMovie(songMovie);
-                StartMovie(songMovie);
+                [songSound stop];
+                [songSound setCurrentTime:0.0];
+                [songSound play];
             }
         } else {
             //printf("ending #1 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
@@ -384,11 +365,11 @@ void MusicUpdate(void) {
         gSongCurrent = gSongNext;
     gSongPlaying = gSongCurrent;
     if (gSongCurrent == 0) {
-        if (songMovie && !IsMovieDone(songMovie)) {
+        if (songSound && [songSound isPlaying]) {
             //printf("ending #2 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
             EndSong();
-            DisposeMovie(songMovie);
-            songMovie = nil;
+            [songSound release];
+            songSound = nil;
         }
         return;
     }
@@ -400,64 +381,37 @@ void MusicUpdate(void) {
     //printf("ending #3 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
     EndSong();
 
-    SongName[SongName[0] - 4] = songid;
-
-    FSRef fsr;
-    ProcessSerialNumber psn;
-    GetCurrentProcess(&psn);
-    GetProcessBundleLocation(&psn, &fsr);
-    CFURLRef bundleBaseURL = CFURLCreateFromFSRef(nil, &fsr);
-    CFURLRef musicBaseURL = CFURLCreateCopyAppendingPathComponent(nil, bundleBaseURL, CFSTR("Contents/Resources/Music"), false);
-    CFRelease(bundleBaseURL);
-    CFStringRef thisSongStrRef = CFStringCreateWithPascalString(nil, SongName, kCFStringEncodingMacRoman);
-    CFURLRef fullSongURLRef = CFURLCreateCopyAppendingPathComponent(nil, musicBaseURL, thisSongStrRef, false);
-    CFRelease(thisSongStrRef);
-    err = (CFURLGetFSRef(fullSongURLRef, &fsr)) ? noErr : paramErr;
-    CFRelease(fullSongURLRef);
-    CFRelease(musicBaseURL);
-    if (err)
-        HandleError(err, 57, 1);
-    if (!err)
-        err = FSGetCatalogInfo(&fsr, kFSCatInfoNone, nil, nil, &songSpec, nil);
-    if (err)
-        HandleError(err, 57, 1);
-    if (!err)
-        err = OpenMovieFile(&songSpec, &movResFile, fsRdPerm);
-    if (err)
-        HandleError(err, 57, 2);
-    movResID = 0;
-    if (songMovie)
-        DisposeMovie(songMovie);
-    if (!err)
-        err = NewMovieFromFile(&songMovie, movResFile, &movResID, SongName, newMovieActive, &wasChanged);
-    if (err)
-        HandleError(err, 57, 3);
-    if (!err)
-        err = CloseMovieFile(movResFile);
-    if (err)
-        HandleError(err, 57, 4);
-    if (!err) {
-        GoToBeginningOfMovie(songMovie);
-        SetMovieGWorld(songMovie, gMoviesPort, nil);    // it's only audio!
-        SetMovieVolume(songMovie, gQTMusicVolume);
-        StartMovie(songMovie);
+    NSString *songName = [NSString stringWithFormat:@"Song_%c", songid];
+    NSString *path = [[NSBundle mainBundle] pathForResource:songName ofType:@"mov" inDirectory:@"Music"];
+    if (!path) {
+        HandleError(paramErr, 57, 1);
+        return;
     }
+    [songSound release];
+    songSound = [[NSSound alloc] initWithContentsOfFile:path byReference:YES];
+    if (!songSound) {
+        HandleError(paramErr, 57, 3);
+        return;
+    }
+    [songSound setVolume:(float)gQTMusicVolume / 100.0f];
+    [songSound setLoops:YES];
+    [songSound play];
     strk = gSongPlaying;
 }
 
 void EndSong(void) {
     long startTime;
 
-    if (songMovie) {
-        startTime = TickCount();
+    if (songSound) {
+        startTime = U3PlatformTickCount();
         const int numTicks = 30;
         float scale = gQTMusicVolume / (float)numTicks;
-        while (TickCount() < (startTime + numTicks)) {
-            int newVolume = gQTMusicVolume - (TickCount() - startTime) * scale;
-            SetMovieVolume(songMovie, newVolume);
-            ThreadSleepTicks(3);
+        while (U3PlatformTickCount() < (startTime + numTicks)) {
+            int newVolume = gQTMusicVolume - (U3PlatformTickCount() - startTime) * scale;
+            [songSound setVolume:(float)newVolume / 100.0f];
+            U3PlatformWaitTicks(3);
         }
-        StopMovie(songMovie);
-        SetMovieVolume(songMovie, gQTMusicVolume);
+        [songSound stop];
+        [songSound setVolume:(float)gQTMusicVolume / 100.0f];
     }
 }

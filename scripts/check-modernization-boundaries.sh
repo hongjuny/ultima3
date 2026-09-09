@@ -27,6 +27,12 @@ Sources/UltimaSound.m
 "
 
 check_absent \
+    "runtime and project files should not depend on QuickTime" \
+    "QuickTime|\\bMovie\\b|EnterMovies|ExitMovies|OpenMovieFile|NewMovieFromFile|SetMovie|StartMovie|StopMovie|DisposeMovie|MoviesTask|IsMovieDone|gMoviesPort" \
+    Sources \
+    Ultima3.xcodeproj/project.pbxproj
+
+check_absent \
     "runtime files should not access preference storage directly" \
     "CFPreferences|NSUserDefaults|NumberForPrefsKey" \
     $runtime_files

@@ -2,6 +2,8 @@
 
 #import "CarbonShunts.h"
 
+#include <string.h>
+
 extern CGrafPtr mainPort;
 
 void ForceUpdateMain(void) {
@@ -11,13 +13,6 @@ void ForceUpdateMain(void) {
 }
 
 void LWSetArrowCursor(void) {
-    Cursor arrowCursor;
-#if TARGET_CARBON
-    GetQDGlobalsArrow(&arrowCursor);
-    SetCursor(&arrowCursor);
-#else
-    SetCursor(&qd.arrow);
-#endif
 }
 
 void LWSetDialogPort(DialogPtr theDialog) {
@@ -169,7 +164,7 @@ void LWBlockZero(void *destPtr, Size byteCount) {
         ((Ptr)destPtr)[--offset] = 0;
     }
 #else
-    BlockZero(destPtr, byteCount);
+    memset(destPtr, 0, byteCount);
 #endif
 }
 

@@ -41,7 +41,6 @@ extern short            blkSiz;
 extern short            gSongCurrent, gSongNext, gSongPlaying;
 extern UniversalProcPtr DialogFilterProc;
 extern long             lastSaveNumberOfMoves;
-extern CGrafPtr         gMoviesPort;
 
 Boolean                 gStatsActive=false, gWasFullScreen=false, gIgnoreNextWakeHibernate=false;
 Boolean                 gUnusualSize;
@@ -1824,16 +1823,6 @@ void CheckSystemRequirements(void) {
         }
     }
     gSoundIncapable = FALSE;
-    versionNum = SndSoundManagerVersion();
-    if (versionNum.majorRev < 3) {
-        //FadeWindowsGDev(gMainWindow, 1, eFade_FadeInCommand );
-        GetIndString(errorStr, BASERES + 9, 3);
-        ParamText(errorStr, nil, nil, nil);
-        button = Alert(BASERES + 6, NIL_PTR);
-        if (button == 1)
-            ExitToShell();
-        DisableSound();
-    }
     gMusicIncapable = FALSE;
     /*
     error = FSMakeFSSpec(nil, nil, pathStr, &fss);
@@ -1847,15 +1836,6 @@ void CheckSystemRequirements(void) {
         DisableMusic();
         }
     */
-    Gestalt(gestaltQuickTimeVersion, &response);
-    if (response == 0) {
-        //FadeWindowsGDev(gMainWindow, 1, eFade_FadeInCommand);
-        GetIndString(errorStr, BASERES + 9, 9);
-        ParamText(errorStr, nil, nil, nil);
-        button = Alert(BASERES + 6, NIL_PTR);
-        if (button == 1)
-            ExitToShell();
-    }
 }
 
 void ImageDisplay(short which, Boolean hidePause) {
@@ -2543,11 +2523,6 @@ void HandleError(OSErr error, long desc, long idnum) {
 
 // 'Graphics' and 'Sounds' files are now integral to app.
 void OpenGraphicsAndSound(void) {
-    // a little dummy gworld that will always be around for QuickTime movies (sounds & music) to reference.
-    Rect lilRect;
-    SetRect(&lilRect, 0, 0, 16, 16);
-    NewGWorld(&gMoviesPort, 1, &lilRect, nil, nil, 0);
-
     /*
     OSErr   err;
     Str255  pathStr;
