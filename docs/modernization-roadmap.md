@@ -505,3 +505,197 @@ Recommended immediate sequence:
      runs synchronously before AppKit owns launch, so the next pass should move
      game startup behind an application delegate or controller object that can
      coordinate rendering, input, and shutdown explicitly
+39. recover bitmap rendering (in progress)
+   - basic rectangle and text shunts now enqueue Cocoa drawing commands
+   - added platform-independent `U3Bitmap` storage with top-down RGBX8 pixels,
+     nearest-neighbor source copies, clipping, and overlapping self-copy support
+   - validation: `sh scripts/test-bitmap.sh` exercises scaling, clipping,
+     self-copy, invalid dimensions, and disposal under address/undefined-behavior
+     sanitizers; no Apple frameworks are needed for these tests
+   - integrated `U3Bitmap` into the app target: NewGWorld now allocates owned
+     32-bit storage and a PixMap handle; disposal and current-port selection
+     track these allocations. Requested legacy depths are normalized to 32-bit
+   - basic rectangle/text drawing targets the selected offscreen buffer;
+     CopyBits handles srcCopy/ditherCopy between registered buffers and sends
+     pixels to the Cocoa main surface. Dithering is unnecessary for this
+     32-bit path; other transfer modes remain unsupported
+   - `U3_RENDER_SELF_TEST=1` runs an app-linked diagnostic for nonzero-origin
+     GWorld allocation, drawing, PixMap access, scaled CopyBits, and disposal
+   - replaced FSSpec/QuickTime image import in GetGraphicTiledFile and
+     DrawNamedImage with URL-based decoding into owned bitmap storage. Raster
+     tiles are cropped individually and scaled with nearest-neighbor sampling;
+     PDFs render their first page through Core Graphics at the requested size
+   - image diagnostics verify asymmetric tile orientation/scaling, missing-file
+     failure, and nonblack decoded pixels from bundled PNG, JPEG, and PDF assets
+   - main surface now retains a framebuffer instead of a capped command history;
+     CopyBits supports screen readback, restore, and overlapping screen copies
+   - CopyMask uses binary dark-copy/light-preserve masks, including scaled and
+     aliased masks. Unit tests and app-linked screen compositing tests cover it
+   - Cocoa view rendering passes a pixel comparison against decoded Exodus.png;
+     `U3_RENDER_PREVIEW=/tmp/u3-render-check.png` alongside the self-test flag
+     exports the diagnostic image. This is an offscreen view test, not a complete
+     game-window or gameplay verification
+   - next: verify the real startup/game rendering sequence and its tile layout
+   - remaining fidelity work includes transfer modes, clipping regions,
+     legacy pixel-format assumptions, and per-port pen/color/text state
+40. trace the real startup path (in progress)
+   - corrected prior smoke-test interpretation: ExitToShell returned zero after
+     MenuBarInit failed, before window creation. Zero exit alone did not prove
+     successful initialization. Fatal HandleError exits now return failure and
+     log their error code, description ID, and resource ID
+   - missing legacy menu resources now select a minimal native application menu
+     with Quit; the remaining game menu commands still need native equivalents
+   - WindowInit captures the main port after creating the Cocoa window; added
+     explicit rendering prototypes to prevent implicit-int pointer truncation
+     on arm64, plus a GetPixBaseAddr bridge for owned PixMap handles
+   - widened transitional GWorld storage to accommodate the existing 7168-pixel
+     font atlas; rowBytes is interpreted internally using the legacy 0x7fff mask
+   - U3_STARTUP_RENDER_CHECK=/tmp/u3-startup-render.png runs WindowInit,
+     SetUpGWorlds, GetGraphics, DrawFrame, and a named logo draw, then exports
+     the framebuffer and exits. Verify the completed marker AND image, not only
+     the exit code. Observed a 1280x768 frame and correctly oriented Exodus logo
+   - this explicit diagnostic bypasses roster loading and is not the normal
+     intro or gameplay sequence. Normal startup now reaches OpenRstr, where
+     U3IOOpenSaveContainer fails through the remaining FSSpec/resource-fork shims
+   - next prerequisite for normal startup: modernize save-container I/O, then
+     continue tracing resource loading, intro animation, and the main menu
+41. replace resource-fork save storage
+   - `U3IOOpenSaveContainer` now opens a versioned binary plist at
+     `~/Library/Application Support/LairWare/Ultima III/Roster-v1.plist`.
+     Resource keys preserve the four-character type (hex) and signed resource ID;
+     values preserve the original game bytes. Bundled defaults still load through
+     the read-only legacy resource loader
+   - mutable resources are private copies: closing without commit discards edits;
+     commit atomically writes a candidate file before publishing the new in-memory
+     state. New-roster initialization stays in memory until its final flush
+   - required records and minimum lengths are validated before opening/writing;
+     malformed or unsupported containers fail without being replaced
+   - legacy rosters in Preferences or next to the app are detected when no modern
+     save exists; creation stops with a migration-required error. Importing those
+     resource forks is still pending; no legacy roster is modified
+   - `U3_IO_SELF_TEST=1` executes real OpenRstr initialization in an isolated
+     temporary directory, then verifies reopen, commit, discard, resize, write
+     failure rollback, malformed plist rejection, and truncated-record rejection
+   - `U3_SAVE_DIRECTORY` overrides storage for isolated diagnostics. Tests passed
+     without touching the user's save directory; full normal startup after this
+     change has not yet been verified
+   - remaining: legacy import, user-visible save failure reporting, multi-record
+     game-save transactions, and concurrent-process coordination. The high-level
+     U3IOLoadGame/U3IOSaveGame state APIs remain stubs; existing gameplay currently
+     uses the resource-level U3IO calls implemented here
+42. reach the main menu through normal initialization
+   - normal startup now passes roster loading. Found and removed the Cocoa-path
+     wait on an unavailable Carbon display-mode dialog; legacy display-resolution
+     changes and restoration are skipped for the Cocoa-owned surface without
+     changing the stored fullscreen preference
+   - declared SetRect/OffsetRect/InsetRect explicitly. Fractional logo dimensions
+     previously crossed an implicitly declared call with the wrong argument ABI,
+     causing invalid intro GWorld dimensions on arm64
+   - AppKit input polling now returns no-input to its caller when a Cocoa window
+     exists, instead of falling back into Carbon WaitNextEvent after a timeout
+   - U3_BOOT_CHECK=/tmp/u3-boot-menu.png plus an explicit U3_SAVE_DIRECTORY runs
+     normal initialization and intro animation, posts space key events at intro
+     and demo waits, captures the actual main menu, then exits. It has a 90-second
+     timeout and requires isolated save storage
+   - verified intro-ready and main-menu-completed markers, successful exit, and
+     the exported 1280x768 framebuffer with Exodus and all four menu buttons.
+     This test uses synthesized keys; it does not validate physical input,
+     mouse hit-testing, menu actions, or playable gameplay
+   - next: exercise Organize a Party and Journey Onward, replace remaining dialog
+     dependencies, and verify movement/rendering in the game world
+43. replace the Form Party dialog (in progress toward game entry)
+   - Cocoa surfaces use a native four-slot party picker. Empty and duplicate
+     selections disable Form Party; occupied roster members are disabled and
+     cancellation leaves the game state untouched
+   - the bridge receives only bounded display names and availability flags;
+     selection validation and party construction remain in UltimaNew.c. The
+     legacy dialog shares the same validation/construction/persistence workflow
+   - selection tests cover empty, duplicate, invalid, nonexistent, occupied, and
+     already-formed cases, plus slot ordering, member flags, and starting position.
+     These tests run with U3_RENDER_SELF_TEST and restore the original game globals
+   - arm64 build, selection tests, renderer checks, and save-container tests pass;
+     interactive native dialog behavior and end-to-end Form Party persistence
+     have not yet been verified. Multi-record save atomicity remains pending
+   - next blocker for a new roster: CharacterCreateDialog and its roster-slot
+     selection still use legacy UI. Restore character creation before claiming
+     that a new player can use Journey Onward to enter the world
+44. restore new-character creation on the Cocoa path
+   - CreateChar now uses one native editor for empty roster slot, MacRoman name,
+     sex, race, class, and four ability scores; it bypasses the unavailable legacy
+     roster-selection and character dialogs without mutating the roster on cancel
+   - portable draft validation retains the legacy rules: 1-12 name bytes,
+     scores 5-25 each, and total at most 50 (unspent points remain permitted).
+     The editor displays remaining points and disables Create for invalid input
+   - record construction stays in game code and retains initial health, HP,
+     food, gold, cloth, and dagger values. Existing slots cannot be overwritten;
+     failed roster writes restore the previous in-memory slot
+   - character validation/default-record tests and an isolated creation/save/
+     reopen test pass, together with the arm64 build and renderer checks
+   - interactive native editor behavior is not yet verified. Suggested class
+     presets, random-name selection, and legacy race/class help are not yet
+     reproduced; the current editor provides manual allocation and selection
+   - next: validate native character creation plus party formation end to end,
+     then execute Journey Onward and inspect world rendering and movement
+45. verify first world frame after Journey Onward setup
+   - added a bounded `U3_WORLD_RENDER_CHECK=/tmp/u3-world-render.png` diagnostic:
+     it runs normal initialization, creates a default character in an isolated
+     save container, forms a one-member party, enters `Game`, loads dungeon and
+     portrait graphics plus Sosaria, draws the first map frame, exports the
+     framebuffer, and exits
+   - fixed diagnostic setup to clear stale party state before forming a new party;
+     the normal save path may contain an existing active party
+   - verified markers through `Game` and a 1280x768 image containing terrain,
+     water, mountains, castles, the party character, portrait, and status-panel
+     frame. This is the first end-to-end evidence that the recovered bitmap
+     renderer is receiving real game-world draw calls
+   - music playback is disabled only for this diagnostic while the audio
+     backend is being migrated; the legacy `NSSound` movie path is no longer
+     used after item 47
+   - next: validate physical keyboard/mouse input and movement from this world
+     frame, then restore music through a current audio decoder/player and replace
+     remaining Carbon dialogs and menu actions
+46. verify keyboard movement through the Cocoa input boundary
+   - `U3_WORLD_INPUT_CHECK=/tmp/u3-world-input.png` runs the same isolated
+     character/party setup, enters `Game`, posts an AppKit `6` key event, and
+     captures the resulting world frame after one command
+   - observed `World input: before (42,20)` and `key=54 after (43,20)`, proving
+     the event reached `U3PlatformGetKeyMouse`, the game command switch, and
+     `East()`. The exported frame still contains the live map and status panel
+   - the diagnostic disables music to keep the input check deterministic.
+     Physical keyboard focus, mouse movement, held-key repeat,
+     blocked terrain, diagonal movement, and command menus remain unverified
+   - next: validate real AppKit key/mouse events interactively and continue
+     removing legacy modal dialogs
+47. replace legacy QuickTime `NSSound` music playback with AVFoundation `AVPlayer`
+   - preserve looping, volume, stop, and song-transition behavior while keeping
+     the legacy game-facing audio contract unchanged
+   - link AVFoundation/CoreMedia explicitly and add a bundled music decode
+     self-test for the arm64 build
+48. replace Carbon-era `NSApplicationLoad` bootstrap with AppKit application
+   initialization through `sharedApplication`, avoiding current macOS aborts
+   during headless renderer/input diagnostics
+   - headless diagnostics now bypass AppKit windows/menus, retain the bitmap
+     framebuffer, and provide a virtual key queue for deterministic input tests
+   - screen-size fallback keeps offscreen QuickDraw worlds valid when no display
+     session is available
+   - rebuilt arm64 world-input diagnostic passes again and exports a 1280x768
+     world frame; bitmap, save-container, audio, and boundary checks also pass
+49. route synchronous sound-effect waits through the Cocoa event pump whenever
+   the modern surface exists, retaining Carbon event handling only as fallback
+50. preserve raw keyboard/mouse metadata at the platform input boundary
+   - `U3PlatformPollInput` now fills `U3InputEvent.rawKey` and `isMouse` instead
+     of discarding the event
+   - existing character-based game input remains compatible; world movement
+     regression still passes on arm64
+   - next: carry Cocoa mouse coordinates into the legacy `Point` path and map
+     clicks to the existing game widgets/commands
+51. carry Cocoa mouse-down coordinates through `GetMouse` and preserve the
+   legacy mouse-input flag in the platform adapter
+52. translate Cocoa world clicks through the existing `CursorUpdate` rules
+   - directional and diagonal cursor regions now produce the same raw movement
+     keys used by the keyboard path
+   - special cursor actions continue to use the legacy `gCurMouseDir` mapping
+   - automated click diagnostic at `(600,384)` produces east key `29` and moves
+     the party from `(42,20)` to `(43,20)`
+   - all cursor IDs with an existing legacy key equivalent now preserve that
+     equivalent, including attack, unlock, enter, board, exit, torch, and dungeon actions

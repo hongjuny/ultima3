@@ -17,6 +17,9 @@
 extern short Random(void);
 extern void ObscureCursor(void);
 extern char gKeyPress;
+extern short gMouseKey;
+extern short gCurMouseDir;
+extern void CursorUpdate(void);
 extern short gUpdateWhere;
 extern void SaveWideArea(void);
 
@@ -52,16 +55,48 @@ static CFStringRef U3LegacyPreferenceNameForKey(U3PreferenceKey key) {
 }
 
 bool U3PlatformPollInput(U3InputEvent *event, uint32_t timeoutTicks) {
-    (void)event;
-    return U3PlatformGetKeyMouse(timeoutTicks == 0 ? 2 : 1);
+    if (event) {
+        event->command = U3CommandNone;
+        event->direction = U3DirectionNone;
+        event->rawKey = 0;
+        event->isMouse = false;
+    }
+    char key = 0;
+    Boolean isMouse = false;
+    uint8_t mode = timeoutTicks == 0 ? 2 : 1;
+    if (U3CocoaPollKeyMouse(true, mode == 2 ? 0 : 5, &key, &isMouse)) {
+        gKeyPress = key;
+        if (event) {
+            event->rawKey = (uint8_t)key;
+            event->isMouse = isMouse;
+        }
+        return true;
+    }
+    if (U3CocoaHasMainSurface())
+        return false;
+    bool result = U3PlatformGetKeyMouse(mode);
+    if (result && event)
+        event->rawKey = (uint8_t)gKeyPress;
+    return result;
 }
 
 bool U3PlatformGetKeyMouse(uint8_t mode) {
     char key = 0;
-    if (U3CocoaPollKeyMouse(mode > 0, mode == 2 ? 0 : 5, &key)) {
+    Boolean isMouse = false;
+    gMouseKey = false;
+    if (U3CocoaPollKeyMouse(true, mode == 2 ? 0 : 5, &key, &isMouse)) {
         gKeyPress = key;
+        gMouseKey = isMouse;
+        if (isMouse) {
+            gCurMouseDir = 0;
+            CursorUpdate();
+            if (gCurMouseDir)
+                gKeyPress = (char)gCurMouseDir;
+        }
         return true;
     }
+    if (U3CocoaHasMainSurface())
+        return false;
     return GetKeyMouse(mode);
 }
 

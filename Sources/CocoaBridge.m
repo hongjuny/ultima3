@@ -5,6 +5,7 @@
 
 #import "CocoaBridge.h"
 
+#import "CarbonShunts.h"
 #import "LWCocoaDialogController.h"
 #import "UltimaIncludes.h"
 
@@ -13,11 +14,94 @@
 
 extern short gUpdateWhere;
 
+@class U3MainSurfaceView;
+
 static short sQTSoundVolume = 100;    // was 254 but let's make sounds quieter.
 static NSWindow *sU3MainSurfaceWindow = nil;
+static U3MainSurfaceView *sU3MainSurfaceView = nil;
+static U3Bitmap sU3MainBitmap;
+static NSColor *sU3ForegroundColor = nil;
+static NSColor *sU3BackgroundColor = nil;
+static NSPoint sU3PenLocation = {0.0, 0.0};
+static short sU3TextFont = 0;
+static short sU3TextSize = 12;
+static short sU3TextFace = 0;
 static char sU3MainSurfaceToken;
+static U3Bitmap *sU3SelectedBitmap;
+static NSPoint sU3BitmapOrigin;
+static BOOL sU3HeadlessSurface = NO;
+static char sU3DiagnosticKey = 0;
+static Point sU3MousePoint = {0, 0};
+static Boolean sU3DiagnosticMousePending = false;
+static void U3CocoaReplayCommands(NSArray *commands);
+
+static BOOL U3CocoaIsHeadlessDiagnostic(void) {
+    return getenv("U3_BOOT_CHECK") || getenv("U3_WORLD_RENDER_CHECK") ||
+           getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK");
+}
 
 @interface U3MainSurfaceView : NSView
+@end
+
+@interface U3PartyPicker : NSObject {
+@public
+    NSPopUpButton *choices[4];
+    NSButton *formButton;
+}
+- (void)selectionChanged:(id)sender;
+@end
+
+@interface U3CharacterEditor : NSObject <NSTextFieldDelegate> {
+@public
+    NSTextField *name, *remaining, *values[4];
+    NSStepper *stats[4];
+    NSPopUpButton *slot, *race, *career, *sex;
+    NSButton *create;
+}
+- (void)changed:(id)sender;
+- (BOOL)readDraft:(U3CharacterDraft *)draft;
+@end
+
+@implementation U3CharacterEditor
+- (BOOL)readDraft:(U3CharacterDraft *)draft {
+    memset(draft, 0, sizeof(*draft));
+    NSData *encoded = [[name stringValue] dataUsingEncoding:NSMacOSRomanStringEncoding allowLossyConversion:NO];
+    if (!encoded || encoded.length > 12) return NO;
+    memcpy(draft->name, encoded.bytes, encoded.length);
+    draft->race = [[race selectedItem] tag];
+    draft->characterClass = [[career selectedItem] tag];
+    draft->sex = [[sex selectedItem] tag];
+    for (int i = 0; i < 4; ++i) draft->attributes[i] = [stats[i] integerValue];
+    return U3ValidateCharacterDraft(draft);
+}
+- (void)changed:(id)sender {
+    (void)sender;
+    NSInteger sum = 0;
+    for (int i = 0; i < 4; ++i) {
+        NSInteger value = [stats[i] integerValue];
+        sum += value;
+        [values[i] setIntegerValue:value];
+    }
+    [remaining setStringValue:[NSString stringWithFormat:@"Points remaining: %ld", (long)(50 - sum)]];
+    U3CharacterDraft draft;
+    [create setEnabled:[self readDraft:&draft]];
+}
+- (void)controlTextDidChange:(NSNotification *)notification { [self changed:notification]; }
+@end
+
+@implementation U3PartyPicker
+- (void)selectionChanged:(id)sender {
+    (void)sender;
+    BOOL valid = YES, any = NO;
+    for (int i = 0; i < 4; ++i) {
+        NSInteger selected = [[choices[i] selectedItem] tag];
+        any |= selected != 0;
+        for (int j = 0; j < i; ++j)
+            if (selected && selected == [[choices[j] selectedItem] tag])
+                valid = NO;
+    }
+    [formButton setEnabled:valid && any];
+}
 @end
 
 @implementation U3MainSurfaceView
@@ -29,9 +113,487 @@ static char sU3MainSurfaceToken;
 - (void)drawRect:(NSRect)dirtyRect {
     [[NSColor blackColor] setFill];
     NSRectFill(dirtyRect);
+
+    U3Bitmap *bitmap = &sU3MainBitmap;
+    if (!bitmap->pixels)
+        return;
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGContextRef context = CGBitmapContextCreate(bitmap->pixels, bitmap->width,
+        bitmap->height, 8, bitmap->stride, space,
+        kCGImageAlphaNoneSkipLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(space);
+    if (!context)
+        return;
+    CGImageRef snapshot = CGBitmapContextCreateImage(context);
+    CGContextRef display = [[NSGraphicsContext currentContext] CGContext];
+    CGContextSaveGState(display);
+    CGContextSetInterpolationQuality(display, kCGInterpolationNone);
+    CGContextTranslateCTM(display, 0, bitmap->height);
+    CGContextScaleCTM(display, 1, -1);
+    CGContextDrawImage(display, CGRectMake(0, 0, bitmap->width, bitmap->height), snapshot);
+    CGContextRestoreGState(display);
+    CGImageRelease(snapshot);
+    CGContextRelease(context);
 }
 
 @end
+
+static void U3CocoaReplayCommands(NSArray *commands) {
+    for (NSDictionary *command in commands) {
+        NSString *kind = [command objectForKey:@"kind"];
+        NSColor *color = [command objectForKey:@"color"];
+        if (!color)
+            color = [NSColor whiteColor];
+
+        if ([kind isEqualToString:@"fill"]) {
+            [color setFill];
+            NSRectFill([[command objectForKey:@"rect"] rectValue]);
+        } else if ([kind isEqualToString:@"frame"]) {
+            [color setStroke];
+            [NSBezierPath strokeRect:[[command objectForKey:@"rect"] rectValue]];
+        } else if ([kind isEqualToString:@"bitmap"]) {
+            NSImage *image = [command objectForKey:@"image"];
+            [[NSGraphicsContext currentContext] setImageInterpolation:NSImageInterpolationNone];
+            [image drawInRect:[[command objectForKey:@"rect"] rectValue]
+                    fromRect:NSZeroRect operation:NSCompositingOperationSourceOver
+                    fraction:1.0 respectFlipped:YES hints:nil];
+        } else if ([kind isEqualToString:@"text"]) {
+            NSString *text = [command objectForKey:@"text"];
+            CGFloat size = [[command objectForKey:@"size"] doubleValue];
+            NSInteger face = [[command objectForKey:@"face"] integerValue];
+            NSFont *font = nil;
+
+            if (face & bold)
+                font = [NSFont boldSystemFontOfSize:size];
+            else
+                font = [NSFont userFixedPitchFontOfSize:size];
+            if (!font)
+                font = [NSFont systemFontOfSize:size];
+
+            NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+                color, NSForegroundColorAttributeName,
+                font, NSFontAttributeName,
+                nil];
+            NSPoint point = [[command objectForKey:@"point"] pointValue];
+            point.y -= size;
+            [text drawAtPoint:point withAttributes:attributes];
+        }
+    }
+}
+
+static void U3CocoaEnsureDrawState(void) {
+    if (!sU3ForegroundColor)
+        sU3ForegroundColor = [[NSColor whiteColor] retain];
+    if (!sU3BackgroundColor)
+        sU3BackgroundColor = [[NSColor blackColor] retain];
+}
+
+void U3CocoaInvalidateMainSurface(void) {
+    if (sU3MainSurfaceView)
+        [sU3MainSurfaceView setNeedsDisplay:YES];
+}
+
+static NSColor *U3CocoaColorFromRGB16(UInt16 red, UInt16 green, UInt16 blue) {
+    return [NSColor colorWithDeviceRed:(CGFloat)red / 65535.0
+                                     green:(CGFloat)green / 65535.0
+                                      blue:(CGFloat)blue / 65535.0
+                                     alpha:1.0];
+}
+
+static NSColor *U3CocoaColorFromQuickDraw(long color) {
+    switch (color) {
+        case blackColor:
+            return [NSColor blackColor];
+        case whiteColor:
+            return [NSColor whiteColor];
+        case redColor:
+            return [NSColor redColor];
+        case greenColor:
+            return [NSColor greenColor];
+        case blueColor:
+            return [NSColor blueColor];
+        case cyanColor:
+            return [NSColor cyanColor];
+        case magentaColor:
+            return [NSColor magentaColor];
+        case yellowColor:
+            return [NSColor yellowColor];
+        default:
+            return [NSColor whiteColor];
+    }
+}
+
+static NSRect U3CocoaRectFromQuickDraw(short left, short top, short right, short bottom) {
+    return NSMakeRect(left, top, MAX(0, right - left), MAX(0, bottom - top));
+}
+
+static void U3CocoaReplaceColor(NSColor **slot, NSColor *color) {
+    if (*slot == color)
+        return;
+    [color retain];
+    [*slot release];
+    *slot = color;
+}
+
+static void U3CocoaAddCommand(NSDictionary *command) {
+    U3CocoaEnsureDrawState();
+    U3Bitmap *bitmap = sU3SelectedBitmap ? sU3SelectedBitmap : &sU3MainBitmap;
+    if (bitmap->pixels) {
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+        CGContextRef context = CGBitmapContextCreate(bitmap->pixels, bitmap->width,
+            bitmap->height, 8, bitmap->stride, colorSpace,
+            kCGImageAlphaNoneSkipLast | kCGBitmapByteOrder32Big);
+        CGColorSpaceRelease(colorSpace);
+        if (!context)
+            return;
+        CGContextTranslateCTM(context, 0, bitmap->height);
+        CGContextScaleCTM(context, 1, -1);
+        if (sU3SelectedBitmap)
+            CGContextTranslateCTM(context, -sU3BitmapOrigin.x, -sU3BitmapOrigin.y);
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:
+            [NSGraphicsContext graphicsContextWithCGContext:context flipped:YES]];
+        U3CocoaReplayCommands(@[command]);
+        [NSGraphicsContext restoreGraphicsState];
+        CGContextRelease(context);
+    }
+    if (!sU3SelectedBitmap)
+        U3CocoaInvalidateMainSurface();
+}
+
+U3Bitmap *U3CocoaMainBitmap(void) {
+    return sU3MainBitmap.pixels ? &sU3MainBitmap : NULL;
+}
+
+Boolean U3CocoaWriteMainBitmap(const char *path) {
+    U3Bitmap *bitmap = U3CocoaMainBitmap();
+    if (!path || !bitmap)
+        return false;
+    NSBitmapImageRep *rep = [[NSBitmapImageRep alloc]
+        initWithBitmapDataPlanes:NULL pixelsWide:bitmap->width pixelsHigh:bitmap->height
+        bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO
+        colorSpaceName:NSDeviceRGBColorSpace bitmapFormat:NSBitmapFormatAlphaNonpremultiplied
+        bytesPerRow:bitmap->stride bitsPerPixel:32];
+    if (!rep)
+        return false;
+    memcpy([rep bitmapData], bitmap->pixels, bitmap->stride * bitmap->height);
+    for (size_t i = 3; i < bitmap->stride * bitmap->height; i += 4)
+        [rep bitmapData][i] = 255;
+    Boolean result = [[rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}]
+        writeToFile:[NSString stringWithUTF8String:path] atomically:YES];
+    [rep release];
+    return result;
+}
+
+Boolean U3CocoaResizeMainBitmap(short width, short height) {
+    if (sU3MainBitmap.width == width && sU3MainBitmap.height == height)
+        return true;
+    U3Bitmap replacement = {0};
+    if (!U3BitmapAllocate(&replacement, width, height))
+        return false;
+    if (sU3MainBitmap.pixels)
+        U3BitmapCopy(&replacement, (U3BitmapRect){0, 0, sU3MainBitmap.width, sU3MainBitmap.height},
+            &sU3MainBitmap, (U3BitmapRect){0, 0, sU3MainBitmap.width, sU3MainBitmap.height});
+    U3BitmapDispose(&sU3MainBitmap);
+    sU3MainBitmap = replacement;
+    return true;
+}
+
+void U3CocoaSelectBitmap(U3Bitmap *bitmap, short originX, short originY) {
+    sU3SelectedBitmap = bitmap;
+    sU3BitmapOrigin = NSMakePoint(originX, originY);
+}
+
+Boolean U3CocoaLoadImage(U3Bitmap *output, CFURLRef url, int width, int height,
+                        int columns, int rows) {
+    if (!output || !url || width <= 0 || height <= 0 || width > 4095 ||
+        height > 32767 || columns <= 0 || rows <= 0 ||
+        width % columns || height % rows)
+        return false;
+    @autoreleasepool {
+        if ([[[(NSURL *)url pathExtension] lowercaseString] isEqualToString:@"pdf"]) {
+            CGPDFDocumentRef document = CGPDFDocumentCreateWithURL(url);
+            CGPDFPageRef page = document ? CGPDFDocumentGetPage(document, 1) : NULL;
+            U3Bitmap bitmap = {0};
+            Boolean success = page && U3BitmapAllocate(&bitmap, width, height);
+            if (success) {
+                CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+                CGContextRef context = CGBitmapContextCreate(bitmap.pixels, width, height,
+                    8, bitmap.stride, space,
+                    kCGImageAlphaNoneSkipLast | kCGBitmapByteOrder32Big);
+                CGColorSpaceRelease(space);
+                success = context != NULL;
+                if (context) {
+                    CGAffineTransform transform = CGPDFPageGetDrawingTransform(page,
+                        kCGPDFMediaBox, CGRectMake(0, 0, width, height), 0, false);
+                    CGContextConcatCTM(context, transform);
+                    CGContextDrawPDFPage(context, page);
+                    CGContextRelease(context);
+                }
+            }
+            if (document)
+                CGPDFDocumentRelease(document);
+            if (!success) {
+                U3BitmapDispose(&bitmap);
+                return false;
+            }
+            U3BitmapDispose(output);
+            *output = bitmap;
+            return true;
+        }
+        NSImage *image = [[NSImage alloc] initWithContentsOfURL:(NSURL *)url];
+        if (!image)
+            return false;
+        NSRect proposed = NSMakeRect(0, 0, width, height);
+        CGImageRef decoded = [image CGImageForProposedRect:&proposed context:nil hints:nil];
+        if (!decoded) {
+            [image release];
+            return false;
+        }
+        size_t sourceWidth = CGImageGetWidth(decoded);
+        size_t sourceHeight = CGImageGetHeight(decoded);
+        if (sourceWidth < (size_t)columns || sourceHeight < (size_t)rows) {
+            [image release];
+            return false;
+        }
+        U3Bitmap bitmap = {0};
+        if (!U3BitmapAllocate(&bitmap, width, height)) {
+            [image release];
+            return false;
+        }
+        CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+        CGContextRef context = CGBitmapContextCreate(bitmap.pixels, width, height, 8,
+            bitmap.stride, space, kCGImageAlphaNoneSkipLast | kCGBitmapByteOrder32Big);
+        CGColorSpaceRelease(space);
+        Boolean success = context != NULL;
+        if (context) {
+            CGContextSetInterpolationQuality(context, kCGInterpolationNone);
+            int tileWidth = width / columns, tileHeight = height / rows;
+            for (int row = 0; row < rows && success; ++row) {
+                for (int column = 0; column < columns; ++column) {
+                    size_t left = sourceWidth * column / columns;
+                    size_t top = sourceHeight * row / rows;
+                    CGRect source = CGRectMake(left, top,
+                        sourceWidth * (column + 1) / columns - left,
+                        sourceHeight * (row + 1) / rows - top);
+                    CGImageRef tile = CGImageCreateWithImageInRect(decoded, source);
+                    if (!tile) {
+                        success = false;
+                        break;
+                    }
+                    /* Bitmap storage is top-down; Quartz user space is bottom-up. */
+                    CGContextDrawImage(context, CGRectMake(column * tileWidth,
+                        height - (row + 1) * tileHeight, tileWidth, tileHeight), tile);
+                    CGImageRelease(tile);
+                }
+            }
+            CGContextRelease(context);
+        }
+        [image release];
+        if (!success) {
+            U3BitmapDispose(&bitmap);
+            return false;
+        }
+        U3BitmapDispose(output);
+        *output = bitmap;
+        return true;
+    }
+}
+
+Boolean U3CocoaImageSelfTest(void) {
+    NSBitmapImageRep *fixture = [[NSBitmapImageRep alloc]
+        initWithBitmapDataPlanes:NULL pixelsWide:2 pixelsHigh:2 bitsPerSample:8
+        samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace
+        bitmapFormat:NSBitmapFormatAlphaNonpremultiplied bytesPerRow:8 bitsPerPixel:32];
+    const unsigned char pixels[] = {255,0,0,255, 0,255,0,255,
+                                    0,0,255,255, 255,255,255,255};
+    memcpy([fixture bitmapData], pixels, sizeof(pixels));
+    NSURL *url = [NSURL fileURLWithPath:[NSTemporaryDirectory()
+        stringByAppendingPathComponent:[[NSUUID UUID].UUIDString stringByAppendingString:@".png"]]];
+    Boolean success = [[fixture representationUsingType:NSBitmapImageFileTypePNG properties:@{}]
+        writeToURL:url atomically:YES];
+    [fixture release];
+    U3Bitmap bitmap = {0};
+    success = success && U3CocoaLoadImage(&bitmap, (CFURLRef)url, 6, 4, 2, 2);
+    if (success) {
+        for (int y = 0; y < 4; ++y) {
+            for (int x = 0; x < 6; ++x) {
+                const unsigned char *expected = pixels + ((y / 2) * 2 + x / 3) * 4;
+                const unsigned char *actual = bitmap.pixels + y * bitmap.stride + x * 4;
+                for (int channel = 0; channel < 3; ++channel)
+                    if (abs(actual[channel] - expected[channel]) > 1)
+                        success = false;
+            }
+        }
+    }
+    [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
+    success = !U3CocoaLoadImage(&bitmap, (CFURLRef)url, 6, 4, 2, 2) && success;
+    U3BitmapDispose(&bitmap);
+    for (NSString *name in @[@"Exodus.png", @"Shrine.jpg", @"Commands.pdf"]) {
+        NSURL *asset = [(NSURL *)ResourcesDirectoryURL() URLByAppendingPathComponent:name];
+        Boolean loaded = U3CocoaLoadImage(&bitmap, (CFURLRef)asset, 128, 128, 1, 1);
+        Boolean nonblack = false;
+        if (loaded) {
+            for (size_t i = 0; i < bitmap.stride * bitmap.height; i += 4)
+                if (bitmap.pixels[i] || bitmap.pixels[i+1] || bitmap.pixels[i+2])
+                    nonblack = true;
+        }
+        fprintf(stderr, "Image asset %s: %s\n", [name UTF8String],
+                loaded && nonblack ? "passed" : "FAILED");
+        success = success && loaded && nonblack;
+        U3BitmapDispose(&bitmap);
+    }
+    NSURL *previewURL = [(NSURL *)ResourcesDirectoryURL() URLByAppendingPathComponent:@"Exodus.png"];
+    Boolean previewPassed = U3CocoaResizeMainBitmap(384, 256) &&
+        U3CocoaLoadImage(&bitmap, (CFURLRef)previewURL, 384, 256, 1, 1);
+    if (previewPassed) {
+        U3CocoaDrawBitmap(&bitmap, (U3BitmapRect){0, 0, 384, 256}, 0, 0, 384, 256);
+        NSBitmapImageRep *rendered = [[NSBitmapImageRep alloc]
+            initWithBitmapDataPlanes:NULL pixelsWide:384 pixelsHigh:256 bitsPerSample:8
+            samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace
+            bitmapFormat:NSBitmapFormatAlphaNonpremultiplied bytesPerRow:384 * 4 bitsPerPixel:32];
+        U3MainSurfaceView *view = [[U3MainSurfaceView alloc] initWithFrame:NSMakeRect(0, 0, 384, 256)];
+        [NSGraphicsContext saveGraphicsState];
+        CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+        CGContextRef context = CGBitmapContextCreate([rendered bitmapData], 384, 256, 8,
+            384 * 4, space, kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+        CGColorSpaceRelease(space);
+        CGContextTranslateCTM(context, 0, 256);
+        CGContextScaleCTM(context, 1, -1);
+        [NSGraphicsContext setCurrentContext:
+            [NSGraphicsContext graphicsContextWithCGContext:context flipped:YES]];
+        [view drawRect:[view bounds]];
+        [NSGraphicsContext restoreGraphicsState];
+        CGContextRelease(context);
+        unsigned char *actual = [rendered bitmapData];
+        for (size_t i = 0; i < bitmap.stride * bitmap.height; ++i)
+            if (i % 4 != 3 && abs(actual[i] - bitmap.pixels[i]) > 2)
+                previewPassed = false;
+        if (getenv("U3_RENDER_PREVIEW"))
+            previewPassed = [[rendered representationUsingType:NSBitmapImageFileTypePNG properties:@{}]
+                writeToFile:[NSString stringWithUTF8String:getenv("U3_RENDER_PREVIEW")]
+                atomically:YES] && previewPassed;
+        [view release];
+        [rendered release];
+    }
+    U3BitmapDispose(&bitmap);
+    fprintf(stderr, "Cocoa surface pixel test: %s\n", previewPassed ? "passed" : "FAILED");
+    success = success && previewPassed;
+    return success;
+}
+
+void U3CocoaDrawBitmap(const U3Bitmap *bitmap, U3BitmapRect source,
+                       short x, short y, short width, short height) {
+    if (U3BitmapCopy(&sU3MainBitmap, (U3BitmapRect){x, y, width, height}, bitmap, source))
+        U3CocoaInvalidateMainSurface();
+}
+
+static NSString *U3CocoaStringFromPascal(ConstStr255Param text) {
+    if (!text)
+        return @"";
+
+    NSUInteger length = text[0];
+    NSString *string = [[[NSString alloc] initWithBytes:text + 1
+                                                 length:length
+                                               encoding:NSMacOSRomanStringEncoding] autorelease];
+    if (!string)
+        string = [[[NSString alloc] initWithBytes:text + 1
+                                           length:length
+                                         encoding:NSASCIIStringEncoding] autorelease];
+    return string ? string : @"";
+}
+
+void U3CocoaSetForegroundQuickDrawColor(long color) {
+    U3CocoaEnsureDrawState();
+    U3CocoaReplaceColor(&sU3ForegroundColor, U3CocoaColorFromQuickDraw(color));
+}
+
+void U3CocoaSetBackgroundQuickDrawColor(long color) {
+    U3CocoaEnsureDrawState();
+    U3CocoaReplaceColor(&sU3BackgroundColor, U3CocoaColorFromQuickDraw(color));
+}
+
+void U3CocoaSetForegroundRGB(UInt16 red, UInt16 green, UInt16 blue) {
+    U3CocoaEnsureDrawState();
+    U3CocoaReplaceColor(&sU3ForegroundColor, U3CocoaColorFromRGB16(red, green, blue));
+}
+
+void U3CocoaSetBackgroundRGB(UInt16 red, UInt16 green, UInt16 blue) {
+    U3CocoaEnsureDrawState();
+    U3CocoaReplaceColor(&sU3BackgroundColor, U3CocoaColorFromRGB16(red, green, blue));
+}
+
+void U3CocoaSetTextFont(short font) {
+    sU3TextFont = font;
+}
+
+void U3CocoaSetTextSize(short size) {
+    sU3TextSize = size > 0 ? size : 12;
+}
+
+void U3CocoaSetTextFace(short face) {
+    sU3TextFace = face;
+}
+
+void U3CocoaMoveTo(short h, short v) {
+    sU3PenLocation = NSMakePoint(h, v);
+}
+
+void U3CocoaPaintRect(short left, short top, short right, short bottom) {
+    U3CocoaEnsureDrawState();
+    U3CocoaAddCommand([NSDictionary dictionaryWithObjectsAndKeys:
+        @"fill", @"kind",
+        sU3ForegroundColor, @"color",
+        [NSValue valueWithRect:U3CocoaRectFromQuickDraw(left, top, right, bottom)], @"rect",
+        nil]);
+}
+
+void U3CocoaEraseRect(short left, short top, short right, short bottom) {
+    U3CocoaEnsureDrawState();
+    U3CocoaAddCommand([NSDictionary dictionaryWithObjectsAndKeys:
+        @"fill", @"kind",
+        sU3BackgroundColor, @"color",
+        [NSValue valueWithRect:U3CocoaRectFromQuickDraw(left, top, right, bottom)], @"rect",
+        nil]);
+}
+
+void U3CocoaFrameRect(short left, short top, short right, short bottom) {
+    U3CocoaEnsureDrawState();
+    U3CocoaAddCommand([NSDictionary dictionaryWithObjectsAndKeys:
+        @"frame", @"kind",
+        sU3ForegroundColor, @"color",
+        [NSValue valueWithRect:U3CocoaRectFromQuickDraw(left, top, right, bottom)], @"rect",
+        nil]);
+}
+
+void U3CocoaDrawPascalString(ConstStr255Param text) {
+    U3CocoaEnsureDrawState();
+    NSString *string = U3CocoaStringFromPascal(text);
+    if ([string length] == 0)
+        return;
+
+    U3CocoaAddCommand([NSDictionary dictionaryWithObjectsAndKeys:
+        @"text", @"kind",
+        sU3ForegroundColor, @"color",
+        string, @"text",
+        [NSValue valueWithPoint:sU3PenLocation], @"point",
+        [NSNumber numberWithShort:sU3TextSize], @"size",
+        [NSNumber numberWithShort:sU3TextFace], @"face",
+        [NSNumber numberWithShort:sU3TextFont], @"font",
+        nil]);
+}
+
+void U3CocoaDrawBytes(const void *textBuf, short firstByte, short byteCount) {
+    if (!textBuf || byteCount <= 0)
+        return;
+
+    const unsigned char *bytes = (const unsigned char *)textBuf + MAX(0, firstByte);
+    Str255 pstring;
+    short length = MIN(byteCount, 255);
+    pstring[0] = (unsigned char)length;
+    memcpy(pstring + 1, bytes, (size_t)length);
+    U3CocoaDrawPascalString(pstring);
+}
 
 @implementation LWCocoaDialogController
 
@@ -211,15 +773,22 @@ void CocoaInit(void) {
     static BOOL sDidInit = false;
     if (!sDidInit) {
         sDidInit = true;
+        if (U3CocoaIsHeadlessDiagnostic())
+            return;
         NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];
-        NSApplicationLoad();
-        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-        [[[NSWindow alloc] init] release];
+        NSApplication *application = [NSApplication sharedApplication];
+        [application setActivationPolicy:NSApplicationActivationPolicyRegular];
         [myPool release];
     }
 }
 
 void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short height) {
+    if (!U3CocoaResizeMainBitmap(width, height))
+        return NULL;
+    if (U3CocoaIsHeadlessDiagnostic()) {
+        sU3HeadlessSurface = YES;
+        return &sU3MainSurfaceToken;
+    }
     CocoaInit();
     NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];
 
@@ -237,9 +806,12 @@ void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short heig
                                                                defer:NO];
         [sU3MainSurfaceWindow setTitle:@"Ultima III"];
         [sU3MainSurfaceWindow setReleasedWhenClosed:NO];
-        [sU3MainSurfaceWindow setContentView:[[[U3MainSurfaceView alloc] initWithFrame:NSMakeRect(0, 0, width, height)] autorelease]];
+        sU3MainSurfaceView = [[U3MainSurfaceView alloc] initWithFrame:NSMakeRect(0, 0, width, height)];
+        [sU3MainSurfaceWindow setContentView:sU3MainSurfaceView];
+        [sU3MainSurfaceView release];
     } else {
         [sU3MainSurfaceWindow setContentSize:NSMakeSize(width, height)];
+        [sU3MainSurfaceView setFrameSize:NSMakeSize(width, height)];
     }
 
     [sU3MainSurfaceWindow center];
@@ -250,6 +822,20 @@ void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short heig
 
     [myPool release];
     return &sU3MainSurfaceToken;
+}
+
+void U3CocoaInstallMenus(void) {
+    if (U3CocoaIsHeadlessDiagnostic())
+        return;
+    CocoaInit();
+    NSMenu *bar = [[[NSMenu alloc] initWithTitle:@""] autorelease];
+    NSMenuItem *appItem = [[[NSMenuItem alloc] initWithTitle:@"Ultima III" action:NULL keyEquivalent:@""] autorelease];
+    NSMenu *appMenu = [[[NSMenu alloc] initWithTitle:@"Ultima III"] autorelease];
+    NSMenuItem *quit = [appMenu addItemWithTitle:@"Quit Ultima III" action:@selector(terminate:) keyEquivalent:@"q"];
+    [quit setTarget:NSApp];
+    [appItem setSubmenu:appMenu];
+    [bar addItem:appItem];
+    [NSApp setMainMenu:bar];
 }
 
 void U3CocoaPumpEvents(void) {
@@ -268,11 +854,11 @@ void U3CocoaPumpEvents(void) {
 }
 
 Boolean U3CocoaHasMainSurface(void) {
-    return sU3MainSurfaceWindow != nil;
+    return sU3MainSurfaceWindow != nil || sU3HeadlessSurface;
 }
 
 void U3CocoaRunApplication(void) {
-    if (!U3CocoaHasMainSurface())
+    if (!U3CocoaHasMainSurface() || sU3HeadlessSurface)
         return;
 
     CocoaInit();
@@ -282,7 +868,22 @@ void U3CocoaRunApplication(void) {
     [NSApp run];
 }
 
-Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKey) {
+Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKey,
+                            Boolean *outMouse) {
+    if (outMouse)
+        *outMouse = false;
+    if (sU3HeadlessSurface) {
+        if (sU3DiagnosticMousePending) {
+            sU3DiagnosticMousePending = false;
+            if (outMouse)
+                *outMouse = true;
+            return includeMouse;
+        }
+        if (outKey)
+            *outKey = sU3DiagnosticKey;
+        sU3DiagnosticKey = 0;
+        return outKey && *outKey != 0;
+    }
     CocoaInit();
     NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];
 
@@ -311,6 +912,14 @@ Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKe
             case NSLeftMouseDown:
             case NSRightMouseDown:
             case NSOtherMouseDown:
+                if (outMouse)
+                    *outMouse = true;
+                if ([event window]) {
+                    NSPoint location = [event locationInWindow];
+                    CGFloat height = [[[event window] contentView] bounds].size.height;
+                    sU3MousePoint.h = (short)location.x;
+                    sU3MousePoint.v = (short)(height - location.y);
+                }
                 handledInput = includeMouse;
                 break;
             default:
@@ -322,6 +931,177 @@ Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKe
 
     [myPool release];
     return handledInput;
+}
+
+void U3CocoaGetMousePoint(Point *point) {
+    if (point)
+        *point = sU3MousePoint;
+}
+
+void U3CocoaQueueDiagnosticKey(char key) {
+    if (sU3HeadlessSurface) {
+        sU3DiagnosticMousePending = false;
+        sU3DiagnosticKey = key;
+        return;
+    }
+    NSString *characters = [NSString stringWithFormat:@"%c", key];
+    NSEvent *event = [NSEvent keyEventWithType:NSKeyDown location:NSZeroPoint
+        modifierFlags:0 timestamp:0 windowNumber:[sU3MainSurfaceWindow windowNumber]
+        context:nil characters:characters charactersIgnoringModifiers:characters
+        isARepeat:NO keyCode:49];
+    [NSApp postEvent:event atStart:YES];
+}
+
+void U3CocoaQueueDiagnosticMouse(short x, short y) {
+    sU3MousePoint.h = x;
+    sU3MousePoint.v = y;
+    if (sU3HeadlessSurface) {
+        sU3DiagnosticKey = 0;
+        sU3DiagnosticMousePending = true;
+        return;
+    }
+    if (!sU3MainSurfaceWindow)
+        return;
+    NSPoint location = NSMakePoint(x, [[sU3MainSurfaceWindow contentView] bounds].size.height - y);
+    NSEvent *event = [NSEvent mouseEventWithType:NSLeftMouseDown location:location
+        modifierFlags:0 timestamp:0 windowNumber:[sU3MainSurfaceWindow windowNumber]
+        context:nil eventNumber:0 clickCount:1 pressure:1.0];
+    [NSApp postEvent:event atStart:YES];
+}
+
+Boolean U3CocoaChooseParty(const unsigned char names[20][16], const Boolean available[20], short selection[4]) {
+    if (!names || !available || !selection)
+        return false;
+    @autoreleasepool {
+        BOOL any = NO;
+        for (int i = 0; i < 20; ++i)
+            any |= available[i];
+        NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+        if (!any) {
+            [alert setMessageText:@"No available characters"];
+            [alert setInformativeText:@"Create a character before forming a party."];
+            [alert addButtonWithTitle:@"OK"];
+            [alert runModal];
+            return false;
+        }
+        [alert setMessageText:@"Form a Party"];
+        [alert addButtonWithTitle:@"Form Party"];
+        [alert addButtonWithTitle:@"Cancel"];
+        U3PartyPicker *picker = [[[U3PartyPicker alloc] init] autorelease];
+        picker->formButton = [[alert buttons] objectAtIndex:0];
+        NSView *accessory = [[[NSView alloc] initWithFrame:NSMakeRect(0, 0, 360, 152)] autorelease];
+        for (int slot = 0; slot < 4; ++slot) {
+            NSTextField *label = [NSTextField labelWithString:[NSString stringWithFormat:@"Member %d", slot + 1]];
+            [label setFrame:NSMakeRect(0, 116 - slot * 36, 90, 24)];
+            [accessory addSubview:label];
+            NSPopUpButton *choice = [[[NSPopUpButton alloc] initWithFrame:
+                NSMakeRect(96, 116 - slot * 36, 264, 28) pullsDown:NO] autorelease];
+            picker->choices[slot] = choice;
+            [choice setAutoenablesItems:NO];
+            [choice addItemWithTitle:@"None"];
+            [[choice lastItem] setTag:0];
+            for (int i = 0; i < 20; ++i) {
+                NSUInteger length = MIN(names[i][0], 15);
+                if (!length) continue;
+                NSString *name = [[[NSString alloc] initWithBytes:names[i] + 1 length:length
+                    encoding:NSMacOSRomanStringEncoding] autorelease];
+                [choice addItemWithTitle:[NSString stringWithFormat:@"%d. %@", i + 1, name ? name : @""]];
+                [[choice lastItem] setTag:i + 1];
+                [[choice lastItem] setEnabled:available[i]];
+            }
+            [choice setTarget:picker];
+            [choice setAction:@selector(selectionChanged:)];
+            [accessory addSubview:choice];
+        }
+        [picker selectionChanged:nil];
+        [alert setAccessoryView:accessory];
+        if ([alert runModal] != NSAlertFirstButtonReturn)
+            return false;
+        for (int i = 0; i < 4; ++i)
+            selection[i] = (short)[[picker->choices[i] selectedItem] tag];
+        return true;
+    }
+}
+
+Boolean U3CocoaCreateCharacter(const Boolean available[20], short *outSlot, U3CharacterDraft *draft) {
+    if (!available || !outSlot || !draft) return false;
+    @autoreleasepool {
+        NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+        BOOL any = NO;
+        for (int i = 0; i < 20; ++i) any |= available[i];
+        if (!any) {
+            [alert setMessageText:@"Roster is full"];
+            [alert addButtonWithTitle:@"OK"];
+            [alert runModal];
+            return false;
+        }
+        [alert setMessageText:@"Create a Character"];
+        [alert addButtonWithTitle:@"Create"];
+        [alert addButtonWithTitle:@"Cancel"];
+        U3CharacterEditor *editor = [[[U3CharacterEditor alloc] init] autorelease];
+        editor->create = [[alert buttons] objectAtIndex:0];
+        NSView *content = [[[NSView alloc] initWithFrame:NSMakeRect(0, 0, 380, 360)] autorelease];
+        NSArray *labels = @[@"Roster slot", @"Name", @"Sex", @"Race", @"Class",
+            @"Strength", @"Dexterity", @"Intelligence", @"Wisdom"];
+        for (int row = 0; row < 9; ++row) {
+            CGFloat y = 326 - row * 35;
+            NSTextField *label = [NSTextField labelWithString:labels[row]];
+            [label setFrame:NSMakeRect(0, y, 110, 24)];
+            [content addSubview:label];
+            if (row == 1) {
+                editor->name = [[[NSTextField alloc] initWithFrame:NSMakeRect(116, y, 260, 24)] autorelease];
+                [editor->name setDelegate:editor];
+                [content addSubview:editor->name];
+            } else if (row < 5) {
+                NSPopUpButton *popup = [[[NSPopUpButton alloc] initWithFrame:NSMakeRect(116, y, 260, 26) pullsDown:NO] autorelease];
+                [popup setTarget:editor]; [popup setAction:@selector(changed:)];
+                if (row == 0) {
+                    editor->slot = popup;
+                    for (int i = 0; i < 20; ++i) if (available[i]) {
+                        [popup addItemWithTitle:[NSString stringWithFormat:@"%d", i + 1]];
+                        [[popup lastItem] setTag:i + 1];
+                    }
+                } else {
+                    NSArray *names;
+                    const char *codes;
+                    if (row == 2) { editor->sex = popup; names = @[@"Female", @"Male", @"Other"]; codes = "FMO"; }
+                    else if (row == 3) { editor->race = popup; names = (NSArray *)StringsArray(CFSTR("Races")); codes = "HEDBF"; }
+                    else { editor->career = popup; names = (NSArray *)StringsArray(CFSTR("Classes")); codes = "FCWTPBLIDAR"; }
+                    for (NSUInteger i = 0; i < MIN(names.count, strlen(codes)); ++i) {
+                        [popup addItemWithTitle:names[i]];
+                        [[popup lastItem] setTag:codes[i]];
+                    }
+                }
+                [content addSubview:popup];
+            } else {
+                int index = row - 5;
+                editor->values[index] = [NSTextField labelWithString:@""];
+                [editor->values[index] setFrame:NSMakeRect(116, y, 60, 24)];
+                [content addSubview:editor->values[index]];
+                NSStepper *stepper = [[[NSStepper alloc] initWithFrame:NSMakeRect(182, y - 1, 20, 28)] autorelease];
+                editor->stats[index] = stepper;
+                [stepper setMinValue:5]; [stepper setMaxValue:25]; [stepper setIncrement:1];
+                [stepper setValueWraps:NO]; [stepper setIntegerValue:draft->attributes[index]];
+                [stepper setTarget:editor]; [stepper setAction:@selector(changed:)];
+                [content addSubview:stepper];
+            }
+        }
+        [editor->race selectItemWithTag:draft->race];
+        [editor->career selectItemWithTag:draft->characterClass];
+        [editor->sex selectItemWithTag:draft->sex];
+        editor->remaining = [NSTextField labelWithString:@""];
+        [editor->remaining setFrame:NSMakeRect(116, 5, 260, 24)];
+        [content addSubview:editor->remaining];
+        [editor changed:nil];
+        [alert setAccessoryView:content];
+        [[alert window] setInitialFirstResponder:editor->name];
+        if ([alert runModal] != NSAlertFirstButtonReturn) return false;
+        U3CharacterDraft result;
+        if (![editor readDraft:&result]) return false;
+        *draft = result;
+        *outSlot = (short)[[editor->slot selectedItem] tag];
+        return true;
+    }
 }
 
 void WrapCarbonWindowInCocoa(void *windowRef, short xposn, short yposn, short width, short height) {
@@ -574,6 +1354,8 @@ void GetPascalStringFromArrayByIndex(StringPtr pstringPtr, CFStringRef identifie
 }
 
 Boolean SetCursorNamed(CFStringRef cursorName, float scale) {
+    if (U3CocoaIsHeadlessDiagnostic())
+        return true;
     CocoaInit();
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     NSString *key = [NSString stringWithFormat:@"%@_%.2f", cursorName, scale];
@@ -691,10 +1473,13 @@ void PlaySoundFileQT(CFStringRef soundName, Boolean async) {
             [sound play];
             if (!async) {
                 while ([sound isPlaying] && CFAbsoluteTimeGetCurrent() < timeout) {
-                    EventRecord theEvent;
-                    WaitNextEvent(everyEvent, &theEvent, 6, nil);
-                    switch (theEvent.what) {
-                        case kHighLevelEvent: AEProcessAppleEvent(&theEvent); break;
+                    if (U3CocoaHasMainSurface())
+                        U3CocoaPumpEvents();
+                    else {
+                        EventRecord theEvent;
+                        WaitNextEvent(everyEvent, &theEvent, 6, nil);
+                        if (theEvent.what == kHighLevelEvent)
+                            AEProcessAppleEvent(&theEvent);
                     }
                     [NSThread sleepUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
                 }

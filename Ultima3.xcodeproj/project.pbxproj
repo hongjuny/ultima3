@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B40000010000000000000000 /* U3Bitmap.c in Sources */ = {isa = PBXBuildFile; fileRef = B40000020000000000000000; };
 		350D488D17025866009499DC /* Cursors in Resources */ = {isa = PBXBuildFile; fileRef = 350D488C17025865009499DC /* Cursors */; };
 		351BF177195EDA9B00B9E489 /* LWIntegerTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */; };
 		357ACC661707403A00FE8C4E /* MenuCleric.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC631707403A00FE8C4E /* MenuCleric.png */; };
@@ -18,6 +19,8 @@
 		357ACC701707467E00FE8C4E /* MenuSpells.png in Resources */ = {isa = PBXBuildFile; fileRef = 357ACC6C1707467E00FE8C4E /* MenuSpells.png */; };
 		8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0867D6AAFE840B52C02AAC07 /* InfoPlist.strings */; };
 		8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 20286C33FDCF999611CA2CEA /* Carbon.framework */; };
+		B40000030000000000000000 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B40000040000000000000000 /* AVFoundation.framework */; };
+		B40000050000000000000000 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B40000060000000000000000 /* CoreMedia.framework */; };
 		B30000070000000000000000 /* U3AudioLegacy.m in Sources */ = {isa = PBXBuildFile; fileRef = B30000060000000000000000 /* U3AudioLegacy.m */; };
 		B300000A0000000000000000 /* U3RendererLegacy.m in Sources */ = {isa = PBXBuildFile; fileRef = B30000090000000000000000 /* U3RendererLegacy.m */; };
 		B300000C0000000000000000 /* U3PlatformLegacy.m in Sources */ = {isa = PBXBuildFile; fileRef = B300000B0000000000000000 /* U3PlatformLegacy.m */; };
@@ -77,8 +80,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B40000020000000000000000 /* U3Bitmap.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Sources/U3Bitmap.c; sourceTree = SOURCE_ROOT; };
 		0867D6ABFE840B52C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		20286C33FDCF999611CA2CEA /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
+		B40000040000000000000000 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = /System/Library/Frameworks/AVFoundation.framework; sourceTree = "<absolute>"; };
+		B40000060000000000000000 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = /System/Library/Frameworks/CoreMedia.framework; sourceTree = "<absolute>"; };
 		350D488C17025865009499DC /* Cursors */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Cursors; sourceTree = "<group>"; };
 		351BF175195EDA9B00B9E489 /* LWIntegerTransformer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LWIntegerTransformer.h; path = Sources/LWIntegerTransformer.h; sourceTree = SOURCE_ROOT; };
 		351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LWIntegerTransformer.m; path = Sources/LWIntegerTransformer.m; sourceTree = SOURCE_ROOT; };
@@ -180,6 +186,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B40000030000000000000000 /* AVFoundation.framework in Frameworks */,
+				B40000050000000000000000 /* CoreMedia.framework in Frameworks */,
 				8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */,
 				A8F5D6AE0A96318100E6755A /* Cocoa.framework in Frameworks */,
 				A8BD75230AF01ADB003647FE /* SystemConfiguration.framework in Frameworks */,
@@ -227,6 +235,7 @@
 				A8BD746E0AF01991003647FE /* UltimaIncludes.m */,
 				A821B31A0A31CDAC0079FF83 /* CarbonShunts.h */,
 				A821B31B0A31CDAC0079FF83 /* CarbonShunts.c */,
+				B40000020000000000000000 /* U3Bitmap.c */,
 				35BCC90E225F8F540094082C /* UltimaMain.h */,
 				A821B3190A31CDAC0079FF83 /* UltimaMain.c */,
 				A83198CD1402D6E80046A668 /* UltimaAppleEvents.h */,
@@ -275,6 +284,8 @@
 		20286C32FDCF999611CA2CEA /* External Frameworks and Libraries */ = {
 			isa = PBXGroup;
 			children = (
+				B40000040000000000000000 /* AVFoundation.framework */,
+				B40000060000000000000000 /* CoreMedia.framework */,
 				20286C33FDCF999611CA2CEA /* Carbon.framework */,
 				A8AA791D0A2F9E4400F17165 /* Cocoa.framework */,
 				A8BD75220AF01ADB003647FE /* SystemConfiguration.framework */,
@@ -511,6 +522,7 @@
 				A821B3270A31CDAC0079FF83 /* UltimaAppleEvents.c in Sources */,
 				A821B3280A31CDAC0079FF83 /* UltimaMain.c in Sources */,
 				A821B3290A31CDAC0079FF83 /* CarbonShunts.c in Sources */,
+				B40000010000000000000000 /* U3Bitmap.c in Sources */,
 				A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */,
 				A87D41FA0AD1746F00989D7C /* main.m in Sources */,
 				A8BD746F0AF01991003647FE /* UltimaIncludes.m in Sources */,

@@ -62,4 +62,24 @@ Boolean GoodHandle(Handle h);
 void LWBlockZero(void *destPtr, Size byteCount);
 void DefineDefaultItem(DialogPtr theDialog, short item);
 
+Boolean U3LegacyDrawImageURL(CFURLRef url, CGrafPtr port, const Rect *bounds,
+                             int columns, int rows);
+OSErr NewGWorld(GWorldPtr *world, short depth, const Rect *bounds, CTabHandle table,
+               GDHandle device, GWorldFlags flags);
+void SetRect(Rect *rect, short left, short top, short right, short bottom);
+void OffsetRect(Rect *rect, short dh, short dv);
+void InsetRect(Rect *rect, short dh, short dv);
+void DisposeGWorld(GWorldPtr world);
+PixMapHandle GetGWorldPixMap(GWorldPtr world);
+Boolean LockPixels(PixMapHandle pixels);
+void UnlockPixels(PixMapHandle pixels);
+Ptr GetPixBaseAddr(PixMapHandle pixels);
+void GetGWorld(CGrafPtr *port, GDHandle *device);
+void SetGWorld(CGrafPtr port, GDHandle device);
+CGrafPtr GetWindowPort(WindowRef window);
+void CopyBits(const BitMap *source, const BitMap *destination, const Rect *sourceRect,
+              const Rect *destinationRect, short mode, RgnHandle mask);
+void CopyMask(const BitMap *source, const BitMap *mask, const BitMap *destination,
+              const Rect *sourceRect, const Rect *maskRect, const Rect *destinationRect);
+
 #endif /* CarbonShunts_h */

@@ -9,6 +9,7 @@
 #import "UltimaText.h"
 
 #import <Cocoa/Cocoa.h>
+#import <AVFoundation/AVFoundation.h>
 
 extern Boolean          gDone;
 extern short            zp[255];
@@ -35,8 +36,25 @@ short                   gCountVoices, gCurrentVoiceIndex, gCurVoiceNum;
 short                   gCurSong, gSongVolRefNum;
 Str255                  gCurVoiceName;
 unsigned char           gVoiceName[64][64], strk;
-static NSSound          *songSound = nil;
+static AVPlayer         *songPlayer = nil;
+static id                musicEndObserver = nil;
 short                   gQTMusicVolume = 100;
+
+static Boolean MusicIsPlaying(void) {
+    return songPlayer && [songPlayer rate] > 0.0f;
+}
+
+static void SetMusicVolume(float volume) {
+    if (songPlayer)
+        [songPlayer setVolume:volume];
+}
+
+static void RemoveMusicEndObserver(void) {
+    if (musicEndObserver) {
+        [[NSNotificationCenter defaultCenter] removeObserver:musicEndObserver];
+        musicEndObserver = nil;
+    }
+}
 
 void ApplyVolumePreferences(void) {
     short soundVolume = U3PlatformGetIntegerPreference(U3PreferenceSoundVolume);
@@ -44,7 +62,7 @@ void ApplyVolumePreferences(void) {
         soundVolume = 100;
     SetSoundVolumePercent(soundVolume);
 
-    Boolean isPlayingMusic = (songSound && gSongPlaying != 0);
+    Boolean isPlayingMusic = (songPlayer && gSongPlaying != 0);
     Boolean shouldPlayMusic = !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled);
     if (isPlayingMusic != shouldPlayMusic) {
         if (shouldPlayMusic) {
@@ -61,9 +79,19 @@ void ApplyVolumePreferences(void) {
     if (musicVolume < 1)
         musicVolume = 100;
     gQTMusicVolume = musicVolume;
-    if (songSound) {
-        [songSound setVolume:(float)gQTMusicVolume / 100.0f];
-    }
+    SetMusicVolume((float)gQTMusicVolume / 100.0f);
+}
+
+bool U3AudioMusicSelfTest(void) {
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"Song_1" ofType:@"mov" inDirectory:@"Music"];
+    if (!path)
+        return false;
+    NSURL *url = [NSURL fileURLWithPath:path];
+    AVPlayerItem *item = [AVPlayerItem playerItemWithURL:url];
+    if (!item)
+        return false;
+    AVAsset *asset = [AVAsset assetWithURL:url];
+    return [asset tracks].count > 0;
 }
 
 void ErrorTone(void) {
@@ -327,8 +355,9 @@ void SetUpMusic(void) {
 
 void CloseMusic(void) {
     EndSong();
-    [songSound release];
-    songSound = nil;
+    RemoveMusicEndObserver();
+    [songPlayer release];
+    songPlayer = nil;
 }
 
 void SetMusicPortAndDevice(CGrafPtr thePort, GDHandle theDevice) {
@@ -340,13 +369,12 @@ void MusicUpdate(void) {
 
     if (U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled))
         return;
-    if (!songSound || ![songSound isPlaying] || (strk == 7 && last7)) {   // current time >= full time
+    if (!MusicIsPlaying() || (strk == 7 && last7)) {   // current time >= full time
         if (gSongNext == gSongCurrent) {
-            if (songSound) {
+            if (songPlayer) {
                 //printf("replaying (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-                [songSound stop];
-                [songSound setCurrentTime:0.0];
-                [songSound play];
+                [songPlayer seekToTime:kCMTimeZero];
+                [songPlayer play];
             }
         } else {
             //printf("ending #1 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
@@ -365,11 +393,11 @@ void MusicUpdate(void) {
         gSongCurrent = gSongNext;
     gSongPlaying = gSongCurrent;
     if (gSongCurrent == 0) {
-        if (songSound && [songSound isPlaying]) {
+        if (songPlayer && MusicIsPlaying()) {
             //printf("ending #2 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
             EndSong();
-            [songSound release];
-            songSound = nil;
+            [songPlayer release];
+            songPlayer = nil;
         }
         return;
     }
@@ -380,6 +408,7 @@ void MusicUpdate(void) {
         return;
     //printf("ending #3 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
     EndSong();
+    RemoveMusicEndObserver();
 
     NSString *songName = [NSString stringWithFormat:@"Song_%c", songid];
     NSString *path = [[NSBundle mainBundle] pathForResource:songName ofType:@"mov" inDirectory:@"Music"];
@@ -387,31 +416,45 @@ void MusicUpdate(void) {
         HandleError(paramErr, 57, 1);
         return;
     }
-    [songSound release];
-    songSound = [[NSSound alloc] initWithContentsOfFile:path byReference:YES];
-    if (!songSound) {
-        HandleError(paramErr, 57, 3);
+    NSURL *songURL = [NSURL fileURLWithPath:path];
+    AVPlayerItem *songItem = [AVPlayerItem playerItemWithURL:songURL];
+    if (!songItem) {
+        fprintf(stderr, "Music unavailable: %s\n", [path UTF8String]);
         return;
     }
-    [songSound setVolume:(float)gQTMusicVolume / 100.0f];
-    [songSound setLoops:YES];
-    [songSound play];
+    [songPlayer release];
+    songPlayer = [[AVPlayer alloc] initWithPlayerItem:songItem];
+    [songPlayer setVolume:(float)gQTMusicVolume / 100.0f];
+    [songPlayer setActionAtItemEnd:AVPlayerActionAtItemEndNone];
+    musicEndObserver = [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
+                                                                           object:songItem
+                                                                            queue:nil
+                                                                       usingBlock:^(NSNotification *note) {
+        (void)note;
+        if (songPlayer)
+            [songPlayer seekToTime:kCMTimeZero completionHandler:^(BOOL finished) {
+                if (finished && songPlayer)
+                    [songPlayer play];
+            }];
+    }];
+    [songPlayer play];
     strk = gSongPlaying;
 }
 
 void EndSong(void) {
     long startTime;
 
-    if (songSound) {
+    if (songPlayer) {
+        RemoveMusicEndObserver();
         startTime = U3PlatformTickCount();
         const int numTicks = 30;
         float scale = gQTMusicVolume / (float)numTicks;
         while (U3PlatformTickCount() < (startTime + numTicks)) {
             int newVolume = gQTMusicVolume - (U3PlatformTickCount() - startTime) * scale;
-            [songSound setVolume:(float)newVolume / 100.0f];
+            SetMusicVolume((float)newVolume / 100.0f);
             U3PlatformWaitTicks(3);
         }
-        [songSound stop];
-        [songSound setVolume:(float)gQTMusicVolume / 100.0f];
+        [songPlayer pause];
+        SetMusicVolume((float)gQTMusicVolume / 100.0f);
     }
 }

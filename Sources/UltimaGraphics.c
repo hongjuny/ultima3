@@ -219,106 +219,11 @@ void ClearTiles(void) {
 }
 
 Boolean GetGraphicTiledFile(CFURLRef fileURLRef, CGrafPtr destWorld, int tileWidth, int tileHeight, int tilesWide, int tilesHigh) {
-    Boolean success = FALSE;
-    FSRef fsr;
-    if (CFURLGetFSRef(fileURLRef, &fsr)) {
-        FSSpec fss;
-        OSErr err = FSGetCatalogInfo(&fsr, kFSCatInfoNone, nil, nil, &fss, nil);
-        if (err == noErr) {
-            ComponentInstance gi;
-            err = GetGraphicsImporterForFile(&fss, &gi);
-            Rect finalRect;
-            finalRect.left = finalRect.top = 0;
-            finalRect.right = tilesWide * tileWidth;
-            finalRect.bottom = tilesHigh * tileHeight;
-
-            // Find out the size of the source image. If it's a PDF, we'll ignore its size.
-            Rect importRect;
-            CFStringRef extension = CFURLCopyPathExtension(fileURLRef);
-            Boolean isPDF = extension && CFStringCompare(extension, CFSTR("pdf"), kCFCompareCaseInsensitive) == kCFCompareEqualTo;
-            if (extension)
-                CFRelease(extension);
-            if (isPDF)
-                importRect = finalRect;
-            else if (err == noErr)
-                err = GraphicsImportGetBoundsRect(gi, &importRect);
-
-            Boolean straightDump = TRUE;
-            // if the tile set is not the dimensions we will need, resize each tile separately.
-            if (err == noErr && (importRect.right != finalRect.right || importRect.bottom != finalRect.bottom)) {
-                CGrafPtr tempWorld = nil;
-                err = NewGWorld(&tempWorld, 32, &importRect, nil, nil, 0);
-                CGrafPtr resizeTileWorld = nil;
-                Rect resizeTileRect;
-                // if our final size is *bigger* than the source, we'll have an interim
-                // resize world to make them bigger than the final size so we'll get smoothing.
-                if (importRect.right < finalRect.right && finalRect.right % importRect.right != 0) {
-                    SetRect(&resizeTileRect, 0, 0, tileWidth * 4, tileHeight * 4);
-                    err = NewGWorld(&resizeTileWorld, 32, &resizeTileRect, nil, nil, 0);
-                }
-                if (err == noErr)
-                    err = GraphicsImportSetGWorld(gi, tempWorld, nil);
-                if (err == noErr)
-                    err = GraphicsImportSetBoundsRect(gi, &importRect);
-                if (err == noErr)
-                    err = GraphicsImportDraw(gi);
-                if (err == noErr) {
-                    straightDump = FALSE;
-                    success = TRUE;
-                    int importTileVertSize = importRect.bottom / tilesHigh;
-                    int importTileHorizSize = importRect.right / tilesWide;
-                    Rect importTileRect, finalTileRect;
-                    importTileRect.left = importTileRect.top = finalTileRect.left = finalTileRect.top = 0;
-                    importTileRect.right = importTileHorizSize;
-                    importTileRect.bottom = importTileVertSize;
-                    finalTileRect.right = tileWidth;
-                    finalTileRect.bottom = tileHeight;
-                    ForeColor(blackColor);
-                    BackColor(whiteColor);
-                    int x, y;
-                    for (y = 0; y < tilesHigh; y++) {
-                        importTileRect.top = y * importTileVertSize;
-                        importTileRect.bottom = importTileRect.top + importTileVertSize;
-                        importTileRect.left = 0;
-                        importTileRect.right = importTileHorizSize;
-                        finalTileRect.top = y * tileHeight;
-                        finalTileRect.bottom = finalTileRect.top + tileHeight;
-                        finalTileRect.left = 0;
-                        finalTileRect.right = tileWidth;
-                        for (x = 0; x < tilesWide; x++) {
-                            if (resizeTileWorld) {
-                                CopyBits(LWPortCopyBits(tempWorld), LWPortCopyBits(resizeTileWorld), &importTileRect,
-                                         &resizeTileRect, ditherCopy, nil);
-                                CopyBits(LWPortCopyBits(resizeTileWorld), LWPortCopyBits(destWorld), &resizeTileRect,
-                                         &finalTileRect, ditherCopy, nil);
-                            } else
-                                CopyBits(LWPortCopyBits(tempWorld), LWPortCopyBits(destWorld), &importTileRect, &finalTileRect,
-                                         srcCopy, nil);
-                            importTileRect.left += importTileHorizSize;
-                            importTileRect.right += importTileHorizSize;
-                            finalTileRect.left += tileWidth;
-                            finalTileRect.right += tileWidth;
-                        }
-                    }
-                }
-                if (resizeTileWorld)
-                    DisposeGWorld(resizeTileWorld);
-                if (tempWorld)
-                    DisposeGWorld(tempWorld);
-            }
-
-            if (straightDump) {   // just draw it straight in.
-                err = GraphicsImportSetGWorld(gi, destWorld, nil);
-                if (err == noErr)
-                    err = GraphicsImportSetBoundsRect(gi, &finalRect);
-                if (err == noErr)
-                    err = GraphicsImportDraw(gi);
-                success = (err == noErr);
-            }
-            CloseComponent(gi);
-        }
-    }
-    return success;
+    if (tileWidth <= 0 || tileHeight <= 0 || tilesWide <= 0 || tilesHigh <= 0 ||
+        tileWidth > 4095 / tilesWide || tileHeight > 32767 / tilesHigh)
+        return false;
+    Rect bounds = {0, 0, tileHeight * tilesHigh, tileWidth * tilesWide};
+    return U3LegacyDrawImageURL(fileURLRef, destWorld, &bounds, tilesWide, tilesHigh);
 }
 
 // performs functions of GetTiles(), GetFrames() etc.
@@ -540,36 +445,14 @@ void SwapShape(unsigned short shape) {
 
 // returns true if everything worked properly.
 Boolean DrawNamedImage(CFStringRef imageName, CGrafPtr destWorld, const Rect *destRect) {
-    Boolean result = FALSE;
-    CFURLRef imagesBaseURL = (CFURLRef)ResourcesDirectoryURL();
-    CFURLRef fullImageURLRef = CFURLCreateCopyAppendingPathComponent(nil, imagesBaseURL, imageName, false);
-    FSRef fsr;
-    if (CFURLGetFSRef(fullImageURLRef, &fsr)) {
-        FSSpec fss;
-        OSErr err = FSGetCatalogInfo(&fsr, kFSCatInfoNone, nil, nil, &fss, nil);
-        if (err == noErr) {
-            Rect destOffRect = *destRect;
-            OffsetRect(&destOffRect, -destRect->left, -destRect->top);
-            CGrafPtr offWorld;
-            err = NewGWorld(&offWorld, 32, &destOffRect, nil, nil, 0);
-            if (err == noErr) {
-                ComponentInstance gi;
-                err = GetGraphicsImporterForFile(&fss, &gi);
-                if (err == noErr)
-                    err = GraphicsImportSetBoundsRect(gi, &destOffRect);
-                if (err == noErr)
-                    err = GraphicsImportSetGWorld(gi, offWorld, nil);
-                if (err == noErr)
-                    err = GraphicsImportDraw(gi);
-                result = (err == noErr);
-                ForeColor(blackColor);
-                BackColor(whiteColor);
-                CopyBits(LWPortCopyBits(offWorld), LWPortCopyBits(destWorld), &destOffRect, destRect, srcCopy, nil);
-                DisposeGWorld(offWorld);
-            }
-        }
-    }
-    CFRelease(fullImageURLRef);
+    CFURLRef base = ResourcesDirectoryURL();
+    if (!base || !imageName || !destRect)
+        return false;
+    CFURLRef url = CFURLCreateCopyAppendingPathComponent(nil, base, imageName, false);
+    if (!url)
+        return false;
+    Boolean result = U3LegacyDrawImageURL(url, destWorld, destRect, 1, 1);
+    CFRelease(url);
     return result;
 }
 
@@ -1287,6 +1170,9 @@ void DrawIntro(unsigned char shape, short offset) {
 }
 
 void CheckInterrupted(void) {
+    if (getenv("U3_BOOT_CHECK") || getenv("U3_WORLD_RENDER_CHECK") ||
+        getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK"))
+        return;
     EventRecord theEvent;
     WaitNextEvent(everyEvent, &theEvent, 1L, nil);
     switch (theEvent.what) {

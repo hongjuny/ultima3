@@ -116,6 +116,80 @@ Boolean TerminateCharacterDialog(void) {
 #define IDFP_MEM2 4
 #define IDFP_MEM3 5
 #define IDFP_MEM4 6
+static Boolean PartySelectionIsValid(const short selection[4]) {
+    if (Party[7]) return false;
+    Boolean any = false;
+    for (int i = 0; i < 4; ++i) {
+        short member = selection[i];
+        if (!member) continue;
+        if (member < 1 || member > 20 || Player[member][0] <= 22 || Player[member][16])
+            return false;
+        for (int j = 0; j < i; ++j)
+            if (selection[j] == member) return false;
+        any = true;
+    }
+    return any;
+}
+
+Boolean U3ApplyPartySelection(const short selection[4]) {
+    if (!PartySelectionIsValid(selection)) return false;
+    memset(Party, 0, sizeof(Party));
+    short position = 1;
+    for (int i = 0; i < 4; ++i) {
+        if (selection[i]) {
+            Party[position + 6] = selection[i];
+            Player[selection[i]][16] = 255;
+            Party[2] = position++;
+        }
+    }
+    Party[1] = 0x7E;
+    Party[6] = 255;
+    xpos = Party[4] = 42;
+    ypos = Party[5] = 20;
+    return true;
+}
+
+static Boolean StorePartySelection(const short selection[4]) {
+    if (!U3ApplyPartySelection(selection)) return false;
+    PutParty();
+    PutRoster();
+    ResetSosaria();
+    GetMiscStuff(0);
+    PutMiscStuff();
+    return true;
+}
+
+Boolean U3PartySelectionSelfTest(void) {
+    unsigned char savedPlayers[21][65], savedParty[64];
+    int savedX = xpos, savedY = ypos;
+    memcpy(savedPlayers, Player, sizeof(Player));
+    memcpy(savedParty, Party, sizeof(Party));
+    memset(Player, 0, sizeof(Player));
+    memset(Party, 0, sizeof(Party));
+    Player[1][0] = 'A'; Player[20][0] = 'Z';
+    Boolean passed = PartySelectionIsValid((short[4]){1, 0, 20, 0}) &&
+        !PartySelectionIsValid((short[4]){0, 0, 0, 0}) &&
+        !PartySelectionIsValid((short[4]){1, 1, 0, 0}) &&
+        !PartySelectionIsValid((short[4]){21, 0, 0, 0}) &&
+        !PartySelectionIsValid((short[4]){-1, 0, 0, 0}) &&
+        !PartySelectionIsValid((short[4]){2, 0, 0, 0});
+    Player[1][16] = 255;
+    passed = passed && !PartySelectionIsValid((short[4]){1, 0, 0, 0});
+    Party[7] = 20;
+    passed = passed && !PartySelectionIsValid((short[4]){20, 0, 0, 0});
+    Party[7] = 0;
+    Player[1][16] = 0;
+    passed = U3ApplyPartySelection((short[4]){20, 0, 1, 0}) && passed;
+    passed = passed && Party[2] == 2 && Party[7] == 20 && Party[8] == 1 &&
+        Player[1][16] == 255 && Player[20][16] == 255 &&
+        Party[1] == 0x7E && Party[4] == 42 && Party[5] == 20 && Party[3] == 0;
+    passed = passed && !U3ApplyPartySelection((short[4]){1, 0, 0, 0}) && Party[7] == 20;
+    memcpy(Player, savedPlayers, sizeof(Player));
+    memcpy(Party, savedParty, sizeof(Party));
+    xpos = savedX; ypos = savedY;
+    return passed;
+}
+
 Boolean FormPartyDialog(void) {
     ControlHandle ctrl;
     short c, i, temp, itemHit, menuEntry[21], sel[4] = {0, 0, 0, 0};
@@ -134,6 +208,21 @@ Boolean FormPartyDialog(void) {
         ShowClickMessage();
         U3PlatformWaitKeyMouse();
         return FALSE;
+    }
+    if (U3CocoaHasMainSurface()) {
+        unsigned char names[20][16] = {{0}};
+        Boolean available[20];
+        for (int member = 1; member <= 20; ++member) {
+            unsigned char length = 0;
+            while (length < 13 && Player[member][length] > 22) {
+                names[member - 1][length + 1] = Player[member][length];
+                ++length;
+            }
+            names[member - 1][0] = length;
+            available[member - 1] = length && !Player[member][16];
+        }
+        if (!U3CocoaChooseParty(names, available, sel)) return false;
+        return StorePartySelection(sel);
     }
     theDialog = GetNewDialog(BASERES + 21, nil, (WindowPtr)-1);
 #if TARGET_CARBON
@@ -201,34 +290,8 @@ Boolean FormPartyDialog(void) {
         ModalDialog((ModalFilterUPP)DialogFilterProc, &itemHit);
         switch (itemHit) {
             case IDFP_FORM:
-                for (i = 0; i < 64; i++) {
-                    Party[i] = 0;
-                }            // clear it out
-                temp = 1;    // party position
-                for (i = 0; i < 4; i++) {
-                    if (sel[i]) {
-                        Party[temp + 6] = sel[i];
-                        Player[sel[i]][16] = 255;
-                        Party[2] = temp++;
-                    }
-                }
-                Party[3] = 0;
-                Party[1] = 0x7E;
-                Party[6] = 255;    // WTF is this?
-                xpos = 42;
-                ypos = 20;
-                Party[4] = xpos;
-                Party[5] = ypos;
-                PutParty();
-                PutRoster();
-                ResetSosaria();
-                GetMiscStuff(0);
-                PutMiscStuff();
-                //              CenterMessage(12,22);
-                //              ShowClickMessage();
-                //              U3PlatformWaitKeyMouse();
-                dialogDone = TRUE;
-                didForm = TRUE;
+                didForm = StorePartySelection(sel);
+                dialogDone = didForm;
                 break;
             case IDFP_CANCEL: dialogDone = TRUE; break;
             case IDFP_MEM1:
@@ -694,6 +757,8 @@ pascal Boolean DialogFilter(DialogPtr theDlg, EventRecord *event, short *itemHit
 #define IDAS_WINDOW 3
 //#define IDAS_DONTASK      4
 void SetUpDisplayDialog(void) {
+    if (U3CocoaHasMainSurface())
+        return;
     Boolean dialogDone;
     short /*temp,*/ itemHit;
     DialogPtr theDialog;

@@ -12,6 +12,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct U3CharacterDraft {
+    uint8_t name[13];
+    uint8_t attributes[4];
+    uint8_t race, characterClass, sex;
+} U3CharacterDraft;
+
+bool U3ValidateCharacterDraft(const U3CharacterDraft *draft);
+
 typedef struct U3Point {
     int16_t x;
     int16_t y;

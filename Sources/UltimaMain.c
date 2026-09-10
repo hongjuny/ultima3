@@ -87,6 +87,7 @@ ModalFilterUPP  DialogFilterProc;
 void DoSplashScreen(void);
 void FullUpdate(void);
 void MainLoop(void);
+static bool StoreCreatedCharacter(short slot, const U3CharacterDraft *draft);
 void Intro(void);
 void Demo(void);
 void MainMenu(void);
@@ -190,11 +191,25 @@ int Ultima3_main(void) {
     ValidatePrefs();
     //GetPrefs();
     WindowInit(0);
+    if (getenv("U3_STARTUP_RENDER_CHECK")) {
+        fprintf(stderr, "Startup render: window created\n");
+        SetUpGWorlds();
+        fprintf(stderr, "Startup render: worlds allocated\n");
+        GetGraphics();
+        DrawFrame(3);
+        Rect logo = {blkSiz * 2, blkSiz * 2, blkSiz * 10, blkSiz * 38};
+        Boolean drawn = DrawNamedImage(CFSTR("Exodus.png"), mainPort, &logo);
+        U3CocoaPumpEvents();
+        Boolean written = U3CocoaWriteMainBitmap(getenv("U3_STARTUP_RENDER_CHECK"));
+        fprintf(stderr, "Startup render: %s\n", drawn && written ? "completed" : "FAILED");
+        TearDownGWorlds();
+        return drawn && written ? 0 : 1;
+    }
     OpenRstr();
     CheckSystemRequirements();
     SetUpDisplayDialog();
     ReflectPrefs();
-    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen)) {
+    if (!U3CocoaHasMainSurface() && U3PlatformGetBooleanPreference(U3PreferenceFullScreen)) {
         ShowHideBackground();
         // spin wheels for 2 seconds for gadgets to disappear
         endTime = U3PlatformTickCount() + 60;
@@ -245,6 +260,25 @@ void MainLoop(void) {
     Intro();
     U3RenderClearBottom();
     GetDemoRsrc();
+    if (getenv("U3_WORLD_RENDER_CHECK") || getenv("U3_WORLD_INPUT_CHECK") ||
+        getenv("U3_WORLD_MOUSE_CHECK")) {
+        U3CharacterDraft draft = {{'A', 'd', 'a'}, {15, 15, 10, 10}, 'H', 'F', 'F'};
+        short slot = 1;
+        while (slot <= 20 && Player[slot][0]) ++slot;
+        Boolean stored = slot <= 20 && StoreCreatedCharacter(slot, &draft);
+        if (stored)
+            memset(Party, 0, sizeof(Party));
+        Boolean formed = stored && U3ApplyPartySelection((short[4]){slot, 0, 0, 0});
+        fprintf(stderr, "World render check: slot=%d stored=%d formed=%d io=%d\n",
+                slot, stored, formed, (int)U3IOLastError());
+        if (!stored || !formed) {
+            fprintf(stderr, "World render check: party setup FAILED\n");
+            exit(EXIT_FAILURE);
+        }
+        fprintf(stderr, "World render check: party ready\n");
+        Game();
+        return;
+    }
     zp[0xCF] = zp[0x10] = gDemoSong = 0;
     gSongCurrent = 0;
     gSongNext = 0;
@@ -257,7 +291,7 @@ void MainLoop(void) {
     U3AudioCloseMusic();
     U3AudioCloseEffects();
     MyShowMenuBar();
-    if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
+    if (!U3CocoaHasMainSurface() && U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
         RestoreDisplay();
 
     return;
@@ -275,6 +309,11 @@ void Intro(void) {
         CenterMessage(54, 23);
         DrawFramePiece(12, 12, 23);
         DrawFramePiece(13, 27, 23);
+        if (getenv("U3_BOOT_CHECK") || getenv("U3_WORLD_RENDER_CHECK") ||
+            getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK")) {
+            fprintf(stderr, "Boot check: intro ready\n");
+            U3CocoaQueueDiagnosticKey(' ');
+        }
         U3PlatformWaitKeyMouse();
     }
 }
@@ -285,6 +324,9 @@ void Demo(void) {
     gUpdateWhere = 2;
     DrawDemoScreen();
     U3PlatformObscureCursor();
+    if (getenv("U3_BOOT_CHECK") || getenv("U3_WORLD_RENDER_CHECK") ||
+        getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK"))
+        U3CocoaQueueDiagnosticKey(' ');
     while (!U3PlatformGetKeyMouse(2)) {
         DemoUpdate(demoptr);
         demoptr++;
@@ -306,6 +348,15 @@ void MainMenu(void) {
             gUpdateWhere = 5;
             LWDisableMenuItem(gFileMenu, ABORTID);
             DrawMenu();
+        }
+        if (getenv("U3_BOOT_CHECK")) {
+            U3CocoaPumpEvents();
+            Boolean written = U3CocoaWriteMainBitmap(getenv("U3_BOOT_CHECK"));
+            fprintf(stderr, "Boot check: main menu %s\n", written ? "completed" : "FAILED");
+            if (!written)
+                exit(EXIT_FAILURE);
+            gDone = true;
+            return;
         }
         gSongCurrent = gSongNext = 0;
         tx = 24;
@@ -744,7 +795,108 @@ void DisperseParty(void) {
     }
 }
 
+bool U3ValidateCharacterDraft(const U3CharacterDraft *draft) {
+    if (!draft || draft->name[12] || !draft->name[0]) return false;
+    bool visible = false, ended = false;
+    for (int i = 0; i < 12; ++i) {
+        if (!draft->name[i]) { ended = true; continue; }
+        if (ended || draft->name[i] < 32 || draft->name[i] == 127) return false;
+        visible |= draft->name[i] != ' ';
+    }
+    if (!visible || !draft->race || !draft->characterClass || !draft->sex ||
+        !strchr("HEDBF", draft->race) || !strchr("FCWTPBLIDAR", draft->characterClass) ||
+        !strchr("FMO", draft->sex)) return false;
+    int total = 0;
+    for (int i = 0; i < 4; ++i) {
+        if (draft->attributes[i] < 5 || draft->attributes[i] > 25) return false;
+        total += draft->attributes[i];
+    }
+    return total <= 50;
+}
+
+static bool BuildCharacterRecord(const U3CharacterDraft *draft, unsigned char record[65]) {
+    if (!U3ValidateCharacterDraft(draft)) return false;
+    memset(record, 0, 65);
+    memcpy(record, draft->name, 12);
+    memcpy(record + 18, draft->attributes, 4);
+    record[22] = draft->race;
+    record[23] = draft->characterClass;
+    record[24] = draft->sex;
+    record[17] = 'G';
+    record[27] = record[29] = 100;
+    record[32] = 1; record[33] = 50; record[36] = 150;
+    record[40] = record[41] = record[48] = record[49] = 1;
+    return true;
+}
+
+Boolean U3CharacterCreationSelfTest(void) {
+    U3CharacterDraft draft = {{'A', 'd', 'a'}, {15, 15, 10, 10}, 'H', 'F', 'F'};
+    unsigned char record[65];
+    if (!BuildCharacterRecord(&draft, record) || record[17] != 'G' ||
+        record[27] != 100 || record[29] != 100 || record[36] != 150 ||
+        record[22] != 'H' || record[23] != 'F' || record[16] != 0) return false;
+    draft.attributes[0] = 16;
+    if (U3ValidateCharacterDraft(&draft)) return false;
+    draft.attributes[0] = 4;
+    if (U3ValidateCharacterDraft(&draft)) return false;
+    draft.attributes[0] = 15; draft.race = 'X';
+    if (U3ValidateCharacterDraft(&draft)) return false;
+    draft.race = 'H'; memset(draft.name, 'A', 13);
+    if (U3ValidateCharacterDraft(&draft)) return false;
+    draft.name[12] = 0;
+    if (!U3ValidateCharacterDraft(&draft)) return false;
+    memset(draft.name, 0, 13); draft.name[0] = ' ';
+    return !U3ValidateCharacterDraft(&draft);
+}
+
+static bool StoreCreatedCharacter(short slot, const U3CharacterDraft *draft) {
+    unsigned char record[65], previous[65];
+    if (slot < 1 || slot > 20 || Player[slot][0] || !BuildCharacterRecord(draft, record)) return false;
+    memcpy(previous, Player[slot], sizeof(previous));
+    memcpy(Player[slot], record, sizeof(record));
+    PutRoster();
+    if (U3IOLastError()) {
+        memcpy(Player[slot], previous, sizeof(previous));
+        return false;
+    }
+    return true;
+}
+
+Boolean U3CharacterStorageSelfTest(void) {
+    unsigned char previous[21][65];
+    memcpy(previous, Player, sizeof(previous));
+    GetRoster();
+    short slot = 1;
+    while (slot <= 20 && Player[slot][0]) ++slot;
+    U3CharacterDraft draft = {{'A', 'd', 'a'}, {15, 15, 10, 10}, 'H', 'F', 'F'};
+    Boolean passed = slot <= 20 && StoreCreatedCharacter(slot, &draft);
+    passed = passed && !StoreCreatedCharacter(slot, &draft);
+    if (passed) {
+        passed = U3IOOpenSaveContainer() == U3SaveContainerOpenResultOpened;
+        if (passed) {
+            memset(Player, 0, sizeof(Player));
+            GetRoster();
+            passed = !U3IOLastError() && !memcmp(Player[slot], "Ada", 3) &&
+                Player[slot][17] == 'G' && Player[slot][18] == 15 &&
+                Player[slot][27] == 100 && Player[slot][29] == 100 && Player[slot][16] == 0;
+        }
+    }
+    memcpy(Player, previous, sizeof(previous));
+    return passed;
+}
+
 void CreateChar(void) {
+    if (U3CocoaHasMainSurface()) {
+        Boolean available[20];
+        for (int i = 0; i < 20; ++i) available[i] = Player[i + 1][0] == 0;
+        short slot = 0;
+        U3CharacterDraft draft = {{0}, {15, 15, 10, 10}, 'H', 'F', 'M'};
+        if (!U3CocoaCreateCharacter(available, &slot, &draft)) return;
+        if (!StoreCreatedCharacter(slot, &draft) && U3IOLastError()) {
+            HandleError(U3IOLastError(), 44, BASERES);
+        }
+        return;
+    }
     char byte, player;
 
     /*  U3RenderClearBottom();
@@ -1009,15 +1161,20 @@ void KillChar(void) {
 
 void Game(void) {
     Boolean key;
+    Boolean diagnosticInputQueued = FALSE;
     int count;
     long time;
 
+    if (getenv("U3_WORLD_RENDER_CHECK")) fprintf(stderr, "World render: Game start\n");
     ClearScreen();
     DisposeIntroData();
     GetDungeonGraphics();
+    if (getenv("U3_WORLD_RENDER_CHECK")) fprintf(stderr, "World render: dungeon graphics ready\n");
     GetPortraits();
+    if (getenv("U3_WORLD_RENDER_CHECK")) fprintf(stderr, "World render: portraits ready\n");
     lastCard = 0x1E;
     GetSosaria();
+    if (getenv("U3_WORLD_RENDER_CHECK")) fprintf(stderr, "World render: Sosaria ready\n");
     gUpdateWhere = 3;
     DrawFrame(1);
     ClearUpdatePort();
@@ -1026,12 +1183,31 @@ void Game(void) {
     gTimeNegate = 0;
     gSongPlaying = 0;
     gSongCurrent = gSongNext = 1;
+        if (getenv("U3_WORLD_RENDER_CHECK") || getenv("U3_WORLD_INPUT_CHECK") ||
+            getenv("U3_WORLD_MOUSE_CHECK"))
+        gSongCurrent = gSongNext = 0;
     LWEnableMenuItem(gFileMenu, ABORTID);
     InitCursor();
     ShowChars(true);
     while (!gDone) {
         //      if (gUpdateWhere==3) gSongNext = 1;
         DrawMap(xpos, ypos);
+        if ((getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK")) && !diagnosticInputQueued) {
+            fprintf(stderr, "World input: before (%d,%d)\n", xpos, ypos);
+            if (getenv("U3_WORLD_MOUSE_CHECK"))
+                U3CocoaQueueDiagnosticMouse(600, 384);
+            else
+                U3CocoaQueueDiagnosticKey('6');
+            diagnosticInputQueued = TRUE;
+        }
+        if (getenv("U3_WORLD_RENDER_CHECK")) {
+            U3CocoaPumpEvents();
+            Boolean written = U3CocoaWriteMainBitmap(getenv("U3_WORLD_RENDER_CHECK"));
+            fprintf(stderr, "World render check: %s at (%d,%d)\n",
+                    written ? "completed" : "FAILED", xpos, ypos);
+            gDone = TRUE;
+            return;
+        }
         gResurrect = FALSE;
         ShowChars(false);
         CheckAllDead();
@@ -1088,6 +1264,17 @@ void Game(void) {
                 default: break;
             }
             Routine6E35();
+            if (getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK")) {
+                U3CocoaPumpEvents();
+                const char *outputPath = getenv("U3_WORLD_MOUSE_CHECK") ?
+                    getenv("U3_WORLD_MOUSE_CHECK") : getenv("U3_WORLD_INPUT_CHECK");
+                Boolean written = U3CocoaWriteMainBitmap(outputPath);
+                fprintf(stderr, "World input: key=%d mouse=%d after (%d,%d), %s\n",
+                        (int)gKeyPress, (int)gMouseKey, xpos, ypos,
+                        written ? "completed" : "FAILED");
+                gDone = TRUE;
+                return;
+            }
             if (StillDown()) {
                 time = U3PlatformTickCount() + 6;
                 while (U3PlatformTickCount() < time) {

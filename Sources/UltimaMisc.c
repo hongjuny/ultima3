@@ -613,6 +613,8 @@ void OpenRstr(void) {
         if (!U3IOCopyResource(U3ResourceKindMisc, BASERES + 5, BASERES + 105, (const uint8_t *)"\pExperience Table"))
             HandleError(U3IOLastError(), 48, BASERES + 105);
         U3IOFlushSaveContainer();
+        if (U3IOLastError())
+            HandleError(U3IOLastError(), 38, 1);
     }    // new Roster creation finished
 }
 

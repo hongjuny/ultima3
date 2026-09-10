@@ -67,5 +67,6 @@ void U3AudioSpeakMessages(int16_t messageID, int16_t additionalMessageID, int16_
 void U3AudioSpeakPascalString(uint8_t *pascalString, int16_t voiceID);
 void U3AudioPrimeLegacySample(const uint8_t *sampleData);
 void U3AudioPlayLegacyFadeTone(int32_t pass);
+bool U3AudioMusicSelfTest(void);
 
 #endif /* U3Audio_h */

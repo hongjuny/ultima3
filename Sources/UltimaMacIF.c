@@ -571,6 +571,10 @@ void MenuBarInit(void) {
     Handle myMenuBar;
 
     myMenuBar = GetNewMBar(128);
+    if (!myMenuBar) {
+        U3CocoaInstallMenus();
+        return;
+    }
     SetMenuBar(myMenuBar);
     gAppleMenu = GetMenuHandle(APPLEMENU);
     gFileMenu = GetMenuHandle(FILEMENU);
@@ -723,6 +727,7 @@ void WindowInit(short which) {
 */
     ShowWindow(gMainWindow);
     SetPortWindowPort(gMainWindow);
+    GetGWorld(&mainPort, &mainDevice);
     UpdateRgn = NewRgn();
     ClearScreen();
     ForeColor(whiteColor);
@@ -1205,6 +1210,8 @@ void CursorUpdate(void) { /* figure what cursor to show where */
         newCursor = -1;
     if (gMouseState == 666 && PtInRect(mous, &gameRect))
         newCursor = 21;
+    if (newCursor >= 0 && newCursor <= 25 && keyEquiv[newCursor] != 0)
+        gCurMouseDir = keyEquiv[newCursor];
     ReflectNewCursor(newCursor);
 }
 
@@ -2485,15 +2492,20 @@ void HandleError(OSErr error, long desc, long idnum) {
         NumToString(FreeMem(), errorStr);
         ParamText(errorStr, descStr, idStr, descNumStr);
         Alert(BASERES + 11, NIL_PTR);
-        ExitToShell();
+        fprintf(stderr, "Ultima III fatal error: code=%ld description=%d resource=%d\n",
+                (long)error, (int)desc, (int)idnum);
+        exit(EXIT_FAILURE);
     } else {
         gMouseState = 0;
         CursorUpdate();
         ParamText(errorStr, descStr, idStr, descNumStr);
         button = Alert(BASERES + 1, NIL_PTR);
         gMouseState = mouseStateStore;
-        if (button == 1)
-            ExitToShell();
+        if (button == 1) {
+            fprintf(stderr, "Ultima III fatal error: code=%ld description=%d resource=%d\n",
+                    (long)error, (int)desc, (int)idnum);
+            exit(EXIT_FAILURE);
+        }
     }
 }
 

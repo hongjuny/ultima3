@@ -1,12 +1,37 @@
 // Shunts
 
 #import "CarbonShunts.h"
+#import "CocoaBridge.h"
+#include "U3Bitmap.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 extern CGrafPtr mainPort;
+typedef struct U3LegacyWorld {
+    U3Bitmap bitmap;
+    PixMap pixmap;
+    PixMapPtr pixmapPointer;
+    struct U3LegacyWorld *next;
+} U3LegacyWorld;
+
+static U3LegacyWorld *sWorlds;
+static CGrafPtr sCurrentPort;
+
+static U3LegacyWorld *U3FindWorld(const void *token) {
+    for (U3LegacyWorld *world = sWorlds; world; world = world->next)
+        if ((const void *)world == token)
+            return world;
+    return NULL;
+}
+
+static void U3SelectPort(CGrafPtr port) {
+    sCurrentPort = port;
+    U3LegacyWorld *world = U3FindWorld(port);
+    U3CocoaSelectBitmap(world ? &world->bitmap : NULL,
+        world ? world->pixmap.bounds.left : 0, world ? world->pixmap.bounds.top : 0);
+}
 extern void GetPascalStringFromArrayByIndex(StringPtr pstringPtr, CFStringRef identifier, int index);
 
 enum {
@@ -26,6 +51,14 @@ void LWSetDialogPort(DialogPtr theDialog) {
 void LWGetScreenRect(Rect *rect) {
     CGRect bounds = CGDisplayBounds(CGMainDisplayID());
 
+    if (CGRectGetWidth(bounds) <= 0 || CGRectGetHeight(bounds) <= 0) {
+        rect->left = 0;
+        rect->top = 0;
+        rect->right = 1280;
+        rect->bottom = 768;
+        return;
+    }
+
     rect->left = (short)CGRectGetMinX(bounds);
     rect->top = (short)CGRectGetMinY(bounds);
     rect->right = (short)CGRectGetMaxX(bounds);
@@ -33,8 +66,7 @@ void LWGetScreenRect(Rect *rect) {
 }
 
 const BitMap *LWPortCopyBits(CGrafPtr port) {
-    (void)port;
-    return nil;
+    return (const BitMap *)port;
 }
 
 OSErr LWGetDialogControl(DialogRef inDialog, SInt16 inItemNo, ControlRef *outControl) {
@@ -60,7 +92,11 @@ void LWGetPortBackColor(CGrafPtr port, RGBColor *color) {
 }
 
 void LWGetPortBounds(CGrafPtr port, Rect *bounds) {
-    (void)port;
+    U3LegacyWorld *world = U3FindWorld(port);
+    if (world) {
+        *bounds = world->pixmap.bounds;
+        return;
+    }
     LWGetScreenRect(bounds);
 }
 
@@ -205,25 +241,23 @@ short StringWidth(ConstStr255Param text) {
 }
 
 void DrawString(ConstStr255Param text) {
-    (void)text;
+    U3CocoaDrawPascalString(text);
 }
 
 void DrawText(const void *textBuf, short firstByte, short byteCount) {
-    (void)textBuf;
-    (void)firstByte;
-    (void)byteCount;
+    U3CocoaDrawBytes(textBuf, firstByte, byteCount);
 }
 
 void TextFont(short font) {
-    (void)font;
+    U3CocoaSetTextFont(font);
 }
 
 void TextSize(short size) {
-    (void)size;
+    U3CocoaSetTextSize(size);
 }
 
 void TextFace(short face) {
-    (void)face;
+    U3CocoaSetTextFace(face);
 }
 
 void TextMode(short mode) {
@@ -231,19 +265,21 @@ void TextMode(short mode) {
 }
 
 void ForeColor(long color) {
-    (void)color;
+    U3CocoaSetForegroundQuickDrawColor(color);
 }
 
 void BackColor(long color) {
-    (void)color;
+    U3CocoaSetBackgroundQuickDrawColor(color);
 }
 
 void RGBForeColor(const RGBColor *color) {
-    (void)color;
+    if (color)
+        U3CocoaSetForegroundRGB(color->red, color->green, color->blue);
 }
 
 void RGBBackColor(const RGBColor *color) {
-    (void)color;
+    if (color)
+        U3CocoaSetBackgroundRGB(color->red, color->green, color->blue);
 }
 
 void OpColor(const RGBColor *color) {
@@ -251,8 +287,7 @@ void OpColor(const RGBColor *color) {
 }
 
 void MoveTo(short h, short v) {
-    (void)h;
-    (void)v;
+    U3CocoaMoveTo(h, v);
 }
 
 void LineTo(short h, short v) {
@@ -270,15 +305,18 @@ void PenSize(short width, short height) {
 }
 
 void PaintRect(const Rect *rect) {
-    (void)rect;
+    if (rect)
+        U3CocoaPaintRect(rect->left, rect->top, rect->right, rect->bottom);
 }
 
 void EraseRect(const Rect *rect) {
-    (void)rect;
+    if (rect)
+        U3CocoaEraseRect(rect->left, rect->top, rect->right, rect->bottom);
 }
 
 void FrameRect(const Rect *rect) {
-    (void)rect;
+    if (rect)
+        U3CocoaFrameRect(rect->left, rect->top, rect->right, rect->bottom);
 }
 
 void FrameRoundRect(const Rect *rect, short ovalWidth, short ovalHeight) {
@@ -321,10 +359,7 @@ void QDFlushPortBuffer(CGrafPtr port, RgnHandle region) {
 }
 
 void GetMouse(Point *mouseLoc) {
-    if (mouseLoc) {
-        mouseLoc->h = 0;
-        mouseLoc->v = 0;
-    }
+    U3CocoaGetMousePoint(mouseLoc);
 }
 
 Boolean StillDown(void) {
@@ -347,20 +382,19 @@ void GlobalToLocal(Point *point) {
 
 void GetPort(GrafPtr *port) {
     if (port)
-        *port = nil;
+        *port = (GrafPtr)sCurrentPort;
 }
 
 void SetPort(GrafPtr port) {
-    (void)port;
+    U3SelectPort((CGrafPtr)port);
 }
 
 void SetPortWindowPort(WindowRef window) {
-    (void)window;
+    U3SelectPort((CGrafPtr)window);
 }
 
 CGrafPtr GetWindowPort(WindowRef window) {
-    (void)window;
-    return nil;
+    return (CGrafPtr)window;
 }
 
 WindowRef NewCWindow(void *wStorage, const Rect *boundsRect, ConstStr255Param title, Boolean visible, short procID, WindowRef behind, Boolean goAwayFlag, long refCon) {
@@ -521,61 +555,212 @@ void GetPen(Point *point) {
 
 OSErr NewGWorld(GWorldPtr *offscreenGWorld, short pixelDepth, const Rect *boundsRect, CTabHandle cTable, GDHandle aGDevice, GWorldFlags flags) {
     (void)pixelDepth;
-    (void)boundsRect;
     (void)cTable;
     (void)aGDevice;
     (void)flags;
-    if (offscreenGWorld)
-        *offscreenGWorld = nil;
+    if (!offscreenGWorld)
+        return paramErr;
+    *offscreenGWorld = nil;
+    if (!boundsRect)
+        return paramErr;
+    int width = boundsRect->right - boundsRect->left;
+    int height = boundsRect->bottom - boundsRect->top;
+    /* Our legacy callers mask rowBytes with 0x7fff; the wide font atlas needs it. */
+    if (width <= 0 || width > 8191 || height <= 0)
+        return paramErr;
+    U3LegacyWorld *world = calloc(1, sizeof(*world));
+    if (!world)
+        return memFullErr;
+    if (!U3BitmapAllocate(&world->bitmap, width, height)) {
+        free(world);
+        return memFullErr;
+    }
+    world->pixmap.baseAddr = (Ptr)world->bitmap.pixels;
+    world->pixmap.rowBytes = (short)(world->bitmap.stride | 0x8000);
+    world->pixmap.bounds = *boundsRect;
+    world->pixmap.pixelSize = 32;
+    world->pixmap.pixelType = 16; /* QuickDraw direct RGB pixels. */
+    world->pixmap.cmpCount = 3;
+    world->pixmap.cmpSize = 8;
+    world->pixmap.hRes = world->pixmap.vRes = 72 << 16;
+    world->pixmapPointer = &world->pixmap;
+    world->next = sWorlds;
+    sWorlds = world;
+    *offscreenGWorld = (GWorldPtr)world;
     return noErr;
 }
 
 void DisposeGWorld(GWorldPtr offscreenGWorld) {
-    (void)offscreenGWorld;
+    U3LegacyWorld **link = &sWorlds;
+    while (*link && (GWorldPtr)*link != offscreenGWorld)
+        link = &(*link)->next;
+    if (!*link)
+        return;
+    U3LegacyWorld *world = *link;
+    *link = world->next;
+    if (sCurrentPort == (CGrafPtr)world)
+        U3SelectPort(nil);
+    U3BitmapDispose(&world->bitmap);
+    free(world);
 }
 
 void GetGWorld(CGrafPtr *port, GDHandle *gdh) {
     if (port)
-        *port = nil;
+        *port = sCurrentPort;
     if (gdh)
         *gdh = nil;
 }
 
 void SetGWorld(CGrafPtr port, GDHandle gdh) {
-    (void)port;
+    U3SelectPort(port);
     (void)gdh;
 }
 
 PixMapHandle GetGWorldPixMap(GWorldPtr offscreenGWorld) {
-    (void)offscreenGWorld;
-    return nil;
+    U3LegacyWorld *world = U3FindWorld(offscreenGWorld);
+    return world ? &world->pixmapPointer : nil;
 }
 
 Boolean LockPixels(PixMapHandle pm) {
-    (void)pm;
-    return true;
+    return pm && *pm && (*pm)->baseAddr;
+}
+
+Ptr GetPixBaseAddr(PixMapHandle pixels) {
+    return pixels && *pixels ? (*pixels)->baseAddr : NULL;
 }
 
 void UnlockPixels(PixMapHandle pm) {
     (void)pm;
 }
 
+static U3Bitmap *U3ResolveBitmap(const void *port, const Rect *rect, U3BitmapRect *local) {
+    if (!port || !rect)
+        return NULL;
+    U3LegacyWorld *world = U3FindWorld(port);
+    *local = (U3BitmapRect){rect->left, rect->top,
+        rect->right - rect->left, rect->bottom - rect->top};
+    if (world) {
+        local->x -= world->pixmap.bounds.left;
+        local->y -= world->pixmap.bounds.top;
+        return &world->bitmap;
+    }
+    return (CGrafPtr)port == mainPort ? U3CocoaMainBitmap() : NULL;
+}
+
 void CopyBits(const BitMap *srcBits, const BitMap *dstBits, const Rect *srcRect, const Rect *dstRect, short mode, RgnHandle maskRgn) {
-    (void)srcBits;
-    (void)dstBits;
-    (void)srcRect;
-    (void)dstRect;
-    (void)mode;
-    (void)maskRgn;
+    U3BitmapRect from = {0}, to = {0};
+    U3Bitmap *source = U3ResolveBitmap(srcBits, srcRect, &from);
+    U3Bitmap *destination = U3ResolveBitmap(dstBits, dstRect, &to);
+    if (maskRgn || (mode != srcCopy && mode != ditherCopy))
+        return;
+    if (U3BitmapCopy(destination, to, source, from) && destination == U3CocoaMainBitmap())
+        U3CocoaInvalidateMainSurface();
 }
 
 void CopyMask(const BitMap *srcBits, const BitMap *maskBits, const BitMap *dstBits, const Rect *srcRect, const Rect *maskRect, const Rect *dstRect) {
-    (void)srcBits;
-    (void)maskBits;
-    (void)dstBits;
-    (void)srcRect;
-    (void)maskRect;
-    (void)dstRect;
+    U3BitmapRect from = {0}, maskArea = {0}, to = {0};
+    U3Bitmap *source = U3ResolveBitmap(srcBits, srcRect, &from);
+    U3Bitmap *mask = U3ResolveBitmap(maskBits, maskRect, &maskArea);
+    U3Bitmap *destination = U3ResolveBitmap(dstBits, dstRect, &to);
+    if (U3BitmapCopyMasked(destination, to, source, from, mask, maskArea) &&
+        destination == U3CocoaMainBitmap())
+        U3CocoaInvalidateMainSurface();
+}
+
+Boolean U3LegacyBitmapSelfTest(void) {
+    CGrafPtr savedPort = sCurrentPort;
+    CGrafPtr savedMain = mainPort;
+    static char testMainToken;
+    GWorldPtr source = nil, destination = nil;
+    Rect bounds = {10, 20, 12, 22};
+    Rect enlarged = {0, 0, 4, 4};
+    Boolean passed = false;
+    if (NewGWorld(&source, 32, &bounds, nil, nil, 0) != noErr ||
+        NewGWorld(&destination, 32, &enlarged, nil, nil, 0) != noErr)
+        goto cleanup;
+    SetGWorld(source, nil);
+    RGBColor color = {65535, 0, 0};
+    RGBForeColor(&color);
+    PaintRect(&bounds);
+    PixMapHandle pixels = GetGWorldPixMap(source);
+    if (!LockPixels(pixels) || !(*pixels)->baseAddr ||
+        ((*pixels)->rowBytes & 0x3fff) != 8)
+        goto cleanup;
+    CopyBits(LWPortCopyBits(source), LWPortCopyBits(destination),
+             &bounds, &enlarged, srcCopy, nil);
+    U3LegacyWorld *world = U3FindWorld(destination);
+    for (int y = 0; y < 4; ++y) {
+        for (int x = 0; x < 4; ++x) {
+            uint8_t *pixel = world->bitmap.pixels + y * world->bitmap.stride + x * 4;
+            if (pixel[0] != 255 || pixel[1] != 0 || pixel[2] != 0) {
+                fprintf(stderr, "Unexpected bitmap pixel (%d,%d): %u %u %u %u\n",
+                        x, y, pixel[0], pixel[1], pixel[2], pixel[3]);
+                goto cleanup;
+            }
+        }
+    }
+    if (!U3CocoaResizeMainBitmap(4, 4))
+        goto cleanup;
+    mainPort = (CGrafPtr)&testMainToken;
+    SetGWorld(mainPort, nil);
+    RGBColor blue = {0, 0, 65535};
+    RGBForeColor(&blue);
+    PaintRect(&enlarged);
+    CopyBits(LWPortCopyBits(mainPort), LWPortCopyBits(destination),
+             &enlarged, &enlarged, srcCopy, nil);
+    if (world->bitmap.pixels[0] != 0 || world->bitmap.pixels[2] != 255)
+        goto cleanup;
+    CopyBits(LWPortCopyBits(source), LWPortCopyBits(mainPort),
+             &bounds, &enlarged, srcCopy, nil);
+    CopyBits(LWPortCopyBits(mainPort), LWPortCopyBits(destination),
+             &enlarged, &enlarged, srcCopy, nil);
+    if (world->bitmap.pixels[0] != 255 || world->bitmap.pixels[2] != 0)
+        goto cleanup;
+    for (int y = 0; y < 4; ++y)
+        for (int x = 2; x < 4; ++x)
+            memset(world->bitmap.pixels + y * world->bitmap.stride + x * 4, 255, 4);
+    RGBForeColor(&blue);
+    PaintRect(&enlarged);
+    CopyMask(LWPortCopyBits(source), LWPortCopyBits(destination), LWPortCopyBits(mainPort),
+             &bounds, &enlarged, &enlarged);
+    U3Bitmap *screen = U3CocoaMainBitmap();
+    for (int y = 0; y < 4; ++y) {
+        for (int x = 0; x < 4; ++x) {
+            uint8_t *pixel = screen->pixels + y * screen->stride + x * 4;
+            if (pixel[0] != (x < 2 ? 255 : 0) || pixel[2] != (x < 2 ? 0 : 255))
+                goto cleanup;
+        }
+    }
+    passed = true;
+cleanup:
+    mainPort = savedMain;
+    DisposeGWorld(source);
+    DisposeGWorld(destination);
+    SetGWorld(savedPort, nil);
+    return passed;
+}
+
+Boolean U3LegacyDrawImageURL(CFURLRef url, CGrafPtr port, const Rect *bounds,
+                             int columns, int rows) {
+    U3LegacyWorld *world = U3FindWorld(port);
+    if (!bounds || (!world && (!port || port != mainPort)))
+        return false;
+    U3Bitmap image = {0};
+    int width = bounds->right - bounds->left;
+    int height = bounds->bottom - bounds->top;
+    if (!U3CocoaLoadImage(&image, url, width, height, columns, rows))
+        return false;
+    Boolean success = true;
+    U3BitmapRect source = {0, 0, width, height};
+    if (world) {
+        U3BitmapRect destination = {bounds->left - world->pixmap.bounds.left,
+            bounds->top - world->pixmap.bounds.top, width, height};
+        success = U3BitmapCopy(&world->bitmap, destination, &image, source);
+    } else {
+        U3CocoaDrawBitmap(&image, source, bounds->left, bounds->top, width, height);
+    }
+    U3BitmapDispose(&image);
+    return success;
 }
 
 void GetCPixel(short h, short v, RGBColor *pixel) {
