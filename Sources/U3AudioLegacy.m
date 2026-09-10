@@ -24,21 +24,7 @@ extern void MusicUpdate(void);
 extern void EndSong(void);
 extern short gSongCurrent, gSongNext;
 
-typedef struct SndChannel *SndChannelPtr;
-typedef struct SndCommand {
-    unsigned short cmd;
-    short param1;
-    long param2;
-} SndCommand;
-
-enum {
-    soundCmd = 80,
-    initMono = 0x0080
-};
-
-extern OSErr SndDoImmediate(SndChannelPtr channel, const SndCommand *command);
 extern short gCurChan, gMaxChan;
-extern SndChannelPtr gSampChan[6];
 
 static CFStringRef U3LegacySoundNameForEffect(U3SoundEffect effect) {
     switch (effect) {
@@ -152,29 +138,12 @@ void U3AudioSpeakPascalString(uint8_t *pascalString, int16_t voiceID) {
 }
 
 void U3AudioPrimeLegacySample(const uint8_t *sampleData) {
-    if (!sampleData)
-        return;
-
-    SndCommand soundCommand;
-    soundCommand.cmd = initCmd;
-    soundCommand.param1 = 0;
-    soundCommand.param2 = initMono;
-    for (short channel = 1; channel <= gMaxChan; channel++) {
-        SndDoImmediate(gSampChan[channel], &soundCommand);
-        soundCommand.cmd = soundCmd;
-        soundCommand.param1 = 0;
-        soundCommand.param2 = (long)(sampleData + 0x14);
-        SndDoImmediate(gSampChan[channel], &soundCommand);
-    }
+    (void)sampleData;
 }
 
 void U3AudioPlayLegacyFadeTone(int32_t pass) {
-    SndCommand soundCommand;
-    soundCommand.cmd = freqDurationCmd;
-    soundCommand.param1 = 60;
-    soundCommand.param2 = (0xFF00E0A0 | ((32768 - pass) / 2048));
+    (void)pass;
     gCurChan++;
     if (gCurChan > gMaxChan)
         gCurChan = 1;
-    SndDoImmediate(gSampChan[gCurChan], &soundCommand);
 }

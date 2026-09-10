@@ -458,3 +458,13 @@ Recommended immediate sequence:
      QuickDraw, Dialog Manager, Menu Manager, Resource Manager, Graphics
      Importer, and Sound Manager symbols; those should be grouped behind
      renderer, dialog/window, asset-loading, and audio compatibility seams next
+34. make the arm64 app target link on the current macOS SDK
+   - status: removed Sound Manager immediate-command usage and concentrated
+     the remaining removed Toolbox, QuickDraw, Dialog/Menu, GWorld, Graphics
+     Importer, and FSSpec resource-file entry points into transitional
+     `CarbonShunts` implementations; the Debug app target now links for arm64
+     with the current macOS SDK
+   - remaining: many of these shunts are deliberately non-rendering or
+     placeholder implementations, so the next pass must replace them with real
+     `U3Renderer`, `U3IO`, and Cocoa window/dialog implementations before the
+     app can be considered playable
