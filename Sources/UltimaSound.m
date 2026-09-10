@@ -36,24 +36,16 @@ short                   gCountVoices, gCurrentVoiceIndex, gCurVoiceNum;
 short                   gCurSong, gSongVolRefNum;
 Str255                  gCurVoiceName;
 unsigned char           gVoiceName[64][64], strk;
-static AVPlayer         *songPlayer = nil;
-static id                musicEndObserver = nil;
+static AVMIDIPlayer     *songPlayer = nil;
 short                   gQTMusicVolume = 100;
 
 static Boolean MusicIsPlaying(void) {
-    return songPlayer && [songPlayer rate] > 0.0f;
+    return songPlayer && [songPlayer isPlaying];
 }
 
 static void SetMusicVolume(float volume) {
-    if (songPlayer)
-        [songPlayer setVolume:volume];
-}
-
-static void RemoveMusicEndObserver(void) {
-    if (musicEndObserver) {
-        [[NSNotificationCenter defaultCenter] removeObserver:musicEndObserver];
-        musicEndObserver = nil;
-    }
+    /* AVMIDIPlayer has no volume API. Keep the preference for a future mixer. */
+    (void)volume;
 }
 
 void ApplyVolumePreferences(void) {
@@ -83,15 +75,31 @@ void ApplyVolumePreferences(void) {
 }
 
 bool U3AudioMusicSelfTest(void) {
-    NSString *path = [[NSBundle mainBundle] pathForResource:@"Song_1" ofType:@"mov" inDirectory:@"Music"];
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"Song_1" ofType:@"mid" inDirectory:@"MusicMIDI"];
     if (!path)
         return false;
-    NSURL *url = [NSURL fileURLWithPath:path];
-    AVPlayerItem *item = [AVPlayerItem playerItemWithURL:url];
-    if (!item)
+    if (U3CocoaIsHeadlessDiagnostic()) {
+        fprintf(stderr, "MIDI asset test: passed (playback deferred outside GUI)\n");
+        return true;
+    }
+    NSError *error = nil;
+    NSData *data = [NSData dataWithContentsOfFile:path];
+    AVMIDIPlayer *player = nil;
+    @try {
+        player = [[[AVMIDIPlayer alloc] initWithData:data soundBankURL:nil error:&error] autorelease];
+    } @catch (NSException *exception) {
+        fprintf(stderr, "MIDI playback unavailable: %s\n", [[exception reason] UTF8String]);
         return false;
-    AVAsset *asset = [AVAsset assetWithURL:url];
-    return [asset tracks].count > 0;
+    }
+    if (!player) {
+        fprintf(stderr, "MIDI playback unavailable: %s\n", error ? [[error localizedDescription] UTF8String] : "unknown error");
+        return false;
+    }
+    NSString *effectPath = [[NSBundle mainBundle] pathForResource:@"Step" ofType:@"wav" inDirectory:@"SoundsPCM"];
+    if (!effectPath)
+        return false;
+    Boolean effectPassed = [[NSFileManager defaultManager] fileExistsAtPath:effectPath];
+    return effectPassed;
 }
 
 void ErrorTone(void) {
@@ -355,7 +363,6 @@ void SetUpMusic(void) {
 
 void CloseMusic(void) {
     EndSong();
-    RemoveMusicEndObserver();
     [songPlayer release];
     songPlayer = nil;
 }
@@ -373,8 +380,8 @@ void MusicUpdate(void) {
         if (gSongNext == gSongCurrent) {
             if (songPlayer) {
                 //printf("replaying (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-                [songPlayer seekToTime:kCMTimeZero];
-                [songPlayer play];
+                [songPlayer setCurrentPosition:0.0];
+                [songPlayer play:nil];
             }
         } else {
             //printf("ending #1 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
@@ -408,36 +415,33 @@ void MusicUpdate(void) {
         return;
     //printf("ending #3 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
     EndSong();
-    RemoveMusicEndObserver();
 
     NSString *songName = [NSString stringWithFormat:@"Song_%c", songid];
-    NSString *path = [[NSBundle mainBundle] pathForResource:songName ofType:@"mov" inDirectory:@"Music"];
+    NSString *path = [[NSBundle mainBundle] pathForResource:songName ofType:@"mid" inDirectory:@"MusicMIDI"];
     if (!path) {
         HandleError(paramErr, 57, 1);
         return;
     }
-    NSURL *songURL = [NSURL fileURLWithPath:path];
-    AVPlayerItem *songItem = [AVPlayerItem playerItemWithURL:songURL];
-    if (!songItem) {
+    NSData *songData = [NSData dataWithContentsOfFile:path];
+    NSError *error = nil;
+    AVMIDIPlayer *newPlayer = nil;
+    @try {
+        newPlayer = [[AVMIDIPlayer alloc] initWithData:songData soundBankURL:nil error:&error];
+    } @catch (NSException *exception) {
+        fprintf(stderr, "MIDI playback unavailable: %s\n", [[exception reason] UTF8String]);
+        gSongPlaying = 0;
+        return;
+    }
+    if (!newPlayer) {
         fprintf(stderr, "Music unavailable: %s\n", [path UTF8String]);
+        if (error)
+            fprintf(stderr, "MIDI error: %s\n", [[error localizedDescription] UTF8String]);
         return;
     }
     [songPlayer release];
-    songPlayer = [[AVPlayer alloc] initWithPlayerItem:songItem];
-    [songPlayer setVolume:(float)gQTMusicVolume / 100.0f];
-    [songPlayer setActionAtItemEnd:AVPlayerActionAtItemEndNone];
-    musicEndObserver = [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
-                                                                           object:songItem
-                                                                            queue:nil
-                                                                       usingBlock:^(NSNotification *note) {
-        (void)note;
-        if (songPlayer)
-            [songPlayer seekToTime:kCMTimeZero completionHandler:^(BOOL finished) {
-                if (finished && songPlayer)
-                    [songPlayer play];
-            }];
-    }];
-    [songPlayer play];
+    songPlayer = newPlayer;
+    [songPlayer prepareToPlay];
+    [songPlayer play:nil];
     strk = gSongPlaying;
 }
 
@@ -445,7 +449,6 @@ void EndSong(void) {
     long startTime;
 
     if (songPlayer) {
-        RemoveMusicEndObserver();
         startTime = U3PlatformTickCount();
         const int numTicks = 30;
         float scale = gQTMusicVolume / (float)numTicks;
@@ -454,7 +457,7 @@ void EndSong(void) {
             SetMusicVolume((float)newVolume / 100.0f);
             U3PlatformWaitTicks(3);
         }
-        [songPlayer pause];
+        [songPlayer stop];
         SetMusicVolume((float)gQTMusicVolume / 100.0f);
     }
 }

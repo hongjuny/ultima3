@@ -25,6 +25,7 @@ void WrapCarbonWindowInCocoa(void *windowRef, short xposn, short yposn, short wi
 void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short height);
 void U3CocoaPumpEvents(void);
 Boolean U3CocoaHasMainSurface(void);
+Boolean U3CocoaUsesNativeUI(void);
 void U3CocoaRunApplication(void);
 Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKey,
                             Boolean *outMouse);
@@ -41,6 +42,7 @@ void U3CocoaPaintRect(short left, short top, short right, short bottom);
 void U3CocoaEraseRect(short left, short top, short right, short bottom);
 void U3CocoaFrameRect(short left, short top, short right, short bottom);
 void U3CocoaDrawPascalString(ConstStr255Param text);
+short U3CocoaTextWidth(ConstStr255Param text);
 void U3CocoaDrawBytes(const void *textBuf, short firstByte, short byteCount);
 CFStringRef CopyExpireDateString(void);
 CFStringRef CopyAppVersionString(void);
@@ -51,6 +53,7 @@ CFURLRef ResourcesDirectoryURL(void);
 CFArrayRef CopyGraphicsDirectoryItems(void);
 CFStringRef CopyCatStrings(CFStringRef str1, CFStringRef str2);
 void PlaySoundFileQT(CFStringRef soundName, Boolean async);
+Boolean U3CocoaIsHeadlessDiagnostic(void);
 void SetSoundVolumePercent(short newVolume);
 Boolean ShouldNotifyUser(void);
 Boolean GetSystemVersion(unsigned *majorVersion, unsigned *minorVersion, unsigned *bugFixVersion);

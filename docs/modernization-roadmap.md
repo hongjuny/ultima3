@@ -154,6 +154,25 @@ Candidate calls:
 - `U3AudioPlaySound`
 - `U3AudioStartMusic`
 - `U3AudioStopMusic`
+
+### 2026-09-10: Audio asset compatibility
+
+- Converted the legacy IMA ADPCM WAV effects into `Resources/SoundsPCM` as PCM16 WAV assets. Current macOS `afplay` rejects the original files with AudioFileOpen error `-9405`.
+- The Cocoa audio boundary now resolves effects from the PCM bundle while retaining the original legacy assets for reference.
+- Verified that all bundled `Song_*.mov` files contain only QuickTime `musi` data tracks and no playable audio track. The modern AVFoundation path now reports this explicitly instead of silently attempting playback.
+- Converted all ten `musi` tracks into standard MIDI files with a repeatable converter at `scripts/convert-quicktime-music.py`. The game now loads those files through `AVMIDIPlayer`, avoiding QuickTime movie playback entirely.
+- Remaining audio validation: compare MIDI playback on a real macOS audio device with the original QuickTime rendering and adjust General MIDI instrument/channel mappings if needed.
+
+### 2026-09-10: Party formation and text bridge
+
+- Routed Carbon theme text calls through the Cocoa renderer. This fixes blank
+  modern-font messages after forming a party while preserving the classic
+  bitmap-font path.
+- Exposed the complete party-save transition as `U3StorePartySelection` and
+  added `U3_PARTY_FLOW_CHECK`, which exercises character creation, roster/party
+  persistence, world reset, and the first world render in one headless test.
+- The party flow now passes through `Game()` on Apple Silicon without a crash;
+  GUI validation of the native picker and Journey Onward remains a manual test.
 - `U3IOLoadResource`
 - `U3IOSaveGame`
 - `U3IOLoadGame`
@@ -666,7 +685,7 @@ Recommended immediate sequence:
      blocked terrain, diagonal movement, and command menus remain unverified
    - next: validate real AppKit key/mouse events interactively and continue
      removing legacy modal dialogs
-47. replace legacy QuickTime `NSSound` music playback with AVFoundation `AVPlayer`
+47. replace legacy QuickTime `NSSound` music playback with AVFoundation `AVMIDIPlayer` backed by portable MIDI assets
    - preserve looping, volume, stop, and song-transition behavior while keeping
      the legacy game-facing audio contract unchanged
    - link AVFoundation/CoreMedia explicitly and add a bundled music decode
@@ -699,3 +718,33 @@ Recommended immediate sequence:
      the party from `(42,20)` to `(43,20)`
    - all cursor IDs with an existing legacy key equivalent now preserve that
      equivalent, including attack, unlock, enter, board, exit, torch, and dungeon actions
+53. bypass the obsolete Carbon display-mode dialog on the native Cocoa path
+   - current macOS startup explicitly selects windowed native UI and records the
+     choice, leaving the original dialog only for a future legacy platform path
+54. replace legacy NSSound effects with AVFoundation AVAudioPlayer
+   - preserve asynchronous overlap, synchronous wait behavior, and volume updates
+   - audio self-test checks bundled music metadata and the bundled WAV effect
+     asset; actual device audio-session playback remains a GUI validation item
+55. add a reproducible arm64 Release-app build path
+   - `scripts/build-release-app.sh` bypasses the obsolete DMG/Rez packaging
+     phase and produces an unsigned Release `.app`
+   - signing, notarization, and modern DMG/ZIP packaging remain release work
+56. route splash/intro interruption checks through Cocoa input polling
+   - startup key and mouse events now use the same AppKit boundary as gameplay
+   - Carbon `WaitNextEvent` remains only as a non-Cocoa legacy fallback
+57. normalize physical arrow-key events at the Cocoa input boundary
+   - AppKit arrow key codes now map to the legacy movement values `28..31`
+   - numeric keypad and character-command input remain unchanged
+   - MIDI remains an optional experimental backend; original QuickTime timbres
+     are not treated as preserved until GUI playback is compared
+58. expose the existing game save command through the native Cocoa menu
+   - `File > Save Game` posts the legacy `Q` command through the normal input
+     boundary, preserving the existing save validation and resource writes
+   - native `Cmd-S` now reaches the same path; menu behavior outside the world
+     screen remains governed by the original command handling
+59. implement portable game/world state persistence behind `U3IO`
+   - game and world snapshots use a versioned envelope and explicit big-endian
+     field serialization in the existing atomic save container, with map-specific world keys
+   - round-trip tests now cover party bytes, coordinates, map ID, and malformed
+     state rejection
+   - legacy roster/resource migration remains a separate compatibility layer

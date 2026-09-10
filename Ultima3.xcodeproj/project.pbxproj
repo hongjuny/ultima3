@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B50000010000000000000000 /* CoreText.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B50000020000000000000000 /* CoreText.framework */; };
 		B40000010000000000000000 /* U3Bitmap.c in Sources */ = {isa = PBXBuildFile; fileRef = B40000020000000000000000; };
 		350D488D17025866009499DC /* Cursors in Resources */ = {isa = PBXBuildFile; fileRef = 350D488C17025865009499DC /* Cursors */; };
 		351BF177195EDA9B00B9E489 /* LWIntegerTransformer.m in Sources */ = {isa = PBXBuildFile; fileRef = 351BF176195EDA9B00B9E489 /* LWIntegerTransformer.m */; };
@@ -40,9 +41,11 @@
 		A821B3290A31CDAC0079FF83 /* CarbonShunts.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B31B0A31CDAC0079FF83 /* CarbonShunts.c */; };
 		A821B32A0A31CDAC0079FF83 /* UltimaGraphics.c in Sources */ = {isa = PBXBuildFile; fileRef = A821B31C0A31CDAC0079FF83 /* UltimaGraphics.c */; };
 		A821B3530A31CE930079FF83 /* Music in Resources */ = {isa = PBXBuildFile; fileRef = A821B3450A31CE930079FF83 /* Music */; };
+		B40000130000000000000000 /* MusicMIDI in Resources */ = {isa = PBXBuildFile; fileRef = B40000140000000000000000 /* MusicMIDI */; };
 		A83CE77E136389CA00ADADCA /* Strings in Resources */ = {isa = PBXBuildFile; fileRef = A83CE77D136389CA00ADADCA /* Strings */; };
 		A83CE8E213638CD000ADADCA /* MainResources.rsrc in Resources */ = {isa = PBXBuildFile; fileRef = A83CE8E113638CD000ADADCA /* MainResources.rsrc */; };
 		A85A8B170B225AE600299E2B /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = A85A8AEF0B225AE600299E2B /* Sounds */; };
+		B40000110000000000000000 /* SoundsPCM in Resources */ = {isa = PBXBuildFile; fileRef = B40000120000000000000000 /* SoundsPCM */; };
 		A862ADCA0B484CF20043DA3B /* Graphics in Resources */ = {isa = PBXBuildFile; fileRef = A862ADB10B484CF20043DA3B /* Graphics */; };
 		A86F25FC15CD2D3B005C3CA5 /* PrefsDialog.m in Sources */ = {isa = PBXBuildFile; fileRef = A86F25FB15CD2D3B005C3CA5 /* PrefsDialog.m */; };
 		A86F260915CD2EC4005C3CA5 /* GameOptions.nib in Resources */ = {isa = PBXBuildFile; fileRef = A86F260715CD2EC4005C3CA5 /* GameOptions.nib */; };
@@ -80,6 +83,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		B50000020000000000000000 /* CoreText.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreText.framework; path = System/Library/Frameworks/CoreText.framework; sourceTree = SDKROOT; };
 		B40000020000000000000000 /* U3Bitmap.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Sources/U3Bitmap.c; sourceTree = SOURCE_ROOT; };
 		0867D6ABFE840B52C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		20286C33FDCF999611CA2CEA /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
@@ -135,9 +139,11 @@
 		A821B31C0A31CDAC0079FF83 /* UltimaGraphics.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = UltimaGraphics.c; path = Sources/UltimaGraphics.c; sourceTree = SOURCE_ROOT; };
 		A821B32E0A31CE8A0079FF83 /* English */ = {isa = PBXFileReference; lastKnownFileType = archive.rsrc; name = English; path = Resources/English.lproj/MainResources.rsrc; sourceTree = "<group>"; };
 		A821B3450A31CE930079FF83 /* Music */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Music; path = Resources/Music; sourceTree = "<group>"; };
+		B40000140000000000000000 /* MusicMIDI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicMIDI; path = Resources/MusicMIDI; sourceTree = "<group>"; };
 		A83198CC1402D5960046A668 /* UltimaAutocombat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UltimaAutocombat.h; path = Sources/UltimaAutocombat.h; sourceTree = SOURCE_ROOT; };
 		A83198CD1402D6E80046A668 /* UltimaAppleEvents.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UltimaAppleEvents.h; path = Sources/UltimaAppleEvents.h; sourceTree = SOURCE_ROOT; };
 		A85A8AEF0B225AE600299E2B /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Sounds; path = Resources/Sounds; sourceTree = "<group>"; };
+		B40000120000000000000000 /* SoundsPCM */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SoundsPCM; path = Resources/SoundsPCM; sourceTree = "<group>"; };
 		A862ADB10B484CF20043DA3B /* Graphics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Graphics; path = Resources/Graphics; sourceTree = "<group>"; };
 		A862AE880B4859A00043DA3B /* UltimaNew.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UltimaNew.h; path = Sources/UltimaNew.h; sourceTree = SOURCE_ROOT; };
 		A86F25DF15CD2C2C005C3CA5 /* LWCocoaDialogController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LWCocoaDialogController.h; path = Sources/LWCocoaDialogController.h; sourceTree = SOURCE_ROOT; };
@@ -187,6 +193,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B40000030000000000000000 /* AVFoundation.framework in Frameworks */,
+				B50000010000000000000000 /* CoreText.framework in Frameworks */,
 				B40000050000000000000000 /* CoreMedia.framework in Frameworks */,
 				8D0C4E920486CD37000505A6 /* Carbon.framework in Frameworks */,
 				A8F5D6AE0A96318100E6755A /* Cocoa.framework in Frameworks */,
@@ -273,7 +280,9 @@
 				350D488C17025865009499DC /* Cursors */,
 				A862ADB10B484CF20043DA3B /* Graphics */,
 				A821B3450A31CE930079FF83 /* Music */,
+				B40000140000000000000000 /* MusicMIDI */,
 				A85A8AEF0B225AE600299E2B /* Sounds */,
+				B40000120000000000000000 /* SoundsPCM */,
 				A896F5AA0B7492DA00A4045D /* Images */,
 				8D0C4E960486CD37000505A6 /* Info.plist */,
 				0867D6AAFE840B52C02AAC07 /* InfoPlist.strings */,
@@ -285,6 +294,7 @@
 			isa = PBXGroup;
 			children = (
 				B40000040000000000000000 /* AVFoundation.framework */,
+				B50000020000000000000000 /* CoreText.framework */,
 				B40000060000000000000000 /* CoreMedia.framework */,
 				20286C33FDCF999611CA2CEA /* Carbon.framework */,
 				A8AA791D0A2F9E4400F17165 /* Cocoa.framework */,
@@ -411,8 +421,10 @@
 				8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */,
 				A83CE8E213638CD000ADADCA /* MainResources.rsrc in Resources */,
 				A821B3530A31CE930079FF83 /* Music in Resources */,
+				B40000130000000000000000 /* MusicMIDI in Resources */,
 				A8ED548C0A34DC6C007A493A /* Application.icns in Resources */,
 				A85A8B170B225AE600299E2B /* Sounds in Resources */,
+				B40000110000000000000000 /* SoundsPCM in Resources */,
 				A83CE77E136389CA00ADADCA /* Strings in Resources */,
 				A862ADCA0B484CF20043DA3B /* Graphics in Resources */,
 				A896F5C50B7492DA00A4045D /* Buttons.png in Resources */,
@@ -623,6 +635,7 @@
 					"-Wno-error=implicit-function-declaration",
 					"-Wno-error=int-conversion",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lairware.ultima3;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -644,6 +657,7 @@
 					"-Wno-error=implicit-function-declaration",
 					"-Wno-error=int-conversion",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lairware.ultima3;
 				SDKROOT = macosx;
 			};
 			name = Release;

@@ -149,7 +149,7 @@ Boolean U3ApplyPartySelection(const short selection[4]) {
     return true;
 }
 
-static Boolean StorePartySelection(const short selection[4]) {
+Boolean U3StorePartySelection(const short selection[4]) {
     if (!U3ApplyPartySelection(selection)) return false;
     PutParty();
     PutRoster();
@@ -222,7 +222,7 @@ Boolean FormPartyDialog(void) {
             available[member - 1] = length && !Player[member][16];
         }
         if (!U3CocoaChooseParty(names, available, sel)) return false;
-        return StorePartySelection(sel);
+        return U3StorePartySelection(sel);
     }
     theDialog = GetNewDialog(BASERES + 21, nil, (WindowPtr)-1);
 #if TARGET_CARBON
@@ -290,7 +290,7 @@ Boolean FormPartyDialog(void) {
         ModalDialog((ModalFilterUPP)DialogFilterProc, &itemHit);
         switch (itemHit) {
             case IDFP_FORM:
-                didForm = StorePartySelection(sel);
+                didForm = U3StorePartySelection(sel);
                 dialogDone = didForm;
                 break;
             case IDFP_CANCEL: dialogDone = TRUE; break;
@@ -757,8 +757,11 @@ pascal Boolean DialogFilter(DialogPtr theDlg, EventRecord *event, short *itemHit
 #define IDAS_WINDOW 3
 //#define IDAS_DONTASK      4
 void SetUpDisplayDialog(void) {
-    if (U3CocoaHasMainSurface())
+    if (U3CocoaUsesNativeUI()) {
+        U3PlatformSetBooleanPreference(U3PreferenceFullScreen, false);
+        U3PlatformSetBooleanPreference(U3PreferenceDontAskDisplayMode, true);
         return;
+    }
     Boolean dialogDone;
     short /*temp,*/ itemHit;
     DialogPtr theDialog;

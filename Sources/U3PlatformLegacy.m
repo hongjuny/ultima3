@@ -21,7 +21,28 @@ extern short gMouseKey;
 extern short gCurMouseDir;
 extern void CursorUpdate(void);
 extern short gUpdateWhere;
+extern short blkSiz;
 extern void SaveWideArea(void);
+extern EventRecord gTheEvent;
+
+static char U3MainMenuButtonKey(Point point) {
+    if (gUpdateWhere != 5)
+        return 0;
+    float scale = blkSiz > 0 ? (float)blkSiz / 16.0f : 1.0f;
+    short top = (short)(55.0f * scale);
+    short bottom = (short)(80.0f * scale);
+    const short lefts[] = {67, 202, 338, 473};
+    const char keys[] = {'R', 'O', 'A', 'J'};
+    if (point.v < top || point.v >= bottom)
+        return 0;
+    for (int i = 0; i < 4; ++i) {
+        short left = (short)(lefts[i] * scale);
+        short right = (short)((lefts[i] + 100) * scale);
+        if (point.h >= left && point.h < right)
+            return keys[i];
+    }
+    return 0;
+}
 
 static CFStringRef U3LegacyPreferenceNameForKey(U3PreferenceKey key) {
     switch (key) {
@@ -88,6 +109,20 @@ bool U3PlatformGetKeyMouse(uint8_t mode) {
         gKeyPress = key;
         gMouseKey = isMouse;
         if (isMouse) {
+            Point mouse;
+            U3CocoaGetMousePoint(&mouse);
+            char menuKey = U3MainMenuButtonKey(mouse);
+            if (menuKey) {
+                gKeyPress = menuKey;
+                gMouseKey = false;
+                return true;
+            }
+            gTheEvent.what = mouseDown;
+            gTheEvent.where = mouse;
+            gTheEvent.message = 0;
+            gTheEvent.when = U3PlatformTickCount();
+            gTheEvent.modifiers = 0;
+            HandleMouseDown();
             gCurMouseDir = 0;
             CursorUpdate();
             if (gCurMouseDir)

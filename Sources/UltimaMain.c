@@ -255,20 +255,37 @@ unsigned short RandNum(unsigned short lowrnd, unsigned short highrnd) {
 }
 
 void MainLoop(void) {
+    if (getenv("U3_MODERN_TEXT_CHECK"))
+        U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, false);
     demoptr = 0;
     CreateIntroData();
-    Intro();
+    if (!getenv("U3_MODERN_TEXT_CHECK") && !getenv("U3_MAIN_MENU_INPUT_CHECK"))
+        Intro();
     U3RenderClearBottom();
     GetDemoRsrc();
+    if (getenv("U3_MAIN_MENU_INPUT_CHECK")) {
+        gUpdateWhere = 5;
+        DrawFrame(3);
+        DrawMenu();
+        U3CocoaQueueDiagnosticMouse(200, 120);
+        char menuKey = U3PlatformWaitKeyMouse();
+        fprintf(stderr, "Main menu input check: key=%c\n", menuKey);
+        if (menuKey != 'R')
+            exit(EXIT_FAILURE);
+        gDone = TRUE;
+        return;
+    }
     if (getenv("U3_WORLD_RENDER_CHECK") || getenv("U3_WORLD_INPUT_CHECK") ||
-        getenv("U3_WORLD_MOUSE_CHECK")) {
+        getenv("U3_WORLD_MOUSE_CHECK") || getenv("U3_PARTY_FLOW_CHECK")) {
         U3CharacterDraft draft = {{'A', 'd', 'a'}, {15, 15, 10, 10}, 'H', 'F', 'F'};
         short slot = 1;
         while (slot <= 20 && Player[slot][0]) ++slot;
         Boolean stored = slot <= 20 && StoreCreatedCharacter(slot, &draft);
         if (stored)
             memset(Party, 0, sizeof(Party));
-        Boolean formed = stored && U3ApplyPartySelection((short[4]){slot, 0, 0, 0});
+        Boolean formed = stored && (getenv("U3_PARTY_FLOW_CHECK") ?
+            U3StorePartySelection((short[4]){slot, 0, 0, 0}) :
+            U3ApplyPartySelection((short[4]){slot, 0, 0, 0}));
         fprintf(stderr, "World render check: slot=%d stored=%d formed=%d io=%d\n",
                 slot, stored, formed, (int)U3IOLastError());
         if (!stored || !formed) {
@@ -276,6 +293,12 @@ void MainLoop(void) {
             exit(EXIT_FAILURE);
         }
         fprintf(stderr, "World render check: party ready\n");
+        if (getenv("U3_MODERN_TEXT_CHECK")) {
+            DrawOrganizeMenu();
+            if (!U3CocoaWriteMainBitmap(getenv("U3_MODERN_TEXT_CHECK")))
+                exit(EXIT_FAILURE);
+        }
+        DisposeButtons();
         Game();
         return;
     }
@@ -1201,6 +1224,13 @@ void Game(void) {
             diagnosticInputQueued = TRUE;
         }
         if (getenv("U3_WORLD_RENDER_CHECK")) {
+            if (getenv("U3_MUSIC_TRANSITION_CHECK")) {
+                U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, false);
+                gSongCurrent = gSongNext = 1;
+                U3AudioUpdateMusic();
+                U3AudioStopMusic();
+                fprintf(stderr, "Music transition: start/stop completed\n");
+            }
             U3CocoaPumpEvents();
             Boolean written = U3CocoaWriteMainBitmap(getenv("U3_WORLD_RENDER_CHECK"));
             fprintf(stderr, "World render check: %s at (%d,%d)\n",

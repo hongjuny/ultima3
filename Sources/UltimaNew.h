@@ -11,6 +11,7 @@ void ValidatePrefs(void);
 Boolean TerminateCharacterDialog(void);
 Boolean FormPartyDialog(void);
 Boolean U3ApplyPartySelection(const short selection[4]);
+Boolean U3StorePartySelection(const short selection[4]);
 void GetButtons(void);
 void DisposeButtons(void);
 void DrawButton(short butNum, Boolean pushed, Boolean dim);

@@ -1173,17 +1173,24 @@ void CheckInterrupted(void) {
     if (getenv("U3_BOOT_CHECK") || getenv("U3_WORLD_RENDER_CHECK") ||
         getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK"))
         return;
-    EventRecord theEvent;
-    WaitNextEvent(everyEvent, &theEvent, 1L, nil);
-    switch (theEvent.what) {
-        case mouseDown:
-        case keyDown:
+    if (U3CocoaHasMainSurface()) {
+        char key = 0;
+        Boolean isMouse = false;
+        if (U3CocoaPollKeyMouse(true, 1, &key, &isMouse)) {
+            gKeyPress = key;
             gInterrupt = TRUE;
-            Rect myRect;
-            SetRect(&myRect, blkSiz, blkSiz * 20.9375, blkSiz * 39, blkSiz * 22.9375);
-            ForeColor(blackColor);
-            PaintRect(&myRect);
-            break;
+        }
+    } else {
+        EventRecord theEvent;
+        WaitNextEvent(everyEvent, &theEvent, 1L, nil);
+        if (theEvent.what == mouseDown || theEvent.what == keyDown)
+            gInterrupt = TRUE;
+    }
+    if (gInterrupt) {
+        Rect myRect;
+        SetRect(&myRect, blkSiz, blkSiz * 20.9375, blkSiz * 39, blkSiz * 22.9375);
+        ForeColor(blackColor);
+        PaintRect(&myRect);
     }
 }
 

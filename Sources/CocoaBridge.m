@@ -8,15 +8,19 @@
 #import "CarbonShunts.h"
 #import "LWCocoaDialogController.h"
 #import "UltimaIncludes.h"
+#import "U3Platform.h"
 
 #import <Cocoa/Cocoa.h>
 #import <Carbon/Carbon.h>
+#import <AVFoundation/AVFoundation.h>
+#import <CoreText/CoreText.h>
 
 extern short gUpdateWhere;
 
 @class U3MainSurfaceView;
 
 static short sQTSoundVolume = 100;    // was 254 but let's make sounds quieter.
+static NSMutableArray *sEffectPlayers = nil;
 static NSWindow *sU3MainSurfaceWindow = nil;
 static U3MainSurfaceView *sU3MainSurfaceView = nil;
 static U3Bitmap sU3MainBitmap;
@@ -35,9 +39,46 @@ static Point sU3MousePoint = {0, 0};
 static Boolean sU3DiagnosticMousePending = false;
 static void U3CocoaReplayCommands(NSArray *commands);
 
-static BOOL U3CocoaIsHeadlessDiagnostic(void) {
+static NSFont *U3CocoaTextFont(CGFloat size, NSInteger face) {
+    char name[256] = {0};
+    NSFont *font = nil;
+    if (U3PlatformCopyUTF8StringPreference(U3PreferenceGameFont, name, sizeof(name)))
+        font = [NSFont fontWithName:[NSString stringWithUTF8String:name] size:size];
+    if (!font) font = [NSFont userFixedPitchFontOfSize:size];
+    if (!font) font = [NSFont systemFontOfSize:size];
+    if (face & bold)
+        font = [[NSFontManager sharedFontManager] convertFont:font toHaveTrait:NSBoldFontMask];
+    return font;
+}
+
+static NSString *U3CocoaStringFromLegacyBytes(const unsigned char *bytes, NSUInteger length) {
+    if (!bytes || !length)
+        return @"";
+    NSString *string = [[[NSString alloc] initWithBytes:bytes length:length
+                                               encoding:NSMacOSRomanStringEncoding] autorelease];
+    if (!string)
+        string = [[[NSString alloc] initWithBytes:bytes length:length
+                                           encoding:NSUTF8StringEncoding] autorelease];
+    return string ? string : @"";
+}
+
+static char U3CocoaKeyCharacter(NSEvent *event) {
+    switch ([event keyCode]) {
+        case 123: return 28; // left arrow
+        case 124: return 29; // right arrow
+        case 126: return 30; // up arrow
+        case 125: return 31; // down arrow
+        default: break;
+    }
+    NSString *characters = [event charactersIgnoringModifiers];
+    return [characters length] > 0 ? (char)[characters characterAtIndex:0] : 0;
+}
+
+Boolean U3CocoaIsHeadlessDiagnostic(void) {
     return getenv("U3_BOOT_CHECK") || getenv("U3_WORLD_RENDER_CHECK") ||
-           getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK");
+           getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK") ||
+           getenv("U3_AUDIO_SELF_TEST") || getenv("U3_PARTY_FLOW_CHECK") ||
+           getenv("U3_MAIN_MENU_INPUT_CHECK");
 }
 
 @interface U3MainSurfaceView : NSView
@@ -161,22 +202,24 @@ static void U3CocoaReplayCommands(NSArray *commands) {
             NSString *text = [command objectForKey:@"text"];
             CGFloat size = [[command objectForKey:@"size"] doubleValue];
             NSInteger face = [[command objectForKey:@"face"] integerValue];
-            NSFont *font = nil;
-
-            if (face & bold)
-                font = [NSFont boldSystemFontOfSize:size];
-            else
-                font = [NSFont userFixedPitchFontOfSize:size];
-            if (!font)
-                font = [NSFont systemFontOfSize:size];
+            NSFont *font = U3CocoaTextFont(size, face);
 
             NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
                 color, NSForegroundColorAttributeName,
                 font, NSFontAttributeName,
                 nil];
             NSPoint point = [[command objectForKey:@"point"] pointValue];
-            point.y -= size;
-            [text drawAtPoint:point withAttributes:attributes];
+            NSAttributedString *attributed = [[[NSAttributedString alloc]
+                initWithString:text attributes:attributes] autorelease];
+            CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)attributed);
+            CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
+            CGContextSaveGState(context);
+            CGContextSetTextDrawingMode(context, kCGTextFill);
+            CGContextSetTextMatrix(context, CGAffineTransformMakeScale(1, -1));
+            CGContextSetTextPosition(context, point.x, point.y);
+            CTLineDraw(line, context);
+            CGContextRestoreGState(context);
+            CFRelease(line);
         }
     }
 }
@@ -493,14 +536,7 @@ static NSString *U3CocoaStringFromPascal(ConstStr255Param text) {
         return @"";
 
     NSUInteger length = text[0];
-    NSString *string = [[[NSString alloc] initWithBytes:text + 1
-                                                 length:length
-                                               encoding:NSMacOSRomanStringEncoding] autorelease];
-    if (!string)
-        string = [[[NSString alloc] initWithBytes:text + 1
-                                           length:length
-                                         encoding:NSASCIIStringEncoding] autorelease];
-    return string ? string : @"";
+    return U3CocoaStringFromLegacyBytes(text + 1, length);
 }
 
 void U3CocoaSetForegroundQuickDrawColor(long color) {
@@ -581,6 +617,16 @@ void U3CocoaDrawPascalString(ConstStr255Param text) {
         [NSNumber numberWithShort:sU3TextFace], @"face",
         [NSNumber numberWithShort:sU3TextFont], @"font",
         nil]);
+}
+
+short U3CocoaTextWidth(ConstStr255Param text) {
+    NSAttributedString *string = [[[NSAttributedString alloc]
+        initWithString:U3CocoaStringFromPascal(text)
+        attributes:@{NSFontAttributeName: U3CocoaTextFont(sU3TextSize, sU3TextFace)}] autorelease];
+    CTLineRef line = CTLineCreateWithAttributedString((CFAttributedStringRef)string);
+    double width = CTLineGetTypographicBounds(line, NULL, NULL, NULL);
+    CFRelease(line);
+    return (short)MIN(32767, ceil(width));
 }
 
 void U3CocoaDrawBytes(const void *textBuf, short firstByte, short byteCount) {
@@ -824,6 +870,16 @@ void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short heig
     return &sU3MainSurfaceToken;
 }
 
+@interface U3CocoaMenuTarget : NSObject
+@end
+
+@implementation U3CocoaMenuTarget
+- (void)saveGame:(id)sender {
+    (void)sender;
+    U3CocoaQueueDiagnosticKey('q');
+}
+@end
+
 void U3CocoaInstallMenus(void) {
     if (U3CocoaIsHeadlessDiagnostic())
         return;
@@ -835,6 +891,14 @@ void U3CocoaInstallMenus(void) {
     [quit setTarget:NSApp];
     [appItem setSubmenu:appMenu];
     [bar addItem:appItem];
+
+    U3CocoaMenuTarget *target = [[[U3CocoaMenuTarget alloc] init] autorelease];
+    NSMenuItem *fileItem = [[[NSMenuItem alloc] initWithTitle:@"File" action:NULL keyEquivalent:@""] autorelease];
+    NSMenu *fileMenu = [[[NSMenu alloc] initWithTitle:@"File"] autorelease];
+    NSMenuItem *save = [fileMenu addItemWithTitle:@"Save Game" action:@selector(saveGame:) keyEquivalent:@"s"];
+    [save setTarget:target];
+    [fileItem setSubmenu:fileMenu];
+    [bar addItem:fileItem];
     [NSApp setMainMenu:bar];
 }
 
@@ -855,6 +919,10 @@ void U3CocoaPumpEvents(void) {
 
 Boolean U3CocoaHasMainSurface(void) {
     return sU3MainSurfaceWindow != nil || sU3HeadlessSurface;
+}
+
+Boolean U3CocoaUsesNativeUI(void) {
+    return true;
 }
 
 void U3CocoaRunApplication(void) {
@@ -900,11 +968,10 @@ Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKe
     if (event) {
         switch ([event type]) {
             case NSKeyDown: {
-                NSString *characters = [event charactersIgnoringModifiers];
-                if ([characters length] > 0) {
-                    unichar character = [characters characterAtIndex:0];
+                char character = U3CocoaKeyCharacter(event);
+                if (character != 0) {
                     if (outKey)
-                        *outKey = (char)character;
+                        *outKey = character;
                     handledInput = true;
                 }
                 break;
@@ -1003,9 +1070,8 @@ Boolean U3CocoaChooseParty(const unsigned char names[20][16], const Boolean avai
             for (int i = 0; i < 20; ++i) {
                 NSUInteger length = MIN(names[i][0], 15);
                 if (!length) continue;
-                NSString *name = [[[NSString alloc] initWithBytes:names[i] + 1 length:length
-                    encoding:NSMacOSRomanStringEncoding] autorelease];
-                [choice addItemWithTitle:[NSString stringWithFormat:@"%d. %@", i + 1, name ? name : @""]];
+                NSString *name = U3CocoaStringFromLegacyBytes(names[i] + 1, length);
+                [choice addItemWithTitle:[NSString stringWithFormat:@"%d. %@", i + 1, name]];
                 [[choice lastItem] setTag:i + 1];
                 [[choice lastItem] setEnabled:available[i]];
             }
@@ -1426,66 +1492,64 @@ Boolean SetCursorNamed(CFStringRef cursorName, float scale) {
 
 void PlaySoundFileQT(CFStringRef soundName, Boolean async) {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    if (U3CocoaIsHeadlessDiagnostic()) {
+        [pool release];
+        return;
+    }
     static NSString *sSoundsDirectory = nil;
     if (!sSoundsDirectory)
-        sSoundsDirectory = [[[NSBundle mainBundle] pathForResource:@"Sounds" ofType:nil] retain];
+        sSoundsDirectory = [[[NSBundle mainBundle] pathForResource:@"SoundsPCM" ofType:nil] retain];
     if (sSoundsDirectory) {
-        NSString *key = (NSString *)soundName;
+        NSString *key = [(NSString *)soundName copy];
         static NSArray *sSoundFiles = nil;
         if (!sSoundFiles)
             sSoundFiles = [[[NSFileManager defaultManager] subpathsAtPath:sSoundsDirectory] retain];
-        static NSMutableDictionary *sSoundsCacheIndex = nil;
-        if (!sSoundsCacheIndex)
-            sSoundsCacheIndex = [[NSMutableDictionary alloc] init];
-
-        NSSound *sound = [sSoundsCacheIndex objectForKey:key];
-        int dn = 1;
-        while (sound && dn < 3 && [sound isPlaying]) {
-            key = [NSString stringWithFormat:@"%@_alt%d", soundName, ++dn];
-            sound = [sSoundsCacheIndex objectForKey:key];
-        }
-        if (sound && [sound isPlaying])
-            sound = [sSoundsCacheIndex objectForKey:(NSString *)soundName];
-
-        if (!sound) {
-            NSString *prefix = [(NSString *)soundName stringByAppendingString:@"."];
-            NSString *targetFile = nil;
-            int i = 0;
-            while (!targetFile && i < [sSoundFiles count]) {
-                NSString *aFilename = [sSoundFiles objectAtIndex:i++];
-                if ([aFilename hasPrefix:prefix])
-                    targetFile = [sSoundsDirectory stringByAppendingPathComponent:aFilename];
-            }
-            if (targetFile) {
-                sound = [[NSSound alloc] initWithContentsOfFile:targetFile byReference:YES];
-                if (sound) {
-                    [sound setVolume:(float)sQTSoundVolume / 100.0f];
-                    [sSoundsCacheIndex setObject:sound forKey:key];
-                    [sound release];
-                }
-            }
+        if (!sEffectPlayers)
+            sEffectPlayers = [[NSMutableArray alloc] init];
+        for (NSInteger i = [sEffectPlayers count] - 1; i >= 0; --i) {
+            AVAudioPlayer *oldPlayer = [sEffectPlayers objectAtIndex:i];
+            if (![oldPlayer isPlaying])
+                [sEffectPlayers removeObjectAtIndex:i];
         }
 
-        if (sound) {
-            [sound stop];
-            [sound setCurrentTime:0.0];
-            CFAbsoluteTime timeout = CFAbsoluteTimeGetCurrent() + 8.0;
-            [sound play];
-            if (!async) {
-                while ([sound isPlaying] && CFAbsoluteTimeGetCurrent() < timeout) {
-                    if (U3CocoaHasMainSurface())
-                        U3CocoaPumpEvents();
-                    else {
-                        EventRecord theEvent;
-                        WaitNextEvent(everyEvent, &theEvent, 6, nil);
-                        if (theEvent.what == kHighLevelEvent)
-                            AEProcessAppleEvent(&theEvent);
+        NSString *prefix = [(NSString *)soundName stringByAppendingString:@"."];
+        NSString *targetFile = nil;
+        for (NSString *filename in sSoundFiles) {
+            if ([filename hasPrefix:prefix]) {
+                targetFile = [sSoundsDirectory stringByAppendingPathComponent:filename];
+                break;
+            }
+        }
+        if (targetFile) {
+            NSError *error = nil;
+            AVAudioPlayer *player = [[AVAudioPlayer alloc]
+                initWithContentsOfURL:[NSURL fileURLWithPath:targetFile] error:&error];
+            if (player && [player prepareToPlay]) {
+                [player setVolume:MIN(1.0f, (float)sQTSoundVolume / 100.0f)];
+                [sEffectPlayers addObject:player];
+                [player play];
+                CFAbsoluteTime timeout = CFAbsoluteTimeGetCurrent() + 8.0;
+                if (!async) {
+                    while ([player isPlaying] && CFAbsoluteTimeGetCurrent() < timeout) {
+                        if (U3CocoaHasMainSurface())
+                            U3CocoaPumpEvents();
+                        else {
+                            EventRecord theEvent;
+                            WaitNextEvent(everyEvent, &theEvent, 6, nil);
+                            if (theEvent.what == kHighLevelEvent)
+                                AEProcessAppleEvent(&theEvent);
+                        }
+                        [NSThread sleepUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
                     }
-                    [NSThread sleepUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
                 }
+            } else if (error) {
+                NSLog(@"Cannot play sound '%@': %@", key, [error localizedDescription]);
             }
-        } else
-            NSLog(@"Cannot play sound '%@'", key);
+            [player release];
+        } else {
+            NSLog(@"Cannot find sound '%@'", key);
+        }
+        [key release];
     }
     [pool release];
 }
@@ -1495,6 +1559,8 @@ void SetSoundVolumePercent(short newVolume) {
         short newQTVolume = (short)((float)newVolume * 1.5);    // was 2.55 but sfx are so loud compared to music.
         if (newQTVolume != sQTSoundVolume) {
             sQTSoundVolume = newQTVolume;
+            for (AVAudioPlayer *player in sEffectPlayers)
+                [player setVolume:MIN(1.0f, (float)sQTSoundVolume / 100.0f)];
         }
     }
 }

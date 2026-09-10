@@ -75,6 +75,12 @@ OSStatus UDrawThemePascalString(ConstStr255Param inPString, ThemeFontID inFontID
     OSStatus error = paramErr;
 
     if (inPString != NULL) {
+        /* Carbon theme text is unavailable on the Cocoa surface.  Route the
+           same Pascal string through the renderer used by DrawString/DrawText. */
+        if (U3CocoaHasMainSurface()) {
+            U3CocoaDrawPascalString(inPString);
+            return noErr;
+        }
         CFStringRef cfstring = CFStringCreateWithPascalString(kCFAllocatorDefault, inPString, CFStringGetSystemEncoding());
         // or kCFStringEncodingMacRoman?
         if (cfstring) {
@@ -106,6 +112,8 @@ OSStatus UDrawThemePascalString(ConstStr255Param inPString, ThemeFontID inFontID
 
 short UThemePascalStringWidth(ConstStr255Param inPString, ThemeFontID inFontID) {
     if (inPString != NULL) {
+        if (U3CocoaHasMainSurface())
+            return U3CocoaTextWidth(inPString);
         CFStringRef cfstring = CFStringCreateWithPascalString(kCFAllocatorDefault, inPString, CFStringGetSystemEncoding());
         // or kCFStringEncodingMacRoman?
         if (cfstring) {

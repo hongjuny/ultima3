@@ -268,12 +268,207 @@ void U3IOReleaseLegacyResourceHandle(void *resourceHandle) {
     if (resourceHandle) ReleaseResource((Handle)resourceHandle);
 }
 
-bool U3IOLoadGame(U3GameState *state) { (void)state; return false; }
-bool U3IOSaveGame(const U3GameState *state) { (void)state; return false; }
+enum {
+    U3GameStateMagic = 0x55335356,
+    U3GameStateVersion = 1,
+    U3GameStateResourceID = 900,
+    U3WorldStateResourceID = 901
+};
+
+static NSString *U3StateKey(int16_t resourceID, int16_t mapID) {
+    return [NSString stringWithFormat:@"%08x:%d:%d",
+        (unsigned)U3LegacyResourceTypeForKind(U3ResourceKindMisc), resourceID, mapID];
+}
+
+static void U3AppendBytes(NSMutableData *data, const void *bytes, size_t size) {
+    [data appendBytes:bytes length:size];
+}
+
+static void U3AppendU16(NSMutableData *data, uint16_t value) {
+    uint8_t bytes[2] = {(uint8_t)(value >> 8), (uint8_t)value};
+    U3AppendBytes(data, bytes, sizeof(bytes));
+}
+
+static void U3AppendU32(NSMutableData *data, uint32_t value) {
+    uint8_t bytes[4] = {(uint8_t)(value >> 24), (uint8_t)(value >> 16),
+                        (uint8_t)(value >> 8), (uint8_t)value};
+    U3AppendBytes(data, bytes, sizeof(bytes));
+}
+
+static bool U3ReadBytes(const uint8_t *bytes, size_t size, size_t *offset,
+                        void *output, size_t outputSize) {
+    if (!bytes || !offset || *offset > size || outputSize > size - *offset)
+        return false;
+    memcpy(output, bytes + *offset, outputSize);
+    *offset += outputSize;
+    return true;
+}
+
+static bool U3ReadU16(const uint8_t *bytes, size_t size, size_t *offset, uint16_t *value) {
+    uint8_t data[2];
+    if (!U3ReadBytes(bytes, size, offset, data, sizeof(data))) return false;
+    *value = ((uint16_t)data[0] << 8) | data[1];
+    return true;
+}
+
+static bool U3ReadU32(const uint8_t *bytes, size_t size, size_t *offset, uint32_t *value) {
+    uint8_t data[4];
+    if (!U3ReadBytes(bytes, size, offset, data, sizeof(data))) return false;
+    *value = ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) |
+             ((uint32_t)data[2] << 8) | data[3];
+    return true;
+}
+
+static NSData *U3EncodeState(const U3GameState *state) {
+    NSMutableData *data = [NSMutableData data];
+    U3AppendBytes(data, state->player, sizeof(state->player));
+    U3AppendBytes(data, state->oldPlayer, sizeof(state->oldPlayer));
+    U3AppendBytes(data, state->party, sizeof(state->party));
+    U3AppendBytes(data, state->monsters, sizeof(state->monsters));
+    U3AppendBytes(data, state->talk, sizeof(state->talk));
+    U3AppendBytes(data, state->dungeon, sizeof(state->dungeon));
+    U3AppendBytes(data, state->macro, sizeof(state->macro));
+    U3AppendBytes(data, state->tileArray, sizeof(state->tileArray));
+    for (size_t i = 0; i < U3ZeroPageSize; ++i) U3AppendU16(data, (uint16_t)state->zeroPage[i]);
+    U3AppendBytes(data, state->careerTable, sizeof(state->careerTable));
+    U3AppendBytes(data, state->weaponUseTable, sizeof(state->weaponUseTable));
+    U3AppendBytes(data, state->armourUseTable, sizeof(state->armourUseTable));
+    U3AppendBytes(data, state->moonXTable, sizeof(state->moonXTable));
+    U3AppendBytes(data, state->moonYTable, sizeof(state->moonYTable));
+    U3AppendBytes(data, state->locationX, sizeof(state->locationX));
+    U3AppendBytes(data, state->locationY, sizeof(state->locationY));
+    U3AppendBytes(data, state->experience, sizeof(state->experience));
+#define U3_APPEND_I32(value) U3AppendU32(data, (uint32_t)(value))
+#define U3_APPEND_I16(value) U3AppendU16(data, (uint16_t)(value))
+    U3_APPEND_I32(state->x); U3_APPEND_I32(state->y);
+    U3_APPEND_I32(state->sourceX); U3_APPEND_I32(state->sourceY);
+    U3_APPEND_I32(state->deltaX); U3_APPEND_I32(state->deltaY);
+    U3_APPEND_I16(state->currentMapID); U3_APPEND_I16(state->currentMapSize);
+    U3_APPEND_I32(state->mapOffset); U3_APPEND_I16(state->torchTurns);
+    U3_APPEND_I16(state->timeNegateTurns); U3_APPEND_I16(state->moon[0]);
+    U3_APPEND_I16(state->moon[1]); U3_APPEND_I16(state->moonDisplay[0]);
+    U3_APPEND_I16(state->moonDisplay[1]); U3AppendBytes(data, &state->dungeonLevel, sizeof(state->dungeonLevel));
+    U3_APPEND_I16(state->heading); U3_APPEND_I16(state->exitDungeon);
+#undef U3_APPEND_I32
+#undef U3_APPEND_I16
+    return data;
+}
+
+static bool U3DecodeState(const uint8_t *bytes, size_t size, U3GameState *state) {
+    if (!bytes || !state) return false;
+    memset(state, 0, sizeof(*state));
+    size_t offset = 0;
+    if (!U3ReadBytes(bytes, size, &offset, state->player, sizeof(state->player)) ||
+        !U3ReadBytes(bytes, size, &offset, state->oldPlayer, sizeof(state->oldPlayer)) ||
+        !U3ReadBytes(bytes, size, &offset, state->party, sizeof(state->party)) ||
+        !U3ReadBytes(bytes, size, &offset, state->monsters, sizeof(state->monsters)) ||
+        !U3ReadBytes(bytes, size, &offset, state->talk, sizeof(state->talk)) ||
+        !U3ReadBytes(bytes, size, &offset, state->dungeon, sizeof(state->dungeon)) ||
+        !U3ReadBytes(bytes, size, &offset, state->macro, sizeof(state->macro)) ||
+        !U3ReadBytes(bytes, size, &offset, state->tileArray, sizeof(state->tileArray))) return false;
+    for (size_t i = 0; i < U3ZeroPageSize; ++i) {
+        uint16_t value;
+        if (!U3ReadU16(bytes, size, &offset, &value)) return false;
+        state->zeroPage[i] = (int16_t)value;
+    }
+    if (!U3ReadBytes(bytes, size, &offset, state->careerTable, sizeof(state->careerTable)) ||
+        !U3ReadBytes(bytes, size, &offset, state->weaponUseTable, sizeof(state->weaponUseTable)) ||
+        !U3ReadBytes(bytes, size, &offset, state->armourUseTable, sizeof(state->armourUseTable)) ||
+        !U3ReadBytes(bytes, size, &offset, state->moonXTable, sizeof(state->moonXTable)) ||
+        !U3ReadBytes(bytes, size, &offset, state->moonYTable, sizeof(state->moonYTable)) ||
+        !U3ReadBytes(bytes, size, &offset, state->locationX, sizeof(state->locationX)) ||
+        !U3ReadBytes(bytes, size, &offset, state->locationY, sizeof(state->locationY)) ||
+        !U3ReadBytes(bytes, size, &offset, state->experience, sizeof(state->experience))) return false;
+#define U3_READ_I32(value) do { uint32_t raw; if (!U3ReadU32(bytes, size, &offset, &raw)) return false; (value) = (int32_t)raw; } while (0)
+#define U3_READ_I16(value) do { uint16_t raw; if (!U3ReadU16(bytes, size, &offset, &raw)) return false; (value) = (int16_t)raw; } while (0)
+    U3_READ_I32(state->x); U3_READ_I32(state->y);
+    U3_READ_I32(state->sourceX); U3_READ_I32(state->sourceY);
+    U3_READ_I32(state->deltaX); U3_READ_I32(state->deltaY);
+    U3_READ_I16(state->currentMapID); U3_READ_I16(state->currentMapSize);
+    U3_READ_I32(state->mapOffset); U3_READ_I16(state->torchTurns);
+    U3_READ_I16(state->timeNegateTurns); U3_READ_I16(state->moon[0]);
+    U3_READ_I16(state->moon[1]); U3_READ_I16(state->moonDisplay[0]);
+    U3_READ_I16(state->moonDisplay[1]);
+    if (!U3ReadBytes(bytes, size, &offset, &state->dungeonLevel, sizeof(state->dungeonLevel))) return false;
+    U3_READ_I16(state->heading); U3_READ_I16(state->exitDungeon);
+#undef U3_READ_I32
+#undef U3_READ_I16
+    return offset == size;
+}
+
+static bool U3SaveState(const U3GameState *state, NSString *key) {
+    if (!state || !key || !sResources) {
+        sLastError = paramErr;
+        return false;
+    }
+    NSData *payload = U3EncodeState(state);
+    NSMutableData *encoded = [NSMutableData data];
+    U3AppendU32(encoded, U3GameStateMagic);
+    U3AppendU16(encoded, U3GameStateVersion);
+    U3AppendU16(encoded, 0);
+    U3AppendU32(encoded, (uint32_t)payload.length);
+    [encoded appendData:payload];
+    NSMutableDictionary *candidate = [sResources mutableCopy];
+    candidate[key] = encoded;
+    bool success = U3WriteResources(candidate);
+    if (success) {
+        [sResources release];
+        sResources = candidate;
+        candidate = nil;
+    }
+    [candidate release];
+    return success;
+}
+
+static bool U3LoadState(U3GameState *state, NSString *key) {
+    if (!state || !key || !sResources) {
+        sLastError = paramErr;
+        return false;
+    }
+    NSData *encoded = sResources[key];
+    const size_t headerSize = sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t);
+    if (![encoded isKindOfClass:[NSData class]] || encoded.length <= headerSize) {
+        sLastError = resNotFound;
+        return false;
+    }
+    size_t headerOffset = 0;
+    uint32_t magic, payloadSize;
+    uint16_t version, reserved;
+    const uint8_t *encodedBytes = (const uint8_t *)encoded.bytes;
+    if (!U3ReadU32(encodedBytes, encoded.length, &headerOffset, &magic) ||
+        !U3ReadU16(encodedBytes, encoded.length, &headerOffset, &version) ||
+        !U3ReadU16(encodedBytes, encoded.length, &headerOffset, &reserved) ||
+        !U3ReadU32(encodedBytes, encoded.length, &headerOffset, &payloadSize) ||
+        magic != U3GameStateMagic || version != U3GameStateVersion || reserved != 0 ||
+        payloadSize != encoded.length - headerSize) {
+        sLastError = paramErr;
+        return false;
+    }
+    if (!U3DecodeState(encodedBytes + headerSize, payloadSize, state)) {
+        sLastError = paramErr;
+        return false;
+    }
+    sLastError = 0;
+    return true;
+}
+
+bool U3IOLoadGame(U3GameState *state) {
+    return U3LoadState(state, U3StateKey(U3GameStateResourceID, 0));
+}
+
+bool U3IOSaveGame(const U3GameState *state) {
+    return U3SaveState(state, U3StateKey(U3GameStateResourceID, 0));
+}
+
 bool U3IOLoadRoster(U3GameState *state) { (void)state; return false; }
 bool U3IOSaveRoster(const U3GameState *state) { (void)state; return false; }
-bool U3IOLoadWorld(U3GameState *state, int16_t mapID) { (void)state; (void)mapID; return false; }
-bool U3IOSaveWorld(const U3GameState *state) { (void)state; return false; }
+bool U3IOLoadWorld(U3GameState *state, int16_t mapID) {
+    return U3LoadState(state, U3StateKey(U3WorldStateResourceID, mapID));
+}
+
+bool U3IOSaveWorld(const U3GameState *state) {
+    return state ? U3SaveState(state, U3StateKey(U3WorldStateResourceID, state->currentMapID)) : false;
+}
 
 bool U3IOSelfTest(void) {
     extern void OpenRstr(void);
@@ -290,6 +485,17 @@ bool U3IOSelfTest(void) {
         OpenRstr();
         if (U3IOLastError() || U3IOOpenSaveContainer() != U3SaveContainerOpenResultOpened) break;
         if (!U3CharacterStorageSelfTest()) break;
+        U3GameState expected = {0};
+        U3GameState restored = {0};
+        expected.party[0] = 7;
+        expected.x = 1234;
+        expected.y = -56;
+        expected.currentMapID = 419;
+        if (!U3IOSaveGame(&expected) || !U3IOLoadGame(&restored) ||
+            memcmp(&expected, &restored, sizeof(expected)) != 0) break;
+        expected.party[1] = 3;
+        if (!U3IOSaveWorld(&expected) || !U3IOLoadWorld(&restored, expected.currentMapID) ||
+            memcmp(&expected, &restored, sizeof(expected)) != 0) break;
         if (!U3IOLoadResource(U3ResourceKindRoster, 400, &read) || read.size != 1280) break;
         uint8_t original = read.bytes[0];
         U3IOReleaseResource(&read);
