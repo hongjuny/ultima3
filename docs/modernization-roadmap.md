@@ -497,3 +497,11 @@ Recommended immediate sequence:
      run returns cleanly instead of staying resident; the next lifecycle pass
      should move launch ownership to AppKit and run the game loop from a
      controlled application callback
+38. keep the Cocoa app resident after transitional startup
+   - status: `main.m` now enters the AppKit run loop after `Ultima3_main`
+     returns when a Cocoa main surface exists, while `U3_SKIP_APP_RUN=1`
+     preserves a deterministic command-line smoke path for automated checks
+   - remaining: this is a bridge, not the final lifecycle; the game loop still
+     runs synchronously before AppKit owns launch, so the next pass should move
+     game startup behind an application delegate or controller object that can
+     coordinate rendering, input, and shutdown explicitly

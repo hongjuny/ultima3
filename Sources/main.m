@@ -1,6 +1,12 @@
 #import <Cocoa/Cocoa.h>
+#import <stdlib.h>
+
+#import "CocoaBridge.h"
 #import "UltimaMain.h"
 
 int main(int argc, char *argv[]) {
-	return Ultima3_main();
+    int result = Ultima3_main();
+    if (!getenv("U3_SKIP_APP_RUN"))
+        U3CocoaRunApplication();
+    return result;
 }

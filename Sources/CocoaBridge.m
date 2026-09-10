@@ -267,6 +267,21 @@ void U3CocoaPumpEvents(void) {
     [NSApp updateWindows];
 }
 
+Boolean U3CocoaHasMainSurface(void) {
+    return sU3MainSurfaceWindow != nil;
+}
+
+void U3CocoaRunApplication(void) {
+    if (!U3CocoaHasMainSurface())
+        return;
+
+    CocoaInit();
+    [sU3MainSurfaceWindow makeKeyAndOrderFront:nil];
+    [NSApp finishLaunching];
+    [NSApp activateIgnoringOtherApps:YES];
+    [NSApp run];
+}
+
 Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKey) {
     CocoaInit();
     NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];
