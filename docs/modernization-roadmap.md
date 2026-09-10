@@ -477,3 +477,13 @@ Recommended immediate sequence:
    - remaining: this is still a non-rendering compatibility bridge; the next
      milestone should create a real Cocoa-owned window/surface and route draw
      calls through `U3Renderer` instead of relying on no-op window/menu shims
+36. introduce a Cocoa-owned main surface fallback
+   - status: `CocoaBridge` now owns a minimal AppKit window and black drawing
+     view that can be created without a Carbon `WindowRef`; `WindowInit` falls
+     back to this surface when legacy `NewCWindow` is unavailable, giving the
+     modernization effort a real Cocoa display owner to grow into
+   - remaining: the process still exits quickly under the transitional
+     `WaitNextEvent` input path, and game rendering still flows through
+     QuickDraw-shaped calls; the next pass should route event pumping and
+     keyboard input through `U3Platform`/AppKit, then attach renderer output to
+     the Cocoa view

@@ -4,6 +4,8 @@
 //
 
 void WrapCarbonWindowInCocoa(void *windowRef, short xposn, short yposn, short width, short height);
+void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short height);
+void U3CocoaPumpEvents(void);
 CFStringRef CopyExpireDateString(void);
 CFStringRef CopyAppVersionString(void);
 int ThisReleaseNumber(void);

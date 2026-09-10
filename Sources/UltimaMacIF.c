@@ -700,6 +700,8 @@ void WindowInit(short which) {
 #if TARGET_CARBON
     SetRect(&winRect, 0, 0, blkSiz * 40, blkSiz * 24);
     gMainWindow = NewCWindow(nil, &winRect, "\pUltima III", false, kWindowFullZoomDocumentProc, nil, true, 0);
+    if (!gMainWindow)
+        gMainWindow = (WindowRef)U3CocoaCreateMainSurface(0, 0, winRect.right - winRect.left, winRect.bottom - winRect.top);
     if (gMainWindow) {
         color.red = color.green = color.blue = 0;
         SetWindowContentColor(gMainWindow, &color);

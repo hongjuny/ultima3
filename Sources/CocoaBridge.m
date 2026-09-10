@@ -14,6 +14,24 @@
 extern short gUpdateWhere;
 
 static short sQTSoundVolume = 100;    // was 254 but let's make sounds quieter.
+static NSWindow *sU3MainSurfaceWindow = nil;
+static char sU3MainSurfaceToken;
+
+@interface U3MainSurfaceView : NSView
+@end
+
+@implementation U3MainSurfaceView
+
+- (BOOL)isFlipped {
+    return YES;
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+    [[NSColor blackColor] setFill];
+    NSRectFill(dirtyRect);
+}
+
+@end
 
 @implementation LWCocoaDialogController
 
@@ -195,9 +213,58 @@ void CocoaInit(void) {
         sDidInit = true;
         NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];
         NSApplicationLoad();
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
         [[[NSWindow alloc] init] release];
         [myPool release];
     }
+}
+
+void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short height) {
+    CocoaInit();
+    NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];
+
+    if (!sU3MainSurfaceWindow) {
+        NSScreen *screen = [NSScreen mainScreen];
+        CGFloat screenHeight = screen ? [screen frame].size.height : 900.0;
+        NSRect contentRect = NSMakeRect((CGFloat)xposn,
+                                        screenHeight - ((CGFloat)yposn + (CGFloat)height),
+                                        (CGFloat)width,
+                                        (CGFloat)height);
+        NSUInteger styleMask = NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask;
+        sU3MainSurfaceWindow = [[NSWindow alloc] initWithContentRect:contentRect
+                                                           styleMask:styleMask
+                                                             backing:NSBackingStoreBuffered
+                                                               defer:NO];
+        [sU3MainSurfaceWindow setTitle:@"Ultima III"];
+        [sU3MainSurfaceWindow setReleasedWhenClosed:NO];
+        [sU3MainSurfaceWindow setContentView:[[[U3MainSurfaceView alloc] initWithFrame:NSMakeRect(0, 0, width, height)] autorelease]];
+    } else {
+        [sU3MainSurfaceWindow setContentSize:NSMakeSize(width, height)];
+    }
+
+    [sU3MainSurfaceWindow center];
+    [sU3MainSurfaceWindow makeKeyAndOrderFront:nil];
+    [NSApp finishLaunching];
+    [NSApp activateIgnoringOtherApps:YES];
+    U3CocoaPumpEvents();
+
+    [myPool release];
+    return &sU3MainSurfaceToken;
+}
+
+void U3CocoaPumpEvents(void) {
+    if (!NSApp)
+        return;
+
+    NSDate *limitDate = [NSDate dateWithTimeIntervalSinceNow:0];
+    NSEvent *event;
+    while ((event = [NSApp nextEventMatchingMask:NSAnyEventMask
+                                       untilDate:limitDate
+                                          inMode:NSDefaultRunLoopMode
+                                         dequeue:YES])) {
+        [NSApp sendEvent:event];
+    }
+    [NSApp updateWindows];
 }
 
 void WrapCarbonWindowInCocoa(void *windowRef, short xposn, short yposn, short width, short height) {
