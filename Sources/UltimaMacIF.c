@@ -602,7 +602,8 @@ void ToolBoxInit(void) {
 #endif
     InitCursor();
     watchCurs = GetCursor(watchCursor);
-    SetCursor(*watchCurs);
+    if (watchCurs)
+        SetCursor(*watchCurs);
 }
 
 void SetUpDragRect(void) {
@@ -1778,39 +1779,12 @@ void DisableDirectGraphics(void) {
 }
 
 void CheckSystemRequirements(void) {
-    long response;
-    //OSErr     error;
-    Str255 errorStr;    //, pathStr="\p:Music:Song 1.mov";
-    NumVersion versionNum;
-    short button;
-    //FSSpec        fss;
-
-    Gestalt(gestaltProcessorType, &response);
-    if (response == gestalt68000) {
-        //FadeWindowsGDev(gMainWindow, 1, eFade_FadeInCommand);
-        GetIndString(errorStr, BASERES + 9, 1);
-        ParamText(errorStr, nil, nil, nil);
-        button = Alert(BASERES + 7, NIL_PTR);
-        if (button == 1)
-            ExitToShell();
-    }
-    Gestalt(gestaltQuickdrawVersion, &response);
-    if (response < gestalt32BitQD) {
-        //FadeWindowsGDev(gMainWindow, 1, eFade_FadeInCommand );
-        GetIndString(errorStr, BASERES + 9, 2);
-        ParamText(errorStr, nil, nil, nil);
-        button = Alert(BASERES + 7, NIL_PTR);
-        if (button == 1)
-            ExitToShell();
-    }
-    GetGWorld(&mainPort, &mainDevice);
-    gDepth = (*(*mainDevice)->gdPMap)->pixelSize;
-    if (gDepth != 8) {
-        DisableDirectGraphics();
-    } else {
-        DisableDirectGraphics();
-    }    // don't allow direct drawing anymore at all.
+    gDepth = 32;
+    DisableDirectGraphics();
     if (true /*was DIRECTOFF*/ == 0) {
+        long response;
+        Str255 errorStr;
+        short button;
         Gestalt(gestaltAddressingModeAttr, &response);
         if (response < 7) {
             //FadeWindowsGDev(gMainWindow, 1, eFade_FadeInCommand );

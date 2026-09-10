@@ -744,6 +744,102 @@ OSErr FSClose(short refNum) {
     return noErr;
 }
 
+void SetAntiAliasedTextEnabled(Boolean enabled, short minimumSize) {
+    (void)enabled;
+    (void)minimumSize;
+}
+
+MenuRef GetMenuHandle(MenuID menuID) {
+    (void)menuID;
+    return nil;
+}
+
+void DeleteMenuItem(MenuRef menu, MenuItemIndex item) {
+    (void)menu;
+    (void)item;
+}
+
+void DrawMenuBar(void) {
+}
+
+short GetMBarHeight(void) {
+    return 0;
+}
+
+void MoveWindow(WindowRef window, short hGlobal, short vGlobal, Boolean front) {
+    (void)window;
+    (void)hGlobal;
+    (void)vGlobal;
+    (void)front;
+}
+
+void SizeWindow(WindowRef window, short w, short h, Boolean update) {
+    (void)window;
+    (void)w;
+    (void)h;
+    (void)update;
+}
+
+void ShowWindow(WindowRef window) {
+    (void)window;
+}
+
+void HideWindow(WindowRef window) {
+    (void)window;
+}
+
+void DisposeWindow(WindowRef window) {
+    (void)window;
+}
+
+void BringToFront(WindowRef window) {
+    (void)window;
+}
+
+RgnHandle NewRgn(void) {
+    return nil;
+}
+
+void DisposeRgn(RgnHandle rgn) {
+    (void)rgn;
+}
+
+void RectRgn(RgnHandle rgn, const Rect *rect) {
+    (void)rgn;
+    (void)rect;
+}
+
+void CopyRgn(RgnHandle srcRgn, RgnHandle dstRgn) {
+    (void)srcRgn;
+    (void)dstRgn;
+}
+
+void UnionRgn(RgnHandle srcRgnA, RgnHandle srcRgnB, RgnHandle dstRgn) {
+    (void)srcRgnA;
+    (void)srcRgnB;
+    (void)dstRgn;
+}
+
+void SectRgn(RgnHandle srcRgnA, RgnHandle srcRgnB, RgnHandle dstRgn) {
+    (void)srcRgnA;
+    (void)srcRgnB;
+    (void)dstRgn;
+}
+
+void DiffRgn(RgnHandle srcRgnA, RgnHandle srcRgnB, RgnHandle dstRgn) {
+    (void)srcRgnA;
+    (void)srcRgnB;
+    (void)dstRgn;
+}
+
+Boolean EqualRgn(RgnHandle rgnA, RgnHandle rgnB) {
+    return rgnA == rgnB;
+}
+
+RgnHandle GetGrayRgn(void) {
+    return nil;
+}
+
 MenuBarHandle GetMCInfo(void) {
     return nil;
 }

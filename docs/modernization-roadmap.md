@@ -468,3 +468,12 @@ Recommended immediate sequence:
      placeholder implementations, so the next pass must replace them with real
      `U3Renderer`, `U3IO`, and Cocoa window/dialog implementations before the
      app can be considered playable
+35. stabilize transitional startup on current macOS
+   - status: guarded legacy cursor and display-depth initialization against nil
+     Toolbox state, assumed a modern 32-bit display surface, and shunted early
+     Menu Manager, Window Manager, and region calls that can abort when the
+     transitional Carbon window/menu handles are absent; the Debug arm64 app
+     now builds and a direct executable smoke run returns exit code 0
+   - remaining: this is still a non-rendering compatibility bridge; the next
+     milestone should create a real Cocoa-owned window/surface and route draw
+     calls through `U3Renderer` instead of relying on no-op window/menu shims
