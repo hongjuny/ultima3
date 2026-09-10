@@ -267,6 +267,48 @@ void U3CocoaPumpEvents(void) {
     [NSApp updateWindows];
 }
 
+Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKey) {
+    CocoaInit();
+    NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];
+
+    if (outKey)
+        *outKey = 0;
+
+    NSTimeInterval timeoutSeconds = timeoutTicks > 0 ? ((NSTimeInterval)timeoutTicks / 60.0) : 0.0;
+    NSDate *limitDate = [NSDate dateWithTimeIntervalSinceNow:timeoutSeconds];
+    Boolean handledInput = false;
+    NSEvent *event = [NSApp nextEventMatchingMask:NSAnyEventMask
+                                       untilDate:limitDate
+                                          inMode:NSDefaultRunLoopMode
+                                         dequeue:YES];
+    if (event) {
+        switch ([event type]) {
+            case NSKeyDown: {
+                NSString *characters = [event charactersIgnoringModifiers];
+                if ([characters length] > 0) {
+                    unichar character = [characters characterAtIndex:0];
+                    if (outKey)
+                        *outKey = (char)character;
+                    handledInput = true;
+                }
+                break;
+            }
+            case NSLeftMouseDown:
+            case NSRightMouseDown:
+            case NSOtherMouseDown:
+                handledInput = includeMouse;
+                break;
+            default:
+                break;
+        }
+        [NSApp sendEvent:event];
+    }
+    [NSApp updateWindows];
+
+    [myPool release];
+    return handledInput;
+}
+
 void WrapCarbonWindowInCocoa(void *windowRef, short xposn, short yposn, short width, short height) {
     CocoaInit();
     NSAutoreleasePool *myPool = [[NSAutoreleasePool alloc] init];

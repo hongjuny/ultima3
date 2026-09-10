@@ -487,3 +487,13 @@ Recommended immediate sequence:
      QuickDraw-shaped calls; the next pass should route event pumping and
      keyboard input through `U3Platform`/AppKit, then attach renderer output to
      the Cocoa view
+37. start routing platform input through AppKit
+   - status: `CocoaBridge` now exposes a minimal AppKit key/mouse polling path
+     and event pump; `U3PlatformLegacy` uses that path for input polling,
+     blocking key waits, and event flushing before falling back to the legacy
+     game event code
+   - remaining: the app still starts from a synchronous `Ultima3_main` entry
+     instead of an `NSApplication` delegate/run-loop model, so a direct smoke
+     run returns cleanly instead of staying resident; the next lifecycle pass
+     should move launch ownership to AppKit and run the game loop from a
+     controlled application callback

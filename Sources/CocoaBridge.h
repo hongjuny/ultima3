@@ -6,6 +6,7 @@
 void WrapCarbonWindowInCocoa(void *windowRef, short xposn, short yposn, short width, short height);
 void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short height);
 void U3CocoaPumpEvents(void);
+Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKey);
 CFStringRef CopyExpireDateString(void);
 CFStringRef CopyAppVersionString(void);
 int ThisReleaseNumber(void);

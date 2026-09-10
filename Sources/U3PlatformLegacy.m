@@ -16,6 +16,9 @@
 
 extern short Random(void);
 extern void ObscureCursor(void);
+extern char gKeyPress;
+extern short gUpdateWhere;
+extern void SaveWideArea(void);
 
 static CFStringRef U3LegacyPreferenceNameForKey(U3PreferenceKey key) {
     switch (key) {
@@ -54,11 +57,21 @@ bool U3PlatformPollInput(U3InputEvent *event, uint32_t timeoutTicks) {
 }
 
 bool U3PlatformGetKeyMouse(uint8_t mode) {
+    char key = 0;
+    if (U3CocoaPollKeyMouse(mode > 0, mode == 2 ? 0 : 5, &key)) {
+        gKeyPress = key;
+        return true;
+    }
     return GetKeyMouse(mode);
 }
 
 int16_t U3PlatformWaitKeyMouse(void) {
-    return WaitKeyMouse();
+    if (gUpdateWhere == 7)
+        SaveWideArea();
+    while (!U3PlatformGetKeyMouse(1)) {
+    }
+
+    return gKeyPress;
 }
 
 char U3PlatformCursorKey(bool usePenLocation) {
@@ -70,12 +83,11 @@ void U3PlatformGetDirection(int16_t mode) {
 }
 
 void U3PlatformFlushInputEvents(void) {
-    FlushEvents(keyDownMask | keyUpMask, 0);
-    FlushEvents(mDownMask | mUpMask, 0);
+    U3CocoaPumpEvents();
 }
 
 void U3PlatformFlushAllEvents(void) {
-    FlushEvents(everyEvent, 0);
+    U3CocoaPumpEvents();
 }
 
 void U3PlatformWaitTicks(int32_t ticks) {
