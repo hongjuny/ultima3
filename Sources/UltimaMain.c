@@ -255,11 +255,16 @@ unsigned short RandNum(unsigned short lowrnd, unsigned short highrnd) {
 }
 
 void MainLoop(void) {
+    if (getenv("U3_BASIC_PLAY")) {
+        U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, true);
+        U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, true);
+    }
     if (getenv("U3_MODERN_TEXT_CHECK"))
         U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, false);
     demoptr = 0;
     CreateIntroData();
-    if (!getenv("U3_MODERN_TEXT_CHECK") && !getenv("U3_MAIN_MENU_INPUT_CHECK"))
+    if (!getenv("U3_MODERN_TEXT_CHECK") && !getenv("U3_MAIN_MENU_INPUT_CHECK") &&
+        !getenv("U3_WORLD_INPUT_CHECK") && !getenv("U3_WORLD_MOUSE_CHECK"))
         Intro();
     U3RenderClearBottom();
     GetDemoRsrc();
@@ -267,11 +272,22 @@ void MainLoop(void) {
         gUpdateWhere = 5;
         DrawFrame(3);
         DrawMenu();
-        U3CocoaQueueDiagnosticMouse(200, 120);
-        char menuKey = U3PlatformWaitKeyMouse();
-        fprintf(stderr, "Main menu input check: key=%c\n", menuKey);
-        if (menuKey != 'R')
-            exit(EXIT_FAILURE);
+        short savedSize = blkSiz;
+        const short centers[] = {117, 252, 388, 523};
+        const char expected[] = {'R', 'O', 'A', 'J'};
+        for (short size = 16; size <= 32; size += 16) {
+            blkSiz = size;
+            for (int i = 0; i < 4; ++i) {
+                U3CocoaQueueDiagnosticMouse(centers[i] * size / 16, 269 * size / 16);
+                if (!U3PlatformGetKeyMouse(2) || gKeyPress != expected[i])
+                    exit(EXIT_FAILURE);
+            }
+            U3CocoaQueueDiagnosticMouse(117 * size / 16, 60 * size / 16);
+            if (U3PlatformGetKeyMouse(2))
+                exit(EXIT_FAILURE);
+        }
+        blkSiz = savedSize;
+        fprintf(stderr, "Main menu input check: all four buttons and outside clicks at 1x/2x passed\n");
         gDone = TRUE;
         return;
     }
@@ -1185,6 +1201,7 @@ void KillChar(void) {
 void Game(void) {
     Boolean key;
     Boolean diagnosticInputQueued = FALSE;
+    unsigned int diagnosticTurns = 0;
     int count;
     long time;
 
@@ -1215,12 +1232,22 @@ void Game(void) {
     while (!gDone) {
         //      if (gUpdateWhere==3) gSongNext = 1;
         DrawMap(xpos, ypos);
+        if (diagnosticTurns == 2) {
+            const char *outputPath = getenv("U3_WORLD_MOUSE_CHECK") ?
+                getenv("U3_WORLD_MOUSE_CHECK") : getenv("U3_WORLD_INPUT_CHECK");
+            U3CocoaPumpEvents();
+            if (!U3CocoaWriteMainBitmap(outputPath))
+                exit(EXIT_FAILURE);
+            fprintf(stderr, "World input: two turns completed; next input cycle reached\n");
+            gDone = TRUE;
+            return;
+        }
         if ((getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK")) && !diagnosticInputQueued) {
             fprintf(stderr, "World input: before (%d,%d)\n", xpos, ypos);
             if (getenv("U3_WORLD_MOUSE_CHECK"))
                 U3CocoaQueueDiagnosticMouse(600, 384);
             else
-                U3CocoaQueueDiagnosticKey('6');
+                U3CocoaQueueDiagnosticKey(diagnosticTurns ? '4' : '6');
             diagnosticInputQueued = TRUE;
         }
         if (getenv("U3_WORLD_RENDER_CHECK")) {
@@ -1295,15 +1322,10 @@ void Game(void) {
             }
             Routine6E35();
             if (getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK")) {
-                U3CocoaPumpEvents();
-                const char *outputPath = getenv("U3_WORLD_MOUSE_CHECK") ?
-                    getenv("U3_WORLD_MOUSE_CHECK") : getenv("U3_WORLD_INPUT_CHECK");
-                Boolean written = U3CocoaWriteMainBitmap(outputPath);
-                fprintf(stderr, "World input: key=%d mouse=%d after (%d,%d), %s\n",
-                        (int)gKeyPress, (int)gMouseKey, xpos, ypos,
-                        written ? "completed" : "FAILED");
-                gDone = TRUE;
-                return;
+                ++diagnosticTurns;
+                fprintf(stderr, "World input: turn=%u key=%d mouse=%d after (%d,%d)\n",
+                        diagnosticTurns, (int)gKeyPress, (int)gMouseKey, xpos, ypos);
+                diagnosticInputQueued = FALSE;
             }
             if (StillDown()) {
                 time = U3PlatformTickCount() + 6;

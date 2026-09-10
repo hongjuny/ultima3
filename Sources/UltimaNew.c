@@ -354,6 +354,13 @@ short butBottom[16] = {100, 300, 500, 25, 100, 175, 250, 325, 500};
 short butOffsetX[16] = {67, 202, 473, 26, 205, 384, 384, 563, 338};
 short butOffsetY[16] = {219, 219, 219, 200, 200, 200, 200, 200, 219};
 
+void U3ButtonBounds(Rect *rect, short butNum) {
+    float scale = (float)blkSiz / 16.0f;
+    SetRect(rect, butOffsetX[butNum] * scale, butOffsetY[butNum] * scale,
+            (butOffsetX[butNum] + butRight[butNum] - butLeft[butNum]) * scale,
+            (butOffsetY[butNum] + butBottom[butNum] - butTop[butNum]) * scale);
+}
+
 void DrawButton(short butNum, Boolean pushed, Boolean dim) {
     Rect fromRect, toRect;
     short height;
@@ -380,6 +387,7 @@ void DrawButton(short butNum, Boolean pushed, Boolean dim) {
 */
     ForeColor(blackColor);
     BackColor(whiteColor);
+    U3ButtonBounds(&toRect, butNum);
     CopyBits(LWPortCopyBits(buttonPort), LWPortCopyBits(mainPort), &fromRect, &toRect, srcCopy, nil);
 }
 

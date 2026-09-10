@@ -13,6 +13,7 @@
 #import "UltimaMacIF.h"
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
+#import "UltimaNew.h"
 
 extern short Random(void);
 extern void ObscureCursor(void);
@@ -25,20 +26,31 @@ extern short blkSiz;
 extern void SaveWideArea(void);
 extern EventRecord gTheEvent;
 
+extern unsigned char Player[21][65], Macro[32];
+
 static char U3MainMenuButtonKey(Point point) {
-    if (gUpdateWhere != 5)
+    short buttons[] = {0, 1, 8, 2};
+    char keys[] = {'R', 'O', 'A', 'J'};
+    if (gUpdateWhere == 6) {
+        int count = 0;
+        Boolean formed = FALSE;
+        for (int i = 1; i <= 20; ++i) {
+            if (Player[i][0]) ++count;
+            if (Player[i][16]) formed = TRUE;
+        }
+        buttons[0] = 3; buttons[1] = 4;
+        buttons[2] = 5 + formed; buttons[3] = 7;
+        keys[0] = count < 20 ? 'C' : 0;
+        keys[1] = count ? 'T' : 0;
+        keys[2] = count ? (formed ? 'D' : 'F') : 0;
+        keys[3] = 27;
+    } else if (gUpdateWhere != 5) {
         return 0;
-    float scale = blkSiz > 0 ? (float)blkSiz / 16.0f : 1.0f;
-    short top = (short)(55.0f * scale);
-    short bottom = (short)(80.0f * scale);
-    const short lefts[] = {67, 202, 338, 473};
-    const char keys[] = {'R', 'O', 'A', 'J'};
-    if (point.v < top || point.v >= bottom)
-        return 0;
+    }
     for (int i = 0; i < 4; ++i) {
-        short left = (short)(lefts[i] * scale);
-        short right = (short)((lefts[i] + 100) * scale);
-        if (point.h >= left && point.h < right)
+        Rect bounds;
+        U3ButtonBounds(&bounds, buttons[i]);
+        if (PtInRect(point, &bounds))
             return keys[i];
     }
     return 0;
@@ -105,6 +117,12 @@ bool U3PlatformGetKeyMouse(uint8_t mode) {
     char key = 0;
     Boolean isMouse = false;
     gMouseKey = false;
+    if (Macro[0]) {
+        gKeyPress = Macro[0];
+        DecMacro();
+        gMouseKey = true;
+        return true;
+    }
     if (U3CocoaPollKeyMouse(true, mode == 2 ? 0 : 5, &key, &isMouse)) {
         gKeyPress = key;
         gMouseKey = isMouse;
@@ -117,12 +135,8 @@ bool U3PlatformGetKeyMouse(uint8_t mode) {
                 gMouseKey = false;
                 return true;
             }
-            gTheEvent.what = mouseDown;
-            gTheEvent.where = mouse;
-            gTheEvent.message = 0;
-            gTheEvent.when = U3PlatformTickCount();
-            gTheEvent.modifiers = 0;
-            HandleMouseDown();
+            if (gUpdateWhere == 5 || gUpdateWhere == 6)
+                return false;
             gCurMouseDir = 0;
             CursorUpdate();
             if (gCurMouseDir)

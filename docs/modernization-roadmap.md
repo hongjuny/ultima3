@@ -748,3 +748,34 @@ Recommended immediate sequence:
    - round-trip tests now cover party bytes, coordinates, map ID, and malformed
      state rejection
    - legacy roster/resource migration remains a separate compatibility layer
+
+### 2026-09-10: Basic Play Checkpoint
+
+Immediate goal: enter Journey Onward in the actual window, complete a turn,
+and continue playing. The user has confirmed this basic gameplay milestone.
+
+- Corrected native menu hit testing: buttons start at y=219, not y=55
+  at the base scale. Drawing and native hit testing share button bounds.
+- Added native organize-party button commands, including disabled states.
+- Removed Carbon FindWindow dispatch from native mouse input; restored
+  consumption of the legacy command queue. Other native mouse interactions
+  (especially character panels and context actions) still need verification.
+- Added `scripts/play-basic.command`: classic appearance, music disabled,
+  isolated saves in `/tmp/u3-basic-play-save`. Preferences are overridden
+  in the running process; the options dialog may subsequently save them.
+- Release arm64 build passed. Synthetic menu checks cover all four buttons
+  and outside clicks at 1x and 2x. Party persistence plus world input checks
+  completed east/west turns (42,20 -> 43,20 -> 42,20), including Routine6E35
+  and re-entry into the game loop. The resulting bitmap was exported.
+- These checks bypass native party dialogs and the Journey menu action.
+  They do not establish that the user's missing names or GUI crashes are fixed.
+- Subsequent manual verification reported by the user: Journey Onward starts
+  the game, automatic combat runs, quitting and Resume work, and the cursor
+  changes with mouse position. These reports establish the playable checkpoint;
+  they do not establish exhaustive gameplay or persistence correctness.
+- The user also hears background music, but reports unfamiliar timbre. Playback
+  currently uses converted MIDI through AVMIDIPlayer with no explicit sound bank.
+  Original timbre preservation and conversion fidelity remain unverified.
+- Next: audit the 64-byte Party array's one-based resource copy and verify
+  save/load boundaries. Character-panel actions and other contextual mouse
+  commands still need coverage. Modern fonts and music fidelity remain deferred.
