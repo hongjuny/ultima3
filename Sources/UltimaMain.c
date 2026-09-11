@@ -263,7 +263,7 @@ void MainLoop(void) {
         U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, false);
     demoptr = 0;
     CreateIntroData();
-    if (!getenv("U3_MODERN_TEXT_CHECK") && !getenv("U3_MAIN_MENU_INPUT_CHECK") &&
+    if (!getenv("U3_COMMAND_TEXT_CHECK") && !getenv("U3_MODERN_TEXT_CHECK") && !getenv("U3_MAIN_MENU_INPUT_CHECK") &&
         !getenv("U3_WORLD_INPUT_CHECK") && !getenv("U3_WORLD_MOUSE_CHECK"))
         Intro();
     U3RenderClearBottom();
@@ -368,6 +368,7 @@ void Demo(void) {
         U3CocoaQueueDiagnosticKey(' ');
     while (!U3PlatformGetKeyMouse(2)) {
         DemoUpdate(demoptr);
+        U3AudioUpdateMusic();
         demoptr++;
         if (demoptr > 511)
             demoptr = 0;
@@ -1198,6 +1199,74 @@ void KillChar(void) {
         } */
 }
 
+static void CommandTextCheck(void) {
+    U3PlatformSetBooleanPreference(U3PreferenceSpeechDisabled, true);
+    U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, true);
+    U3PlatformSetBooleanPreference(U3PreferenceUnconstrainedSpeed, true);
+    if (!U3CocoaKeyboardSelfTest()) exit(EXIT_FAILURE);
+    if (U3CocoaIsHeadlessDiagnostic()) {
+        short savedWhere = gUpdateWhere, savedMouse = gMouseState;
+        gUpdateWhere = 2;
+        gMouseState = 0;
+        U3CocoaQueueDiagnosticMouse(0, 0);
+        if (!U3PlatformGetKeyMouse(2)) exit(EXIT_FAILURE);
+        gUpdateWhere = savedWhere;
+        gMouseState = 4;
+        U3CocoaQueueDiagnosticMouse(0, 0);
+        if (U3PlatformGetKeyMouse(2)) exit(EXIT_FAILURE);
+        U3CocoaQueueDiagnosticMouse(30 * blkSiz, 2 * blkSiz);
+        if (!U3PlatformGetKeyMouse(2) || gKeyPress != '1') exit(EXIT_FAILURE);
+        gMouseState = savedMouse;
+    }
+    memset(Monsters, 0, sizeof(Monsters));
+    Monsters[0] = 0x40;
+    Monsters[XMON] = xpos + 1;
+    Monsters[YMON] = ypos;
+    Monsters[HPMON] = 1;
+    memset(Talk, 0, sizeof(Talk));
+    const char *reply = "WELCOME TRAVELER!\377SEEK THE CASTLE.\377";
+    memcpy(Talk + 1, reply, strlen(reply));
+    U3RenderDrawPrompt();
+    U3CocoaQueueDiagnosticKeys("t16");
+    U3CocoaPumpEvents();
+    if (U3PlatformWaitKeyMouse() != 't') exit(EXIT_FAILURE);
+    LetterCommand('T');
+    if (xs != xpos + 1 || ys != ypos) exit(EXIT_FAILURE);
+    U3CocoaTextCheckpoint("reply");
+    if (U3PlatformGetKeyMouse(2) || gKeyPress) exit(EXIT_FAILURE);
+    U3CocoaQueueDiagnosticKeys("x");
+    U3CocoaFlushInput();
+    if (U3PlatformGetKeyMouse(2) || gKeyPress) exit(EXIT_FAILURE);
+    Str255 input;
+    U3CocoaQueueDiagnosticKeys("ab\bcd\r");
+    UInputText(24, 23, input, 8, false);
+    if (input[0] != 3 || memcmp(input + 1, "ACD", 3)) exit(EXIT_FAILURE);
+    U3CocoaQueueDiagnosticKeys("1x2\b3\r");
+    if (UInputNum(24, 23) != 13) exit(EXIT_FAILURE);
+    U3CocoaQueueDiagnosticKeys("12\033");
+    if (UInputNum(24, 23) != 0) exit(EXIT_FAILURE);
+    Str255 searchText = "\pABAB", search = "\pAB", replacement = "\pXYZ";
+    SearchReplace(searchText, search, replacement);
+    if (searchText[0] != 6 || memcmp(searchText + 1, "XYZXYZ", 6)) exit(EXIT_FAILURE);
+    if (StringLocation("\pXYZ", "\pZ") != 3 || StringLocation("\pXYZ", "\pXYZ") != 1)
+        exit(EXIT_FAILURE);
+    Str255 full;
+    full[0] = 255;
+    memset(full + 1, 'A', 255);
+    SearchReplace(full, "\pA", "\pAA");
+    if (full[0] != 255 || full[255] != 'A') exit(EXIT_FAILURE);
+    AddString(full, "\pZ");
+    if (full[0] != 255 || full[255] != 'A') exit(EXIT_FAILURE);
+    Str255 longText;
+    longText[0] = 255;
+    memset(longText + 1, 'W', 255);
+    RewrapString(longText, false);
+    UPrint(longText, 24, 23);
+    UPrint("\p\nEND OF TEXT", 24, 23);
+    U3CocoaTextCheckpoint("long");
+    fprintf(stderr, "Command text: keyboard, T/1/east/reply, editing, numeric input, cancel, 255-byte text passed\n");
+}
+
 void Game(void) {
     Boolean key;
     Boolean diagnosticInputQueued = FALSE;
@@ -1232,6 +1301,11 @@ void Game(void) {
     while (!gDone) {
         //      if (gUpdateWhere==3) gSongNext = 1;
         DrawMap(xpos, ypos);
+        if (getenv("U3_COMMAND_TEXT_CHECK")) {
+            CommandTextCheck();
+            gDone = TRUE;
+            return;
+        }
         if (diagnosticTurns == 2) {
             const char *outputPath = getenv("U3_WORLD_MOUSE_CHECK") ?
                 getenv("U3_WORLD_MOUSE_CHECK") : getenv("U3_WORLD_INPUT_CHECK");

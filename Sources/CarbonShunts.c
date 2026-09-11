@@ -39,6 +39,7 @@ enum {
 };
 
 void ForceUpdateMain(void) {
+    U3CocoaPresentMainSurface();
 }
 
 void LWSetArrowCursor(void) {
@@ -102,8 +103,7 @@ void LWGetPortBounds(CGrafPtr port, Rect *bounds) {
 
 void LWGetPortPenLocation(CGrafPtr port, Point *point) {
     (void)port;
-    point->h = 0;
-    point->v = 0;
+    U3CocoaGetPen(point);
 }
 
 void LWGetWindowBounds(WindowRef window, Rect *bounds) {
@@ -334,10 +334,19 @@ void ClipRect(const Rect *rect) {
 }
 
 void ScrollRect(const Rect *rect, short dh, short dv, RgnHandle updateRgn) {
-    (void)rect;
-    (void)dh;
-    (void)dv;
     (void)updateRgn;
+    if (!rect) return;
+    U3LegacyWorld *world = U3FindWorld(sCurrentPort);
+    U3Bitmap *bitmap = world ? &world->bitmap : U3CocoaMainBitmap();
+    U3BitmapRect area = {rect->left, rect->top, rect->right - rect->left, rect->bottom - rect->top};
+    if (world) {
+        area.x -= world->pixmap.bounds.left;
+        area.y -= world->pixmap.bounds.top;
+    }
+    uint8_t background[3];
+    U3CocoaGetBackground(background);
+    if (U3BitmapScroll(bitmap, area, dh, dv, background) && !world)
+        U3CocoaInvalidateMainSurface();
 }
 
 void BeginUpdate(WindowRef window) {
@@ -547,10 +556,7 @@ void SetCursor(const void *cursor) {
 }
 
 void GetPen(Point *point) {
-    if (point) {
-        point->h = 0;
-        point->v = 0;
-    }
+    U3CocoaGetPen(point);
 }
 
 OSErr NewGWorld(GWorldPtr *offscreenGWorld, short pixelDepth, const Rect *boundsRect, CTabHandle cTable, GDHandle aGDevice, GWorldFlags flags) {

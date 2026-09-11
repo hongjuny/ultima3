@@ -26,6 +26,39 @@ bool U3BitmapAllocate(U3Bitmap *bitmap, int width, int height) {
     return true;
 }
 
+bool U3BitmapScroll(U3Bitmap *bitmap, U3BitmapRect rect, int dx, int dy,
+                    const uint8_t background[3]) {
+    if (!bitmap || !bitmap->pixels || !background || rect.width <= 0 || rect.height <= 0)
+        return false;
+    int64_t left = rect.x > 0 ? rect.x : 0;
+    int64_t top = rect.y > 0 ? rect.y : 0;
+    int64_t right = (int64_t)rect.x + rect.width;
+    int64_t bottom = (int64_t)rect.y + rect.height;
+    if (right > bitmap->width) right = bitmap->width;
+    if (bottom > bitmap->height) bottom = bitmap->height;
+    if (right <= left || bottom <= top || (!dx && !dy)) return true;
+    U3Bitmap snapshot = {0};
+    if (!U3BitmapAllocate(&snapshot, (int)(right - left), (int)(bottom - top)))
+        return false;
+    for (int y = 0; y < snapshot.height; ++y)
+        memcpy(snapshot.pixels + y * snapshot.stride,
+               bitmap->pixels + (top + y) * bitmap->stride + left * 4, snapshot.stride);
+    for (int64_t y = top; y < bottom; ++y) {
+        for (int64_t x = left; x < right; ++x) {
+            int64_t sx = x - left - dx, sy = y - top - dy;
+            uint8_t *pixel = bitmap->pixels + y * bitmap->stride + x * 4;
+            if (sx >= 0 && sx < snapshot.width && sy >= 0 && sy < snapshot.height)
+                memcpy(pixel, snapshot.pixels + sy * snapshot.stride + sx * 4, 4);
+            else {
+                memcpy(pixel, background, 3);
+                pixel[3] = 255;
+            }
+        }
+    }
+    U3BitmapDispose(&snapshot);
+    return true;
+}
+
 static bool U3BitmapCopyInternal(U3Bitmap *destination, U3BitmapRect destinationRect,
                   const U3Bitmap *source, U3BitmapRect sourceRect,
                   const U3Bitmap *mask, U3BitmapRect maskRect) {

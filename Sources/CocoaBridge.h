@@ -9,6 +9,10 @@ Boolean U3CocoaCreateCharacter(const Boolean available[20], short *slot, U3Chara
 void U3CocoaInstallMenus(void);
 Boolean U3CocoaChooseParty(const unsigned char names[20][16], const Boolean available[20], short selection[4]);
 void U3CocoaQueueDiagnosticKey(char key);
+void U3CocoaQueueDiagnosticKeys(const char *keys);
+void U3CocoaTextCheckpoint(const char *name);
+Boolean U3CocoaKeyboardSelfTest(void);
+void U3CocoaFlushInput(void);
 void U3CocoaQueueDiagnosticMouse(short x, short y);
 Boolean U3CocoaWriteMainBitmap(const char *path);
 U3Bitmap *U3CocoaMainBitmap(void);
@@ -24,6 +28,7 @@ void U3CocoaDrawBitmap(const U3Bitmap *bitmap, U3BitmapRect source,
 void WrapCarbonWindowInCocoa(void *windowRef, short xposn, short yposn, short width, short height);
 void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short height);
 void U3CocoaPumpEvents(void);
+void U3CocoaPresentMainSurface(void);
 Boolean U3CocoaHasMainSurface(void);
 Boolean U3CocoaUsesNativeUI(void);
 void U3CocoaRunApplication(void);
@@ -38,6 +43,8 @@ void U3CocoaSetTextFont(short font);
 void U3CocoaSetTextSize(short size);
 void U3CocoaSetTextFace(short face);
 void U3CocoaMoveTo(short h, short v);
+void U3CocoaGetPen(Point *point);
+void U3CocoaGetBackground(uint8_t color[3]);
 void U3CocoaPaintRect(short left, short top, short right, short bottom);
 void U3CocoaEraseRect(short left, short top, short right, short bottom);
 void U3CocoaFrameRect(short left, short top, short right, short bottom);

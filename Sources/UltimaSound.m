@@ -39,6 +39,11 @@ unsigned char           gVoiceName[64][64], strk;
 static AVMIDIPlayer     *songPlayer = nil;
 short                   gQTMusicVolume = 100;
 
+static NSURL *MusicSoundBankURL(void) {
+    return [[NSBundle mainBundle] URLForResource:@"GeneralUser-GS" withExtension:@"sf2"
+                                   subdirectory:@"MusicMIDI"];
+}
+
 static Boolean MusicIsPlaying(void) {
     return songPlayer && [songPlayer isPlaying];
 }
@@ -76,9 +81,9 @@ void ApplyVolumePreferences(void) {
 
 bool U3AudioMusicSelfTest(void) {
     NSString *path = [[NSBundle mainBundle] pathForResource:@"Song_1" ofType:@"mid" inDirectory:@"MusicMIDI"];
-    if (!path)
+    if (!path || !MusicSoundBankURL())
         return false;
-    if (U3CocoaIsHeadlessDiagnostic()) {
+    if (U3CocoaIsHeadlessDiagnostic() && !getenv("U3_VERIFY_MIDI_DEVICE")) {
         fprintf(stderr, "MIDI asset test: passed (playback deferred outside GUI)\n");
         return true;
     }
@@ -86,7 +91,9 @@ bool U3AudioMusicSelfTest(void) {
     NSData *data = [NSData dataWithContentsOfFile:path];
     AVMIDIPlayer *player = nil;
     @try {
-        player = [[[AVMIDIPlayer alloc] initWithData:data soundBankURL:nil error:&error] autorelease];
+        player = [[[AVMIDIPlayer alloc] initWithData:data soundBankURL:MusicSoundBankURL() error:&error] autorelease];
+        [player prepareToPlay];
+        [player play:nil];
     } @catch (NSException *exception) {
         fprintf(stderr, "MIDI playback unavailable: %s\n", [[exception reason] UTF8String]);
         return false;
@@ -95,6 +102,11 @@ bool U3AudioMusicSelfTest(void) {
         fprintf(stderr, "MIDI playback unavailable: %s\n", error ? [[error localizedDescription] UTF8String] : "unknown error");
         return false;
     }
+    Boolean playing = [player isPlaying];
+    fprintf(stderr, "Fixed-bank MIDI: duration=%.2f playing=%d\n", [player duration], playing);
+    [player stop];
+    if (!playing || [player duration] <= 0)
+        return false;
     NSString *effectPath = [[NSBundle mainBundle] pathForResource:@"Step" ofType:@"wav" inDirectory:@"SoundsPCM"];
     if (!effectPath)
         return false;
@@ -418,7 +430,10 @@ void MusicUpdate(void) {
 
     NSString *songName = [NSString stringWithFormat:@"Song_%c", songid];
     NSString *path = [[NSBundle mainBundle] pathForResource:songName ofType:@"mid" inDirectory:@"MusicMIDI"];
-    if (!path) {
+    NSURL *soundBank = MusicSoundBankURL();
+    if (!path || !soundBank) {
+        fprintf(stderr, "Music asset missing: %s or GeneralUser-GS.sf2\n", [songName UTF8String]);
+        gSongPlaying = 0;
         HandleError(paramErr, 57, 1);
         return;
     }
@@ -426,7 +441,7 @@ void MusicUpdate(void) {
     NSError *error = nil;
     AVMIDIPlayer *newPlayer = nil;
     @try {
-        newPlayer = [[AVMIDIPlayer alloc] initWithData:songData soundBankURL:nil error:&error];
+        newPlayer = [[AVMIDIPlayer alloc] initWithData:songData soundBankURL:soundBank error:&error];
     } @catch (NSException *exception) {
         fprintf(stderr, "MIDI playback unavailable: %s\n", [[exception reason] UTF8String]);
         gSongPlaying = 0;

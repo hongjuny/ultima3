@@ -779,3 +779,63 @@ and continue playing. The user has confirmed this basic gameplay milestone.
 - Next: audit the 64-byte Party array's one-based resource copy and verify
   save/load boundaries. Character-panel actions and other contextual mouse
   commands still need coverage. Modern fonts and music fidelity remain deferred.
+
+### 2026-09-10: Fixed-Bank MIDI
+
+- Agreed direction: preserve the musical arrangement with MIDI and a fixed
+  sound bank. Exact QuickTime timbre or AY-3-8910 emulation is not a goal.
+- Bundled GeneralUser GS v2.0.3 with its upstream license and pinned provenance.
+  AVMIDIPlayer now requires this bank instead of silently using the OS default.
+- Reconverted all ten tracks with GM instrument assignments and percussion
+  routing. Song_1 uses SynthStrings 1, not the previous default piano.
+- Replaced atom byte searching with bounded container traversal and sample
+  mapping. Fixed extended-note bit fields and variable-length event traversal;
+  retained source timing and supported main-sequence controllers.
+- The original DemoUpdate selects a playlist after the intro. Demo now calls
+  the music update explicitly, restoring the service previously supplied by
+  legacy input polling. Listening through the whole demo remains a manual check.
+- Three converter tests pass, including all ten tracks' program/note counts,
+  percussion routing, extended-event traversal, and truncation rejection.
+  Release arm64 build passes. On-device Song_1 playback with the bundled bank
+  reports duration 133.72 seconds and playing=1. Two-turn gameplay regression
+  still passes. Listening quality has not been established by these checks.
+- Music volume/fading remains an existing limitation of the AVMIDIPlayer
+  integration. The basic-play launcher intentionally disables music; use the
+  app normally with music enabled to evaluate this checkpoint.
+
+### 2026-09-11: Keyboard Commands and Text
+
+User priority: defer music timbre and looping; make command prompts and dialogue
+reliable. T invokes Transact, followed by character selection and direction.
+
+- Implemented the previously empty ScrollRect adapter with clipped bitmap
+  scrolling and background clearing. Prior dialogue lines now remain visible.
+- Expanded text iteration counters beyond signed-char range. Added bounds to
+  Talk traversal, concatenation, search/replacement, and text entry; corrected
+  end-of-string matching and long-word wrapping that could fail to advance.
+- Added scroll-area wrapping, carriage-return recognition, pen position access,
+  and explicit presentation before blocking input. Modern temporary text ports
+  restore the main text insertion position after drawing.
+- Native keys no longer get truncated from Unicode. Added physical command-key
+  fallback for non-Latin input sources, Return/keypad Enter and Delete mapping,
+  and exclusion of Command shortcuts from game commands. Game input is filtered
+  by window and modal state; consumed keys are not also dispatched to Cocoa.
+- Event pumping preserves queued game input; explicit flush discards it.
+  Cleared stale key values, ignored untranslated clicks, restored character-panel
+  selection at Who prompts, and made waits observe quit state. Retained the
+  Cocoa menu action target for the lifetime of the installed menu.
+- Diagnostics exercise T -> 1 -> east -> a controlled NPC reply through the
+  command functions, text editing, numeric filtering, Escape, 255-byte text,
+  search/replacement limits, and native key translation. They export Who,
+  direction, reply, and long-text screenshots. Run `sh scripts/test-command-text.sh`
+  after building; saves are isolated. Native event injection is opt-in via
+  `U3_VERIFY_NATIVE_INPUT=1` with the same command diagnostic environment.
+- Classic and modern headless command checks passed. A native-window run using
+  posted Cocoa events also passed. Bitmap scrolling tests pass under ASan/UBSan.
+  Upper screen and map pixels remain unchanged by dialogue scrolling. These
+  tests use a controlled NPC, not every town, shop, spell, or combat conversation.
+- User listening feedback: the fixed-bank timbre is not preferred and music
+  looping is faulty. Both remain explicitly deferred.
+- Subsequent user play verification: commands now respond correctly and tiles
+  no longer appear corrupted. Record this as the checkpoint before persistence
+  safety work; it is not exhaustive coverage of all game scenarios.

@@ -35,6 +35,9 @@ static U3Bitmap *sU3SelectedBitmap;
 static NSPoint sU3BitmapOrigin;
 static BOOL sU3HeadlessSurface = NO;
 static char sU3DiagnosticKey = 0;
+static unsigned char sU3DiagnosticKeys[256];
+static unsigned int sU3DiagnosticKeyIndex, sU3DiagnosticKeyCount;
+static NSMutableArray *sU3PendingInput = nil;
 static Point sU3MousePoint = {0, 0};
 static Boolean sU3DiagnosticMousePending = false;
 static void U3CocoaReplayCommands(NSArray *commands);
@@ -63,7 +66,11 @@ static NSString *U3CocoaStringFromLegacyBytes(const unsigned char *bytes, NSUInt
 }
 
 static char U3CocoaKeyCharacter(NSEvent *event) {
+    if ([event modifierFlags] & NSCommandKeyMask) return 0;
     switch ([event keyCode]) {
+        case 36: case 76: return 13;
+        case 51: case 117: return 8;
+        case 53: return 27;
         case 123: return 28; // left arrow
         case 124: return 29; // right arrow
         case 126: return 30; // up arrow
@@ -71,10 +78,17 @@ static char U3CocoaKeyCharacter(NSEvent *event) {
         default: break;
     }
     NSString *characters = [event charactersIgnoringModifiers];
-    return [characters length] > 0 ? (char)[characters characterAtIndex:0] : 0;
+    unichar character = [characters length] ? [characters characterAtIndex:0] : 0;
+    if (character > 0 && character < 128)
+        return character == 127 ? 8 : (char)character;
+    // Keep commands usable with non-Latin input sources, without truncating Unicode.
+    static const char physicalKeys[] = "asdfhgzxcv\0bqweryt123465=97-80]ou[ip\rlj'k;\\,/nm.\t `";
+    unsigned short code = [event keyCode];
+    return code < sizeof(physicalKeys) - 1 ? physicalKeys[code] : 0;
 }
 
 Boolean U3CocoaIsHeadlessDiagnostic(void) {
+    if (getenv("U3_VERIFY_NATIVE_INPUT")) return false;
     return getenv("U3_BOOT_CHECK") || getenv("U3_WORLD_RENDER_CHECK") ||
            getenv("U3_WORLD_INPUT_CHECK") || getenv("U3_WORLD_MOUSE_CHECK") ||
            getenv("U3_AUDIO_SELF_TEST") || getenv("U3_PARTY_FLOW_CHECK") ||
@@ -146,6 +160,8 @@ Boolean U3CocoaIsHeadlessDiagnostic(void) {
 @end
 
 @implementation U3MainSurfaceView
+
+- (BOOL)acceptsFirstResponder { return YES; }
 
 - (BOOL)isFlipped {
     return YES;
@@ -575,6 +591,21 @@ void U3CocoaMoveTo(short h, short v) {
     sU3PenLocation = NSMakePoint(h, v);
 }
 
+void U3CocoaGetPen(Point *point) {
+    if (point) {
+        point->h = (short)sU3PenLocation.x;
+        point->v = (short)sU3PenLocation.y;
+    }
+}
+
+void U3CocoaGetBackground(uint8_t color[3]) {
+    U3CocoaEnsureDrawState();
+    NSColor *rgb = [sU3BackgroundColor colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]];
+    color[0] = (uint8_t)([rgb redComponent] * 255);
+    color[1] = (uint8_t)([rgb greenComponent] * 255);
+    color[2] = (uint8_t)([rgb blueComponent] * 255);
+}
+
 void U3CocoaPaintRect(short left, short top, short right, short bottom) {
     U3CocoaEnsureDrawState();
     U3CocoaAddCommand([NSDictionary dictionaryWithObjectsAndKeys:
@@ -617,6 +648,7 @@ void U3CocoaDrawPascalString(ConstStr255Param text) {
         [NSNumber numberWithShort:sU3TextFace], @"face",
         [NSNumber numberWithShort:sU3TextFont], @"font",
         nil]);
+    sU3PenLocation.x += U3CocoaTextWidth(text);
 }
 
 short U3CocoaTextWidth(ConstStr255Param text) {
@@ -892,7 +924,8 @@ void U3CocoaInstallMenus(void) {
     [appItem setSubmenu:appMenu];
     [bar addItem:appItem];
 
-    U3CocoaMenuTarget *target = [[[U3CocoaMenuTarget alloc] init] autorelease];
+    static U3CocoaMenuTarget *target = nil;
+    if (!target) target = [[U3CocoaMenuTarget alloc] init];
     NSMenuItem *fileItem = [[[NSMenuItem alloc] initWithTitle:@"File" action:NULL keyEquivalent:@""] autorelease];
     NSMenu *fileMenu = [[[NSMenu alloc] initWithTitle:@"File"] autorelease];
     NSMenuItem *save = [fileMenu addItemWithTitle:@"Save Game" action:@selector(saveGame:) keyEquivalent:@"s"];
@@ -900,6 +933,15 @@ void U3CocoaInstallMenus(void) {
     [fileItem setSubmenu:fileMenu];
     [bar addItem:fileItem];
     [NSApp setMainMenu:bar];
+}
+
+static Boolean U3CocoaIsGameInput(NSEvent *event) {
+    if ([NSApp modalWindow] || [event window] != sU3MainSurfaceWindow) return false;
+    switch ([event type]) {
+        case NSKeyDown: return U3CocoaKeyCharacter(event) != 0;
+        case NSLeftMouseDown: case NSRightMouseDown: case NSOtherMouseDown: return true;
+        default: return false;
+    }
 }
 
 void U3CocoaPumpEvents(void) {
@@ -912,9 +954,26 @@ void U3CocoaPumpEvents(void) {
                                        untilDate:limitDate
                                           inMode:NSDefaultRunLoopMode
                                          dequeue:YES])) {
-        [NSApp sendEvent:event];
+        if (U3CocoaIsGameInput(event)) {
+            if (!sU3PendingInput) sU3PendingInput = [[NSMutableArray alloc] init];
+            [sU3PendingInput addObject:event];
+        } else {
+            [NSApp sendEvent:event];
+        }
     }
     [NSApp updateWindows];
+}
+
+void U3CocoaPresentMainSurface(void) {
+    if (!sU3HeadlessSurface) [sU3MainSurfaceView displayIfNeeded];
+}
+
+void U3CocoaFlushInput(void) {
+    U3CocoaPumpEvents();
+    [sU3PendingInput removeAllObjects];
+    sU3DiagnosticKey = 0;
+    sU3DiagnosticMousePending = false;
+    sU3DiagnosticKeyIndex = sU3DiagnosticKeyCount = 0;
 }
 
 Boolean U3CocoaHasMainSurface(void) {
@@ -948,7 +1007,8 @@ Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKe
             return includeMouse;
         }
         if (outKey)
-            *outKey = sU3DiagnosticKey;
+            *outKey = sU3DiagnosticKey ? sU3DiagnosticKey :
+                (sU3DiagnosticKeyIndex < sU3DiagnosticKeyCount ? sU3DiagnosticKeys[sU3DiagnosticKeyIndex++] : 0);
         sU3DiagnosticKey = 0;
         return outKey && *outKey != 0;
     }
@@ -961,11 +1021,15 @@ Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKe
     NSTimeInterval timeoutSeconds = timeoutTicks > 0 ? ((NSTimeInterval)timeoutTicks / 60.0) : 0.0;
     NSDate *limitDate = [NSDate dateWithTimeIntervalSinceNow:timeoutSeconds];
     Boolean handledInput = false;
-    NSEvent *event = [NSApp nextEventMatchingMask:NSAnyEventMask
+    NSEvent *event = nil;
+    if ([sU3PendingInput count]) {
+        event = [[[sU3PendingInput objectAtIndex:0] retain] autorelease];
+        [sU3PendingInput removeObjectAtIndex:0];
+    } else event = [NSApp nextEventMatchingMask:NSAnyEventMask
                                        untilDate:limitDate
                                           inMode:NSDefaultRunLoopMode
                                          dequeue:YES];
-    if (event) {
+    if (event && U3CocoaIsGameInput(event)) {
         switch ([event type]) {
             case NSKeyDown: {
                 char character = U3CocoaKeyCharacter(event);
@@ -992,8 +1056,8 @@ Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKe
             default:
                 break;
         }
-        [NSApp sendEvent:event];
     }
+    if (event && !handledInput && !U3CocoaIsGameInput(event)) [NSApp sendEvent:event];
     [NSApp updateWindows];
 
     [myPool release];
@@ -1017,6 +1081,55 @@ void U3CocoaQueueDiagnosticKey(char key) {
         context:nil characters:characters charactersIgnoringModifiers:characters
         isARepeat:NO keyCode:49];
     [NSApp postEvent:event atStart:YES];
+}
+
+void U3CocoaQueueDiagnosticKeys(const char *keys) {
+    size_t count = keys ? strlen(keys) : 0;
+    if (!sU3HeadlessSurface) {
+        for (size_t i = 0; i < count; ++i) {
+            NSString *characters = [NSString stringWithFormat:@"%c", keys[i]];
+            NSEvent *event = [NSEvent keyEventWithType:NSKeyDown location:NSZeroPoint
+                modifierFlags:0 timestamp:0 windowNumber:[sU3MainSurfaceWindow windowNumber]
+                context:nil characters:characters charactersIgnoringModifiers:characters
+                isARepeat:NO keyCode:49];
+            [NSApp postEvent:event atStart:NO];
+        }
+        return;
+    }
+    if (count > sizeof(sU3DiagnosticKeys)) count = sizeof(sU3DiagnosticKeys);
+    memcpy(sU3DiagnosticKeys, keys ? keys : "", count);
+    sU3DiagnosticKeyIndex = 0;
+    sU3DiagnosticKeyCount = (unsigned int)count;
+}
+
+void U3CocoaTextCheckpoint(const char *name) {
+    const char *prefix = getenv("U3_COMMAND_TEXT_CHECK");
+    if (!prefix) return;
+    char path[1024];
+    int length = snprintf(path, sizeof(path), "%s-%s.png", prefix, name);
+    if (length < 0 || length >= sizeof(path) || !U3CocoaWriteMainBitmap(path))
+        exit(EXIT_FAILURE);
+    fprintf(stderr, "Command text: %s\n", name);
+}
+
+Boolean U3CocoaKeyboardSelfTest(void) {
+    struct { unsigned short code; NSString *text; NSUInteger flags; char expected; } cases[] = {
+        {17, @"t", 0, 't'}, {17, @"T", NSShiftKeyMask, 'T'},
+        {17, @"\u3145", 0, 't'}, {18, @"1", 0, '1'},
+        {123, @"\uf702", 0, 28}, {124, @"\uf703", 0, 29},
+        {126, @"\uf700", 0, 30}, {125, @"\uf701", 0, 31},
+        {51, @"\x7f", 0, 8}, {76, @"\x03", 0, 13},
+        {53, @"\x1b", 0, 27}, {1, @"s", NSCommandKeyMask, 0},
+        {122, @"\uf704", 0, 0}
+    };
+    for (unsigned int i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        NSEvent *event = [NSEvent keyEventWithType:NSKeyDown location:NSZeroPoint
+            modifierFlags:cases[i].flags timestamp:0 windowNumber:0 context:nil
+            characters:cases[i].text charactersIgnoringModifiers:cases[i].text
+            isARepeat:NO keyCode:cases[i].code];
+        if (U3CocoaKeyCharacter(event) != cases[i].expected) return false;
+    }
+    return true;
 }
 
 void U3CocoaQueueDiagnosticMouse(short x, short y) {

@@ -9,6 +9,25 @@ static int pixel(const U3Bitmap *bitmap, int x, int y) {
 }
 
 int main(void) {
+    U3Bitmap scroll = {0};
+    assert(U3BitmapAllocate(&scroll, 5, 5));
+    for (int y = 0; y < 5; ++y)
+        for (int x = 0; x < 5; ++x)
+            scroll.pixels[y * scroll.stride + x * 4] = y * 5 + x + 1;
+    const uint8_t background[3] = {0, 10, 20};
+    assert(U3BitmapScroll(&scroll, (U3BitmapRect){1, 1, 3, 3}, 0, -1, background));
+    assert(pixel(&scroll, 1, 1) == 12);
+    assert(pixel(&scroll, 3, 2) == 19);
+    assert(pixel(&scroll, 1, 3) == 0);
+    assert(pixel(&scroll, 0, 3) == 16);
+    assert(scroll.pixels[3 * scroll.stride + 4 + 1] == 10);
+    assert(U3BitmapScroll(&scroll, (U3BitmapRect){1, 1, 3, 3}, 1, 1, background));
+    assert(pixel(&scroll, 2, 2) == 12);
+    assert(pixel(&scroll, 1, 1) == 0);
+    assert(U3BitmapScroll(&scroll, (U3BitmapRect){-1, -1, 4, 4}, INT_MAX, INT_MIN, background));
+    assert(pixel(&scroll, 0, 0) == 0);
+    assert(pixel(&scroll, 4, 4) == 25);
+    U3BitmapDispose(&scroll);
     U3Bitmap source = {0}, destination = {0};
     assert(!U3BitmapAllocate(&source, 0, 2));
     assert(U3BitmapAllocate(&source, 2, 2));

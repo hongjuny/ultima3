@@ -337,11 +337,12 @@ void NewPrint(Str255 gString, short x, short y) {
         DisposeGWorld(printPort);
     }
     tx += (width / blkSiz) + 1;    // gross but it works
+    MoveTo(x + width, y);
 }
 
 void UPrint(Str255 gString, char x, char y) {
     Str255 str;
-    char length, pos;
+    unsigned int length, pos;
     Rect FromRect, ToRect;
     Boolean inScrollArea;
     GrafPtr curPort;
@@ -363,7 +364,15 @@ void UPrint(Str255 gString, char x, char y) {
                 UIncTy();
                 tx = 24;
             } else {
-                str[++str[0]] = gString[pos] & 0x7F;
+                str[++str[0]] = gString[pos];
+                if (inScrollArea && str[0] > 1 && PixelsWideString(str) > (40 - tx) * blkSiz) {
+                    unsigned char next = str[str[0]--];
+                    NewPrint(str, tx * blkSiz, ty * blkSiz);
+                    UIncTy();
+                    tx = 24;
+                    str[0] = 1;
+                    str[1] = next;
+                }
             }
             pos++;
         }
@@ -388,6 +397,10 @@ void UPrint(Str255 gString, char x, char y) {
             tx = 24;
         } else {
             if (gString[pos] >= ' ') {
+                if (inScrollArea && tx >= 40) {
+                    UIncTy();
+                    tx = 24;
+                }
                 CGrafPtr theTextPort = textPort;
                 if (gHasOddTextPort && tx % 2) {
                     theTextPort = textOddPort;
@@ -418,7 +431,7 @@ void UPrint(Str255 gString, char x, char y) {
 
 void UPrint2(Str255 gString, float y) {
     short x;
-    char length, pos;
+    unsigned int length, pos;
     tx = 2;
     ty = y;
     length = gString[0];
@@ -436,6 +449,8 @@ void UInputText(short x, short y, Str255 dest, short maxChar, Boolean numOnly) {
     Boolean done = false;
 
     dest[0] = 0;
+    if (maxChar < 0) maxChar = 0;
+    if (maxChar > 252) maxChar = 252;
     while (!done) {
         dest[++dest[0]] = ' ';
         dest[++dest[0]] = ' ';
@@ -446,11 +461,15 @@ void UInputText(short x, short y, Str255 dest, short maxChar, Boolean numOnly) {
         ch = U3PlatformCursorKey(true);
         if (gDone)
             ch = 13;
-        if (ch > 'Z')
+        if (ch >= 'a' && ch <= 'z')
             ch -= 32;
-        if (numOnly && ch != 3 && ch != 8 && ch != 13 && (ch < '0' || ch > '9'))
+        if (numOnly && ch != 3 && ch != 8 && ch != 13 && ch != 27 && (ch < '0' || ch > '9'))
             ch = 0;
         switch (ch) {
+            case 27:
+                dest[0] = 0;
+                done = true;
+                break;
             case 0: break;
             case 8:
                 if (dest[0] > 0)
@@ -459,7 +478,7 @@ void UInputText(short x, short y, Str255 dest, short maxChar, Boolean numOnly) {
             case 3:
             case 13: done = true; break;
             default:
-                if (dest[0] < maxChar)
+                if (ch >= 32 && ch < 127 && dest[0] < maxChar)
                     dest[++dest[0]] = ch;
                 break;
         }
@@ -591,6 +610,7 @@ short GetChar(void) {
     oldMouseState = gMouseState;
     gMouseState = 4;
     CursorUpdate();
+    U3CocoaTextCheckpoint("who");
     chnum = GetKey();
     gMouseState = oldMouseState;
     chnum -= '0';
@@ -599,13 +619,14 @@ short GetChar(void) {
 
 short GetKey(void) {
     short val;
-    while (!U3PlatformGetKeyMouse(0)) {
+    while (!gDone && !U3PlatformGetKeyMouse(0)) {
     }
+    if (gDone) return 0;
     val = gKeyPress;
-    while (val > 95) {
+    if (val >= 'a' && val <= 'z') {
         val -= 32;
     }
-    UPrintChar(val, wx, wy);
+    if (val >= 32 && val < 127) UPrintChar(val, wx, wy);
     UPrintWin("\p\n");
     return val;
 }
@@ -618,13 +639,13 @@ void Speak(short perNum, short shnum) { /* $8924 */
     tlkptr = 0;
     outStr[0] = 0;
     while (perNum > 0 && tlkptr < 256) {
-        while (Talk[tlkptr] != 0 && tlkptr < 256)
+        while (tlkptr < 256 && Talk[tlkptr] != 0)
             tlkptr++;
         perNum--;
         tlkptr++;
     }
     //  tlkptr++;
-    while (Talk[tlkptr] != 0 && tlkptr < 256) {
+    while (tlkptr < 256 && Talk[tlkptr] != 0 && outStr[0] < 255 && speechStr[0] < 255) {
         talk = Talk[tlkptr];
         if (talk == 0xFF) {
             outStr[++outStr[0]] = '\n';
@@ -672,9 +693,10 @@ void WinText(short grey) {
 
 // returns 0 if search string not found.
 unsigned char StringLocation(Str255 source, Str255 search) {
-    unsigned char i = 1;
-    while (i < (source[0] - search[0])) {
-        unsigned char j = 0;
+    if (!search[0] || search[0] > source[0]) return 0;
+    unsigned int i = 1;
+    while (i <= (unsigned int)(source[0] - search[0] + 1)) {
+        unsigned int j = 0;
         while (j < search[0] && (source[j + i] == search[j + 1])) {
             j++;
         }
@@ -686,39 +708,25 @@ unsigned char StringLocation(Str255 source, Str255 search) {
 }
 
 void SearchReplace(Str255 source, Str255 search, Str255 replace) {
-    if (1) {
-        char i = 1;
-        char diff = replace[0] - search[0];
-        while (i < source[0] - search[0]) {
-            Boolean match = true;
-            char offset = 0;
-            while (match && offset < search[0]) {
-                match = (source[i + offset] == search[1 + offset]);
-                offset++;
-            }
-            if (match) {
-                if (diff != 0)
-                    BlockMoveData(source + i + search[0], source + i + replace[0], source[0] - i + diff + 1);
-                BlockMoveData(replace + 1, source + i, replace[0]);
-                source[0] += diff;
-            }
-            ++i;
-        }
-    } else {
-        Handle sourceHandle = NewHandle(source[0]);
-        HLock(sourceHandle);
-        BlockMoveData(&source[1], *sourceHandle, source[0]);
-        Munger(sourceHandle, 0, search + 1, search[0], replace + 1, replace[0]);
-        Size newSize = GetHandleSize(sourceHandle);
-        BlockMoveData(*sourceHandle, source + 1, newSize);
-        source[0] = (unsigned char)newSize;
-        HUnlock(sourceHandle);
-        DisposeHandle(sourceHandle);
+    if (!search[0]) return;
+    Str255 result = {0};
+    unsigned int used = 0;
+    for (unsigned int i = 1; i <= source[0];) {
+        Boolean match = i + search[0] - 1 <= source[0] &&
+            memcmp(source + i, search + 1, search[0]) == 0;
+        unsigned int count = match ? replace[0] : 1;
+        // Leave the original intact when the expanded result cannot fit.
+        if (used + count > 255) return;
+        memcpy(result + 1 + used, match ? replace + 1 : source + i, count);
+        used += count;
+        i += match ? search[0] : 1;
     }
+    result[0] = (unsigned char)used;
+    memcpy(source, result, used + 1);
 }
 
 bool IsNewline(unsigned char ch) {
-    return (ch == 0xB5 || ch == 0x0A);
+    return (ch == 0xB5 || ch == 0x0A || ch == 0x0D);
 }
 
 void RewrapString(Str255 str, Boolean withCursor) {
@@ -754,20 +762,23 @@ void RewrapString(Str255 str, Boolean withCursor) {
         width = UThemePascalStringWidth(str + begin - 1, kThemeCurrentPortFont);
         str[begin - 1] = temp;
         if (width > max) {
+            short wordEnd = i;
             i--;
-            while (i > 0 && str[i] != ' ') {
+            while (i >= begin && str[i] != ' ') {
                 i--;
             }
-            if (i > 0) {
+            if (i >= begin) {
                 str[i] = 0x0A;
                 begin = i + 1;
-            }
+            } else i = wordEnd;
         }
         i++;
     }
 }
 
 void AddString(Str255 str1, Str255 str2) {
-    BlockMove(str2 + 1, str1 + str1[0] + 1, str2[0]);
-    str1[0] += str2[0];
+    unsigned int count = str2[0];
+    if (count > 255 - str1[0]) count = 255 - str1[0];
+    BlockMove(str2 + 1, str1 + str1[0] + 1, count);
+    str1[0] += count;
 }

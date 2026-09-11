@@ -19,6 +19,8 @@ typedef struct {
 } U3BitmapRect;
 
 bool U3BitmapAllocate(U3Bitmap *bitmap, int width, int height);
+bool U3BitmapScroll(U3Bitmap *bitmap, U3BitmapRect rect, int dx, int dy,
+                    const uint8_t background[3]);
 void U3BitmapDispose(U3Bitmap *bitmap);
 /* Nearest-neighbor srcCopy; clips without changing the scaling transform.
    Source pixels outside the bitmap leave the destination unchanged.

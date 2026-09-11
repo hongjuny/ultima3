@@ -63,9 +63,9 @@ void GetDirection(short mode) {   // $7D73? mode=1 means accept space (combat)
     dirgot = 0;
     oldMouseState = gMouseState;
     gMouseState = 3;
+    U3CocoaTextCheckpoint("direction");
     while (dirgot == 0) {
-        if (gDone == 1)
-            dirgot = 1;
+        if (gDone) break;
         direct = U3PlatformWaitKeyMouse();
         if (direct == '4')
             direct = 28;

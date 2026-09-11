@@ -20,6 +20,8 @@ extern void ObscureCursor(void);
 extern char gKeyPress;
 extern short gMouseKey;
 extern short gCurMouseDir;
+extern short gMouseState;
+extern Boolean gDone;
 extern void CursorUpdate(void);
 extern short gUpdateWhere;
 extern short blkSiz;
@@ -117,6 +119,8 @@ bool U3PlatformGetKeyMouse(uint8_t mode) {
     char key = 0;
     Boolean isMouse = false;
     gMouseKey = false;
+    gKeyPress = 0;
+    if (gDone) return false;
     if (Macro[0]) {
         gKeyPress = Macro[0];
         DecMacro();
@@ -129,6 +133,16 @@ bool U3PlatformGetKeyMouse(uint8_t mode) {
         if (isMouse) {
             Point mouse;
             U3CocoaGetMousePoint(&mouse);
+            if (gMouseState == 4) {
+                for (int i = 0; i < 4; ++i) {
+                    if (mouse.h >= blkSiz * 24 && mouse.h < blkSiz * 39 &&
+                        mouse.v >= blkSiz * (1 + i * 4) && mouse.v < blkSiz * (4 + i * 4)) {
+                        gKeyPress = '1' + i;
+                        return true;
+                    }
+                }
+                return false;
+            }
             char menuKey = U3MainMenuButtonKey(mouse);
             if (menuKey) {
                 gKeyPress = menuKey;
@@ -142,7 +156,8 @@ bool U3PlatformGetKeyMouse(uint8_t mode) {
             if (gCurMouseDir)
                 gKeyPress = (char)gCurMouseDir;
         }
-        return true;
+        return gKeyPress != 0 || (isMouse &&
+            (gUpdateWhere == 1 || gUpdateWhere == 2 || gUpdateWhere == 7));
     }
     if (U3CocoaHasMainSurface())
         return false;
@@ -152,10 +167,10 @@ bool U3PlatformGetKeyMouse(uint8_t mode) {
 int16_t U3PlatformWaitKeyMouse(void) {
     if (gUpdateWhere == 7)
         SaveWideArea();
-    while (!U3PlatformGetKeyMouse(1)) {
+    while (!gDone && !U3PlatformGetKeyMouse(1)) {
     }
 
-    return gKeyPress;
+    return gDone ? 0 : gKeyPress;
 }
 
 char U3PlatformCursorKey(bool usePenLocation) {
@@ -167,11 +182,11 @@ void U3PlatformGetDirection(int16_t mode) {
 }
 
 void U3PlatformFlushInputEvents(void) {
-    U3CocoaPumpEvents();
+    U3CocoaFlushInput();
 }
 
 void U3PlatformFlushAllEvents(void) {
-    U3CocoaPumpEvents();
+    U3CocoaFlushInput();
 }
 
 void U3PlatformWaitTicks(int32_t ticks) {
