@@ -131,6 +131,74 @@ void PlaySoundFile(CFStringRef soundName, Boolean forceAsync) {
         PlaySoundFileQT(soundName, async);
     }
 }
+
+static NSData *FadeToneData(int32_t pass) {
+    const uint32_t sampleRate = 22050;
+    const uint32_t frameCount = 1200;
+    const uint32_t dataSize = frameCount * sizeof(int16_t);
+    const uint32_t step = (uint32_t)MAX(0, MIN(31, (32768 - pass) / 2048));
+    const double frequency = 150.0 + (step * 18.0);
+    NSMutableData *data = [NSMutableData dataWithLength:44 + dataSize];
+    uint8_t *bytes = [data mutableBytes];
+    memcpy(bytes, "RIFF", 4);
+    uint32_t riffSize = 36 + dataSize;
+    memcpy(bytes + 4, &riffSize, sizeof(riffSize));
+    memcpy(bytes + 8, "WAVEfmt ", 8);
+    uint32_t fmtSize = 16;
+    uint16_t format = 1, channels = 1, bits = 16;
+    uint32_t byteRate = sampleRate * channels * sizeof(int16_t);
+    uint16_t blockAlign = channels * sizeof(int16_t);
+    memcpy(bytes + 16, &fmtSize, sizeof(fmtSize));
+    memcpy(bytes + 20, &format, sizeof(format));
+    memcpy(bytes + 22, &channels, sizeof(channels));
+    memcpy(bytes + 24, &sampleRate, sizeof(sampleRate));
+    memcpy(bytes + 28, &byteRate, sizeof(byteRate));
+    memcpy(bytes + 32, &blockAlign, sizeof(blockAlign));
+    memcpy(bytes + 34, &bits, sizeof(bits));
+    memcpy(bytes + 36, "data", 4);
+    memcpy(bytes + 40, &dataSize, sizeof(dataSize));
+
+    int16_t *samples = (int16_t *)(bytes + 44);
+    for (uint32_t i = 0; i < frameCount; ++i) {
+        double t = (double)i / sampleRate;
+        double envelope = 1.0 - ((double)i / frameCount);
+        double carrier = sin(2.0 * M_PI * frequency * t);
+        double overtone = sin(2.0 * M_PI * frequency * 2.73 * t);
+        uint32_t noiseState = 0x9E3779B9u + (i * 0x6D2B79F5u) + step;
+        noiseState ^= noiseState >> 16;
+        double noise = ((double)(noiseState & 0xFFFF) / 32767.5) - 1.0;
+        double sample = (carrier * 0.42 + overtone * 0.18 + noise * 0.32) * envelope;
+        samples[i] = (int16_t)(MAX(-1.0, MIN(1.0, sample)) * 28000.0);
+    }
+    return data;
+}
+
+void PlayLegacyFadeTone(int32_t pass) {
+    if (U3CocoaIsHeadlessDiagnostic() || U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled))
+        return;
+
+    static NSMutableArray *fadeTonePlayers = nil;
+    if (!fadeTonePlayers)
+        fadeTonePlayers = [[NSMutableArray alloc] init];
+    for (NSInteger i = [fadeTonePlayers count] - 1; i >= 0; --i) {
+        AVAudioPlayer *player = [fadeTonePlayers objectAtIndex:i];
+        if (![player isPlaying])
+            [fadeTonePlayers removeObjectAtIndex:i];
+    }
+
+    NSError *error = nil;
+    AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithData:FadeToneData(pass) error:&error];
+    if (player && [player prepareToPlay]) {
+        short volume = U3PlatformGetIntegerPreference(U3PreferenceSoundVolume);
+        if (volume < 1) volume = 100;
+        [player setVolume:MIN(1.0f, (float)volume / 100.0f)];
+        [fadeTonePlayers addObject:player];
+        [player play];
+    } else if (error) {
+        NSLog(@"Cannot play Exodus fade tone: %@", [error localizedDescription]);
+    }
+    [player release];
+}
 /*
 void PlaySound(unsigned short what,Boolean async) // $4705
 {
