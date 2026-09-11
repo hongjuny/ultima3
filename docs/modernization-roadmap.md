@@ -1088,3 +1088,15 @@ reliable. T invokes Transact, followed by character selection and direction.
 - Release gameplay scenarios passed. A full AddressSanitizer run is the final
   check for this change; ranged attacks against multiple targets and all weapon
   types remain broader playthrough coverage.
+
+### 2026-09-11: Combat Spell Casting
+
+- Added a controlled combat-spell fixture that enters the real `Cast()` path as
+  a wizard, selects Fulgar with `F`, supplies its direction with `8`, and checks
+  both the 25-point mana cost and projectile damage.
+- The fixture restores party, player, tile, monster, spell-selection, and global
+  combat state, so the diagnostic cannot alter the following defeat and resume
+  scenarios.
+- Release gameplay scenarios passed. AddressSanitizer validation is still run
+  before commit; multi-target spells and every individual spell remain broader
+  playthrough coverage.

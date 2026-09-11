@@ -969,6 +969,71 @@ Boolean U3RangedCombatSelfTest(void) {
     return passed;
 }
 
+Boolean U3CombatSpellSelfTest(void) {
+    short member = Party[7];
+    unsigned char savedTileArray[128], savedCharX[4], savedCharY[4], savedCharTile[4];
+    unsigned char savedCharShape[4], savedMonsterX[8], savedMonsterY[8];
+    unsigned char savedMonsterTile[8], savedMonsterHP[8];
+    unsigned char savedParty2 = Party[2], savedParty3 = Party[3], savedParty4 = Party[4];
+    unsigned char savedParty16 = Party[16];
+    unsigned char savedClass = Player[member][23], savedMana = Player[member][25];
+    unsigned char savedStatus = Player[member][17];
+    short savedMonType = gMonType, savedSpell = spellnum;
+    Boolean savedDone = gDone;
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
+    memcpy(savedCharX, CharX, sizeof(savedCharX));
+    memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedCharTile, CharTile, sizeof(savedCharTile));
+    memcpy(savedCharShape, CharShape, sizeof(savedCharShape));
+    memcpy(savedMonsterX, MonsterX, sizeof(savedMonsterX));
+    memcpy(savedMonsterY, MonsterY, sizeof(savedMonsterY));
+    memcpy(savedMonsterTile, MonsterTile, sizeof(savedMonsterTile));
+    memcpy(savedMonsterHP, MonsterHP, sizeof(savedMonsterHP));
+
+    Party[2] = 1;
+    Party[3] = 0x80;
+    Party[4] = 0;
+    Party[16] = 0;
+    Player[member][17] = 'G';
+    Player[member][23] = careerTable[2];
+    Player[member][25] = 25;
+    CharX[0] = 5;
+    CharY[0] = 5;
+    CharTile[0] = 2;
+    CharShape[0] = 0x80;
+    MonsterX[0] = 5;
+    MonsterY[0] = 2;
+    MonsterTile[0] = 2;
+    MonsterHP[0] = 100;
+    gMonType = 0x30;
+    gDone = FALSE;
+    memset(TileArray, 2, sizeof(TileArray));
+    U3CocoaQueueDiagnosticKeys("F8");
+    Boolean castStarted = Cast(1, 1);
+    Boolean passed = castStarted && Player[member][25] == 0 && MonsterHP[0] < 100;
+
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
+    memcpy(CharX, savedCharX, sizeof(savedCharX));
+    memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(CharTile, savedCharTile, sizeof(savedCharTile));
+    memcpy(CharShape, savedCharShape, sizeof(savedCharShape));
+    memcpy(MonsterX, savedMonsterX, sizeof(savedMonsterX));
+    memcpy(MonsterY, savedMonsterY, sizeof(savedMonsterY));
+    memcpy(MonsterTile, savedMonsterTile, sizeof(savedMonsterTile));
+    memcpy(MonsterHP, savedMonsterHP, sizeof(savedMonsterHP));
+    Party[2] = savedParty2;
+    Party[3] = savedParty3;
+    Party[4] = savedParty4;
+    Party[16] = savedParty16;
+    Player[member][17] = savedStatus;
+    Player[member][23] = savedClass;
+    Player[member][25] = savedMana;
+    gMonType = savedMonType;
+    spellnum = savedSpell;
+    gDone = savedDone;
+    return passed;
+}
+
 Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead) {
     /* Mutates the disposable party used by GameplayScenarioCheck. */
     short member = Party[7];

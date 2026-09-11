@@ -1318,6 +1318,8 @@ static void GameplayScenarioCheck(void) {
                     "auto combat generates attack macro instead of passing");
     ScenarioRequire(U3RangedCombatSelfTest(),
                     "ranged CombatAttack follows direction and damages target");
+    ScenarioRequire(U3CombatSpellSelfTest(),
+                    "combat spell selection consumes mana and damages target");
     Party[2] = 1;
     Party[8] = Party[9] = Party[10] = 0;
     member = Party[7];
