@@ -34,3 +34,7 @@ The app's `U3_AUDIO_SELF_TEST=1 U3_VERIFY_MIDI_DEVICE=1` diagnostic loads the
 bundled bank, prepares and starts Song_1, checks player state, then stops it.
 It requires an accessible audio device. Without the second variable, the
 headless diagnostic checks asset availability only.
+
+For A/B listening tests, set `U3_MIDI_SOUNDBANK` to an external `.sf2` file.
+The default remains the bundled GeneralUser GS bank, and the MIDI files retain
+the instrument programs extracted from the original QuickTime tracks.

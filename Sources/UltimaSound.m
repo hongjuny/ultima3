@@ -40,6 +40,9 @@ static AVMIDIPlayer     *songPlayer = nil;
 short                   gQTMusicVolume = 100;
 
 static NSURL *MusicSoundBankURL(void) {
+    const char *overridePath = getenv("U3_MIDI_SOUNDBANK");
+    if (overridePath && overridePath[0] != '\0')
+        return [NSURL fileURLWithPath:[NSString stringWithUTF8String:overridePath]];
     return [[NSBundle mainBundle] URLForResource:@"GeneralUser-GS" withExtension:@"sf2"
                                    subdirectory:@"MusicMIDI"];
 }
