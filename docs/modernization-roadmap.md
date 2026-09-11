@@ -1118,3 +1118,12 @@ reliable. T invokes Transact, followed by character selection and direction.
   a movement or melee action.
 - The earlier adjacent-melee assertion remains in the same fixture, and player,
   monster, macro, experience, and combat state are restored after both cases.
+
+### 2026-09-11: Auto-Combat Spell Macro Execution
+
+- Extended the auto-combat fixture to generate `C,B,8` for a wizard with an
+  aligned target, then consumed the macro through `GetKeyMouse()` and `Cast()`.
+  The test verifies the real Mittar selection, direction input, 5-point mana
+  cost, and projectile damage rather than checking macro bytes only.
+- Tile, character, monster, party, player, spell, macro, and quit state are
+  restored after the generated command is executed.

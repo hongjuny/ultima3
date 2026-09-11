@@ -13,9 +13,13 @@ extern unsigned char    Player[21][65], Experience[17];
 extern unsigned char    Party[65], Macro[32];
 extern unsigned char    CharX[4], CharY[4], CharTile[4], CharShape[4], careerTable[12];
 extern unsigned char    MonsterX[8], MonsterY[8], MonsterTile[8], MonsterHP[8];
+extern unsigned char    TileArray[128];
 extern Boolean          gAutoCombat;
+extern Boolean          gDone;
+extern char             gKeyPress;
 extern short            gMonType, zp[255];
 extern char             g5521, g56E7;
+extern short            spellnum;
 
 unsigned char           futureMonX[8], futureMonY[8];
 
@@ -195,20 +199,28 @@ void AutoCombat(short chnum) {
 }
 
 Boolean U3AutoCombatSelfTest(void) {
-    unsigned char savedMacro[32], savedCharX[4], savedCharY[4];
+    unsigned char savedMacro[32], savedTileArray[128], savedCharX[4], savedCharY[4];
+    unsigned char savedCharTile[4], savedCharShape[4];
     unsigned char savedMonsterX[8], savedMonsterY[8], savedMonsterHP[8];
-    unsigned char savedParty2 = Party[2], savedParty7 = Party[7];
+    unsigned char savedMonsterTile[8];
+    unsigned char savedParty2 = Party[2], savedParty3 = Party[3], savedParty4 = Party[4];
+    unsigned char savedParty7 = Party[7], savedParty16 = Party[16];
     unsigned char savedClass = Player[1][23], savedWeapon = Player[1][48];
     unsigned char savedMagic = Player[1][25], savedStatus = Player[1][17];
     unsigned char savedHPHigh = Player[1][26], savedHPLow = Player[1][27];
     unsigned char savedExperience = Experience[8];
-    short savedMonType = gMonType;
+    short savedMonType = gMonType, savedSpell = spellnum;
     char saved5521 = g5521, saved56E7 = g56E7;
+    Boolean savedDone = gDone;
     memcpy(savedMacro, Macro, sizeof(savedMacro));
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
     memcpy(savedCharX, CharX, sizeof(savedCharX));
     memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedCharTile, CharTile, sizeof(savedCharTile));
+    memcpy(savedCharShape, CharShape, sizeof(savedCharShape));
     memcpy(savedMonsterX, MonsterX, sizeof(savedMonsterX));
     memcpy(savedMonsterY, MonsterY, sizeof(savedMonsterY));
+    memcpy(savedMonsterTile, MonsterTile, sizeof(savedMonsterTile));
     memcpy(savedMonsterHP, MonsterHP, sizeof(savedMonsterHP));
 
     Party[2] = 1;
@@ -238,16 +250,50 @@ Boolean U3AutoCombatSelfTest(void) {
     memset(Macro, 0, sizeof(Macro));
     AutoCombat(0);
     Boolean threatPassed = Macro[0] == 'C' && Macro[1] == 'P';
-    Boolean passed = meleePassed && threatPassed;
+
+    /* A generated C,B,8 macro must reach Cast and damage the aligned target. */
+    Party[3] = 0x80;
+    Party[4] = 0;
+    Party[16] = 0;
+    Player[1][23] = careerTable[2];
+    Player[1][25] = 5;
+    Player[1][17] = 'G';
+    Player[1][26] = 0;
+    Player[1][27] = 100;
+    Player[1][48] = 0;
+    CharTile[0] = 2;
+    CharShape[0] = 0x80;
+    MonsterX[0] = 5;
+    MonsterY[0] = 2;
+    MonsterTile[0] = 2;
+    MonsterHP[0] = 100;
+    gMonType = 0x32;
+    g5521 = g56E7 = 0;
+    gDone = FALSE;
+    memset(TileArray, 2, sizeof(TileArray));
+    memset(Macro, 0, sizeof(Macro));
+    AutoCombat(0);
+    Boolean spellMacroPassed = Macro[0] == 'C' && Macro[1] == 'B' && Macro[2] == '8';
+    Boolean commandConsumed = U3PlatformGetKeyMouse(0) && gKeyPress == 'C';
+    Boolean spellExecuted = commandConsumed && Cast(1, 1) &&
+        Player[1][25] == 0 && MonsterHP[0] < 100;
+    Boolean passed = meleePassed && threatPassed && spellMacroPassed && spellExecuted;
 
     memcpy(Macro, savedMacro, sizeof(savedMacro));
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
     memcpy(CharX, savedCharX, sizeof(savedCharX));
     memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(CharTile, savedCharTile, sizeof(savedCharTile));
+    memcpy(CharShape, savedCharShape, sizeof(savedCharShape));
     memcpy(MonsterX, savedMonsterX, sizeof(savedMonsterX));
     memcpy(MonsterY, savedMonsterY, sizeof(savedMonsterY));
+    memcpy(MonsterTile, savedMonsterTile, sizeof(savedMonsterTile));
     memcpy(MonsterHP, savedMonsterHP, sizeof(savedMonsterHP));
     Party[2] = savedParty2;
+    Party[3] = savedParty3;
+    Party[4] = savedParty4;
     Party[7] = savedParty7;
+    Party[16] = savedParty16;
     Player[1][23] = savedClass;
     Player[1][48] = savedWeapon;
     Player[1][25] = savedMagic;
@@ -256,8 +302,10 @@ Boolean U3AutoCombatSelfTest(void) {
     Player[1][27] = savedHPLow;
     Experience[8] = savedExperience;
     gMonType = savedMonType;
+    spellnum = savedSpell;
     g5521 = saved5521;
     g56E7 = saved56E7;
+    gDone = savedDone;
     return passed;
 }
 
