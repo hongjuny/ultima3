@@ -30,6 +30,11 @@ sh scripts/build-release-app.sh
 The app is written to `/tmp/ultima3-release-derived/Build/Products/Release/Ultima III.app`.
 Set `DERIVED_DATA` to choose another build directory. The build contains all
 required graphics, text, sound effects, and MIDI files from the repository.
+During the build, `scripts/fetch-midi-soundbank.sh` downloads and checksum-
+verifies FluidR3 GM into the local resource directory so it is included in the
+application bundle. The file is cached and ignored by Git. Set
+`U3_SKIP_FLUIDR3_DOWNLOAD=1` to build offline with the bundled GeneralUser GS
+fallback instead.
 
 For a Debug build directly through Xcode:
 
@@ -50,10 +55,10 @@ Both Debug and Release compile as unsigned local applications. The historical
 DMG packaging and code-signing phases are reserved for explicit deployment
 postprocessing and are not required for normal IDE builds.
 
-FluidR3 GM is an optional external MIDI bank because its 141 MB file exceeds
-GitHub's regular file limit. The bundled GeneralUser GS bank is used by
-default; provide `U3_MIDI_SOUNDBANK=/path/to/bank.sf2` to compare another
-SoundFont.
+FluidR3 GM is fetched at build time because its 141 MB file exceeds GitHub's
+regular file limit. The bundled GeneralUser GS bank remains available as an
+offline fallback; provide `U3_MIDI_SOUNDBANK=/path/to/bank.sf2` to compare
+another SoundFont at runtime.
 
 ## License
 Usage is provided under the [MIT License](http://opensource.org/licenses/mit-license.php). See LICENSE for the full details.

@@ -6,6 +6,7 @@ DERIVED_DATA=${DERIVED_DATA:-/tmp/ultima3-release-derived}
 APP_PATH="$DERIVED_DATA/Build/Products/Release/Ultima III.app"
 
 cd "$ROOT_DIR"
+"$ROOT_DIR/scripts/fetch-midi-soundbank.sh"
 xcodebuild -project Ultima3.xcodeproj \
     -scheme Ultima3 \
     -configuration Release \

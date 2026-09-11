@@ -368,6 +368,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = C0E91AC508A95435008D54AB /* Build configuration list for PBXNativeTarget "Ultima3" */;
 			buildPhases = (
+				B40000200000000000000000 /* Fetch MIDI Soundbank */,
 				8D0C4E8C0486CD37000505A6 /* Resources */,
 				8D0C4E8F0486CD37000505A6 /* Sources */,
 				8D0C4E910486CD37000505A6 /* Frameworks */,
@@ -468,6 +469,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		B40000200000000000000000 /* Fetch MIDI Soundbank */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Fetch MIDI Soundbank";
+			outputPaths = (
+				"$(SRCROOT)/Resources/MusicMIDI/FluidR3_GM.sf2",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/fetch-midi-soundbank.sh\"";
+		};
 		A80B30A4133926F900CD6D7D /* Create Disk Image */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
