@@ -16,3 +16,6 @@ scripts/__pycache__/
 
 # Downloaded optional MIDI soundbank
 Resources/MusicMIDI/FluidR3_GM.sf2
+
+# Local release artifacts
+dist/
