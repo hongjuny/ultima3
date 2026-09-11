@@ -1187,3 +1187,11 @@ reliable. T invokes Transact, followed by character selection and direction.
   to the first party slot.
 - This isolates target selection and leaves multi-enemy damage, special attacks,
   and full live enemy-turn execution as the next combat-loop coverage.
+
+### 2026-09-11: Multiple-Enemy Attack Turns
+
+- Added a diagnostic combat-loop mode with two adjacent enemies and one living
+  party member. The ordinary enemy-turn loop must process both monsters, apply
+  two guaranteed hits, and leave the character alive with reduced HP.
+- The diagnostic exits after that enemy round and restores the map, party,
+  combat, and location state; random special attacks remain broader coverage.

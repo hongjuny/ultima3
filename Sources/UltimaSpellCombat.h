@@ -40,6 +40,7 @@ Boolean U3RangedCombatSelfTest(void);
 Boolean U3CombatSpellSelfTest(void);
 Boolean U3CombatAreaSpellSelfTest(void);
 Boolean U3EnemyTargetingSelfTest(void);
+Boolean U3EnemyMultiAttackSelfTest(void);
 unsigned char DetermineShape(short type);
 void CombatAttack(short chnum);
 void Missed(void);

@@ -48,6 +48,7 @@ static Boolean sManualMovement;
 static Boolean sBlockedAndDead;
 static unsigned int sActiveTurnOrder;
 static Boolean sCombatDefeatCheck;
+static Boolean sEnemyMultiCombatCheck;
 
 void Flashriek(void);
 void Pilfer(short chnum);
@@ -1115,6 +1116,21 @@ Boolean U3EnemyTargetingSelfTest(void) {
     return passed;
 }
 
+Boolean U3EnemyMultiAttackSelfTest(void) {
+    unsigned char savedParty3 = Party[3], savedParty4 = Party[4];
+    char saved835E = g835E;
+    sEnemyMultiCombatCheck = TRUE;
+    Party[3] = 3;
+    Party[4] = LocationX[1];
+    g835E = 3;
+    Boolean passed = U3ManualCombatSelfTest(1, FALSE);
+    sEnemyMultiCombatCheck = FALSE;
+    Party[3] = savedParty3;
+    Party[4] = savedParty4;
+    g835E = saved835E;
+    return passed;
+}
+
 Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead) {
     /* Mutates the disposable party used by GameplayScenarioCheck. */
     short member = Party[7];
@@ -1174,6 +1190,10 @@ Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead) {
             sActiveTurnOrder == 1 && Party[3] == 0 && gUpdateWhere == 3 &&
             xpos == 42 && ypos == 20 && Player[member][17] == 'G' &&
             Player[member][26] == 0 && Player[member][27] == 100;
+    if (sEnemyMultiCombatCheck)
+        return !gDone && !gResurrect && !gAutoCombat && sManualTurns == 1 &&
+            sEnemyAttacks == 2 && sEnemyTurnTiming && Player[member][17] == 'G' &&
+            Player[member][26] == 3 && Player[member][27] < 232;
     return !gDone && !gResurrect && !gAutoCombat && sManualMovement && sEnemyTurnTiming &&
         sManualTurns == partySize + 1 &&
         sManualTurnOrder == (partySize == 1 ? 0x11 : 0x12341) &&
@@ -1246,6 +1266,15 @@ void Combat(void) { /* $7FB0 */
         MonsterX[0] = Party[2] == 4 && !sBlockedAndDead ? 6 : 5;
         MonsterY[0] = 4;
         MonsterHP[0] = 1;
+        if (sEnemyMultiCombatCheck) {
+            MonsterX[0] = 5;
+            MonsterY[0] = 4;
+            MonsterHP[0] = 1;
+            MonsterTile[1] = 2;
+            MonsterX[1] = 4;
+            MonsterY[1] = 5;
+            MonsterHP[1] = 1;
+        }
         PutXYTile(CharShape[0], 5, 5);
         PutXYTile(gMonType, MonsterX[0], 4);
         for (short i = 1; i < Party[2]; ++i) {
@@ -1263,8 +1292,9 @@ void Combat(void) { /* $7FB0 */
     U3AudioPlaySound(U3SoundEffectCombatStart, false);    // was 0xEE
     U3PlatformFlushInputEvents();
     if (sManualCombatCheck)
-        U3CocoaQueueDiagnosticKeys(sCombatDefeatCheck ? " " :
-            (sBlockedAndDead ? "6 a8" : (Party[2] == 4 ? "6   a8" : " a8")));
+        U3CocoaQueueDiagnosticKeys(sEnemyMultiCombatCheck ? " " :
+            (sCombatDefeatCheck ? " " :
+            (sBlockedAndDead ? "6 a8" : (Party[2] == 4 ? "6   a8" : " a8"))));
     gSongNext = 5;
     gAutoCombat = !U3PlatformGetBooleanPreference(U3PreferenceManualCombat);
 combatstart:
@@ -1476,8 +1506,13 @@ nextmon:
     mon++;
     if (gResurrect)
         goto combatstart;
-    if (mon > 7)
-        goto combatstart;
+        if (mon > 7)
+            if (sEnemyMultiCombatCheck) {
+                gUpdateWhere = updateStore;
+                return;
+            }
+        if (mon > 7)
+            goto combatstart;
     if (MonsterHP[mon] == 0)
         goto nextmon;
     gChnum = FigureNewMonPosition(mon);
