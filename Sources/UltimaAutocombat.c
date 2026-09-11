@@ -18,6 +18,7 @@ extern Boolean          gAutoCombat;
 extern Boolean          gDone;
 extern char             gKeyPress;
 extern short            gMonType, zp[255];
+extern int              dx, dy;
 extern char             g5521, g56E7;
 extern short            spellnum;
 
@@ -253,6 +254,8 @@ Boolean U3AutoCombatSelfTest(void) {
     memset(CharY, 255, sizeof(CharY));
     CharX[0] = 5;
     CharY[0] = 5;
+    CharTile[0] = 2;
+    CharShape[0] = 0x80;
     memset(TileArray, 2, sizeof(TileArray));
     memset(MonsterHP, 0, sizeof(MonsterHP));
     MonsterX[0] = 5;
@@ -275,6 +278,16 @@ Boolean U3AutoCombatSelfTest(void) {
     memset(Macro, 0, sizeof(Macro));
     AutoCombat(0);
     Boolean retreatPassed = Macro[0] == '2';
+    Boolean retreatCommandConsumed = U3PlatformGetKeyMouse(0) && gKeyPress == '2';
+    dx = 0;
+    dy = 1;
+    if (retreatCommandConsumed)
+        HandleMove(0);
+    Boolean retreatExecuted = retreatCommandConsumed && CharY[0] == 6 &&
+        GetXYTile(5, 5) == 2 && GetXYTile(5, 6) == CharShape[0];
+    memset(TileArray, 2, sizeof(TileArray));
+    CharY[0] = 5;
+    CharTile[0] = 2;
 
     /* Two high-value targets should make a wizard choose the area spell branch. */
     Player[1][23] = careerTable[2];
@@ -315,7 +328,8 @@ Boolean U3AutoCombatSelfTest(void) {
     Boolean commandConsumed = U3PlatformGetKeyMouse(0) && gKeyPress == 'C';
     Boolean spellExecuted = commandConsumed && Cast(1, 1) &&
         Player[1][25] == 0 && MonsterHP[0] < 100;
-    Boolean passed = meleePassed && retreatPassed && threatPassed && spellMacroPassed && spellExecuted;
+    Boolean passed = meleePassed && retreatPassed && retreatExecuted && threatPassed &&
+        spellMacroPassed && spellExecuted;
 
     memcpy(Macro, savedMacro, sizeof(savedMacro));
     memcpy(TileArray, savedTileArray, sizeof(savedTileArray));

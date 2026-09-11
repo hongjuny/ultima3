@@ -1153,3 +1153,10 @@ reliable. T invokes Transact, followed by character selection and direction.
   normal melee decision.
 - The existing melee, threat-based spell, projectile spell, healing, and poison
   cure assertions remain in the same isolated fixture.
+
+### 2026-09-11: Auto-Combat Retreat Execution
+
+- Consumed the generated retreat macro through the platform input queue and ran
+  the same `HandleMove()` path used by combat. The fixture verifies movement to
+  the safe south tile, restoration of the origin tile, and restoration of its
+  temporary state before subsequent combat assertions.
