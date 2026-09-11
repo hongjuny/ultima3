@@ -36,6 +36,7 @@ void Victory(void);
 void Combat(void);
 Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead);
 Boolean U3CombatDefeatSelfTest(void);
+Boolean U3RangedCombatSelfTest(void);
 unsigned char DetermineShape(short type);
 void CombatAttack(short chnum);
 void Missed(void);

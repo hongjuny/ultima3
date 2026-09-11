@@ -1316,6 +1316,8 @@ static void GameplayScenarioCheck(void) {
                     "blocked movement preserves tiles; dead/ashes turns skip input; victory");
     ScenarioRequire(U3AutoCombatSelfTest(),
                     "auto combat generates attack macro instead of passing");
+    ScenarioRequire(U3RangedCombatSelfTest(),
+                    "ranged CombatAttack follows direction and damages target");
     Party[2] = 1;
     Party[8] = Party[9] = Party[10] = 0;
     member = Party[7];

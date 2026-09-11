@@ -904,6 +904,71 @@ Boolean U3CombatDefeatSelfTest(void) {
     return result;
 }
 
+Boolean U3RangedCombatSelfTest(void) {
+    short member = Party[7];
+    unsigned char savedTileArray[128], savedCharX[4], savedCharY[4], savedCharTile[4];
+    unsigned char savedCharShape[4], savedMonsterX[8], savedMonsterY[8];
+    unsigned char savedMonsterTile[8], savedMonsterHP[8];
+    unsigned char savedParty2 = Party[2], savedParty3 = Party[3], savedParty4 = Party[4];
+    unsigned char savedParty16 = Party[16];
+    unsigned char savedWeapon = Player[member][48], savedAccuracy = Player[member][19];
+    unsigned char savedStrength = Player[member][18], savedStatus = Player[member][17];
+    short savedMonType = gMonType, saved835E = g835E;
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
+    memcpy(savedCharX, CharX, sizeof(savedCharX));
+    memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedCharTile, CharTile, sizeof(savedCharTile));
+    memcpy(savedCharShape, CharShape, sizeof(savedCharShape));
+    memcpy(savedMonsterX, MonsterX, sizeof(savedMonsterX));
+    memcpy(savedMonsterY, MonsterY, sizeof(savedMonsterY));
+    memcpy(savedMonsterTile, MonsterTile, sizeof(savedMonsterTile));
+    memcpy(savedMonsterHP, MonsterHP, sizeof(savedMonsterHP));
+
+    Party[2] = 1;
+    Party[3] = 0x80;
+    Party[4] = 0;
+    Party[16] = 0;
+    Player[member][17] = 'G';
+    Player[member][18] = 50;
+    Player[member][19] = 99;
+    Player[member][48] = 3;
+    CharX[0] = 5;
+    CharY[0] = 5;
+    CharTile[0] = 2;
+    CharShape[0] = 0x80;
+    MonsterX[0] = 5;
+    MonsterY[0] = 2;
+    MonsterTile[0] = 2;
+    MonsterHP[0] = 20;
+    gMonType = 0x30;
+    g835E = 3;
+    memset(TileArray, 2, sizeof(TileArray));
+    U3CocoaQueueDiagnosticKeys("8");
+    CombatAttack(0);
+    Boolean passed = MonsterHP[0] < 20;
+
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
+    memcpy(CharX, savedCharX, sizeof(savedCharX));
+    memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(CharTile, savedCharTile, sizeof(savedCharTile));
+    memcpy(CharShape, savedCharShape, sizeof(savedCharShape));
+    memcpy(MonsterX, savedMonsterX, sizeof(savedMonsterX));
+    memcpy(MonsterY, savedMonsterY, sizeof(savedMonsterY));
+    memcpy(MonsterTile, savedMonsterTile, sizeof(savedMonsterTile));
+    memcpy(MonsterHP, savedMonsterHP, sizeof(savedMonsterHP));
+    Party[2] = savedParty2;
+    Party[3] = savedParty3;
+    Party[4] = savedParty4;
+    Party[16] = savedParty16;
+    Player[member][48] = savedWeapon;
+    Player[member][19] = savedAccuracy;
+    Player[member][18] = savedStrength;
+    Player[member][17] = savedStatus;
+    gMonType = savedMonType;
+    g835E = saved835E;
+    return passed;
+}
+
 Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead) {
     /* Mutates the disposable party used by GameplayScenarioCheck. */
     short member = Party[7];

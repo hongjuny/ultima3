@@ -1075,3 +1075,16 @@ reliable. T invokes Transact, followed by character selection and direction.
 - Release gameplay scenarios passed and the persisted `cmb` preference remains
   false afterward. This checks macro generation; a long random multi-monster
   auto-battle remains a separate playthrough check.
+
+### 2026-09-11: Ranged Combat Attack
+
+- Added a controlled combat-map fixture for `CombatAttack()` with a projectile
+  weapon, one aligned target, and a queued north direction. The real Shoot,
+  hit, accuracy, damage, and tile restoration paths execute; the test asserts
+  that the target HP decreases and restores all temporary combat state.
+- The fixture deliberately places the party outside the Exodus Castle special
+  case, since legacy CombatAttack rejects ordinary ranged weapons inside that
+  castle unless the weapon is the special exception.
+- Release gameplay scenarios passed. A full AddressSanitizer run is the final
+  check for this change; ranged attacks against multiple targets and all weapon
+  types remain broader playthrough coverage.
