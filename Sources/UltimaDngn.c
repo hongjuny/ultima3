@@ -15,11 +15,14 @@
 #import "UltimaNew.h"
 #import "UltimaSpellCombat.h"
 #import "UltimaText.h"
+#include <string.h>
+#include <stdlib.h>
 
 extern Boolean          gDone, gResurrect;
 extern short            zp[255], gUpdateWhere, gTorch, gDepth, gCurMapID;
 extern char             dungeonLevel, gKeyPress;
 extern unsigned char    Dungeon[2048], Player[21][65];
+extern unsigned char    Talk[256];
 extern int              xpos, ypos, tx, ty, xs, ys, wx, wy;
 extern CGrafPtr         mainPort, tilesPort, gamePort;
 extern GDHandle         mainDevice;
@@ -82,6 +85,185 @@ void DrawDoor(short location);
 
 // ____________________________________________________________________
 
+static Boolean sTraversalCheck, sTraversalPassed;
+static unsigned int sTraversalStep;
+static const char sTraversalKeys[] = "6488dk2k";
+static Boolean sDungeonEventCheck;
+
+static Boolean DungeonTextSnapshot(const char *mode, const char *phase) {
+    const char *prefix = getenv("U3_DUNGEON_TEXT_CHECK");
+    if (!prefix)
+        return TRUE;
+    char path[1024];
+    int length = snprintf(path, sizeof(path), "%s-%s-%s.png", prefix, mode, phase);
+    return length > 0 && length < sizeof(path) && U3CocoaWriteMainBitmap(path);
+}
+
+int U3DungeonTraversalSelfTest(void) {
+    unsigned char savedDungeon[sizeof(Dungeon)];
+    memcpy(savedDungeon, Dungeon, sizeof(Dungeon));
+    int savedX = xpos, savedY = ypos;
+    short savedHeading = heading, savedTorch = gTorch, savedExit = gExitDungeon;
+    short savedWhere = gUpdateWhere, savedSong = gSongCurrent, savedNext = gSongNext;
+    char savedLevel = dungeonLevel;
+    unsigned char savedMap = Party[3];
+    /* A two-level corridor avoids random encounters while exercising the input loop. */
+    memset(Dungeon, 0x80, sizeof(Dungeon));
+    dungeonLevel = 0;
+    PutXYDng(0x10, 1, 1);
+    PutXYDng(0x20, 2, 1);
+    dungeonLevel = 1;
+    PutXYDng(0x10, 2, 1);
+    dungeonLevel = 0;
+    xpos = ypos = heading = 1;
+    Party[3] = 1;
+    sTraversalStep = 0;
+    sTraversalPassed = TRUE;
+    sTraversalCheck = TRUE;
+    DungeonStart(0);
+    sTraversalCheck = FALSE;
+    Boolean passed = sTraversalPassed && sTraversalStep == sizeof(sTraversalKeys) - 1 &&
+        gExitDungeon == 1 && dungeonLevel == 0 && xpos == 1 && ypos == 1;
+    dungeonLevel = 7;
+    PutXYDng(0x20, 1, 1);
+    dDescend();
+    passed &= dungeonLevel == 7;
+    dungeonLevel = 0;
+    xpos = ypos = heading = 1;
+    PutXYDng(0xA0, 2, 1);
+    Forward();
+    passed &= xpos == 2 && ypos == 1;
+    Right();
+    Left();
+    passed &= heading == 1;
+    Retreat();
+    passed &= xpos == 1 && ypos == 1;
+
+    short member = Party[7];
+    unsigned char savedPlayer[65];
+    memcpy(savedPlayer, Player[member], sizeof(savedPlayer));
+    Player[member][17] = 'G';
+    Player[member][19] = 255;
+    Player[member][26] = 3;
+    Player[member][27] = 232;
+    PutXYDng(4, 1, 1);
+    gExitDungeon = 0;
+    sDungeonEventCheck = TRUE;
+    DungeonStart(1);
+    sDungeonEventCheck = FALSE;
+    passed &= GetXYDng(1, 1) == 0 &&
+        Player[member][26] * 256 + Player[member][27] == 1000;
+    short savedTrapLevel = zp[0x13];
+    zp[0x13] = 0;
+    BombTrap();
+    short hp = Player[member][26] * 256 + Player[member][27];
+    passed &= hp >= 873 && hp <= 992;
+    zp[0x13] = savedTrapLevel;
+
+    PutXYDng(0x40, 1, 1);
+    Player[member][35] = Player[member][36] = 0;
+    U3CocoaQueueDiagnosticKeys("1");
+    GetChest(0, 0);
+    short gold = Player[member][35] * 256 + Player[member][36];
+    passed &= GetXYDng(1, 1) == 0 && gold >= 30 && gold <= 100;
+    U3CocoaQueueDiagnosticKeys("1");
+    GetChest(0, 0);
+    passed &= gold == Player[member][35] * 256 + Player[member][36];
+
+    sDungeonEventCheck = TRUE;
+    Player[member][17] = 'G';
+    Player[member][26] = 3;
+    Player[member][27] = 232;
+    Player[member][28] = 7;
+    Player[member][29] = 208;
+
+    xpos = 4;
+    ypos = 1;
+    fprintf(stderr, "Dungeon event check: poison fountain\n");
+    PutXYDng(2, xpos, ypos);
+    U3CocoaQueueDiagnosticKeys("1\033");
+    DungeonStart(1);
+    passed &= Player[member][17] == 'P' && GetXYDng(xpos, ypos) == 2;
+
+    xpos = 5;
+    fprintf(stderr, "Dungeon event check: healing fountain\n");
+    PutXYDng(2, xpos, ypos);
+    Player[member][17] = 'G';
+    Player[member][26] = 0;
+    Player[member][27] = 1;
+    U3CocoaQueueDiagnosticKeys("1\033");
+    DungeonStart(1);
+    passed &= Player[member][26] == Player[member][28] &&
+        Player[member][27] == Player[member][29];
+
+    xpos = 6;
+    fprintf(stderr, "Dungeon event check: damage fountain\n");
+    PutXYDng(2, xpos, ypos);
+    Player[member][17] = 'G';
+    Player[member][26] = 3;
+    Player[member][27] = 232;
+    U3CocoaQueueDiagnosticKeys("1\033");
+    DungeonStart(1);
+    passed &= Player[member][26] * 256 + Player[member][27] == 975;
+
+    xpos = 7;
+    fprintf(stderr, "Dungeon event check: cure fountain\n");
+    PutXYDng(2, xpos, ypos);
+    Player[member][17] = 'P';
+    U3CocoaQueueDiagnosticKeys("1\033");
+    DungeonStart(1);
+    passed &= Player[member][17] == 'G';
+
+    xpos = 8;
+    fprintf(stderr, "Dungeon event check: brand\n");
+    PutXYDng(5, xpos, ypos);
+    Player[member][17] = 'G';
+    Player[member][26] = 3;
+    Player[member][27] = 232;
+    Player[member][14] = 0;
+    U3CocoaQueueDiagnosticKeys("1");
+    DungeonStart(1);
+    passed &= (Player[member][14] & 0x10) != 0 &&
+        Player[member][26] * 256 + Player[member][27] == 950;
+
+    xpos = 9;
+    fprintf(stderr, "Dungeon event check: writing\n");
+    PutXYDng(8, xpos, ypos);
+    unsigned char savedTalk[sizeof(Talk)];
+    memcpy(savedTalk, Talk, sizeof(Talk));
+    memset(Talk, 0, sizeof(Talk));
+    const char inscription[] = "SEEK THE SHRINE.\377BEWARE THE FLAMES.";
+    memcpy(Talk + 1, inscription, sizeof(inscription));
+    Boolean savedClassic = U3PlatformGetBooleanPreference(U3PreferenceClassicAppearance);
+    for (short classic = 1; classic >= 0; --classic) {
+        const char *mode = classic ? "classic" : "modern";
+        U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, classic);
+        SetUpFont();
+        U3RenderClearBottom();
+        passed &= DungeonTextSnapshot(mode, "before");
+        DungeonStart(1);
+        passed &= GetXYDng(xpos, ypos) == 8 && DungeonTextSnapshot(mode, "after");
+    }
+    U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, savedClassic);
+    SetUpFont();
+    memcpy(Talk, savedTalk, sizeof(Talk));
+
+    sDungeonEventCheck = FALSE;
+    memcpy(Player[member], savedPlayer, sizeof(savedPlayer));
+    memcpy(Dungeon, savedDungeon, sizeof(Dungeon));
+    xpos = savedX;
+    ypos = savedY;
+    heading = savedHeading;
+    dungeonLevel = savedLevel;
+    gTorch = savedTorch;
+    gExitDungeon = savedExit;
+    gUpdateWhere = savedWhere;
+    gSongCurrent = savedSong;
+    gSongNext = savedNext;
+    Party[3] = savedMap;
+    return passed;
+}
+
 void DungeonStart(short mode) { /* $8CE9 */
     short value, chnum, rosNum;
     char bits[8] = {1, 2, 4, 8, 16, 32, 64, 128};
@@ -96,6 +278,8 @@ void DungeonStart(short mode) { /* $8CE9 */
     gSongCurrent = gSongNext = 4;
     gExitDungeon = 0;
 dungstart: /* $8D13 */
+    if (sDungeonEventCheck)
+        return;
     if (gExitDungeon == 1)
         return;
     CheckAllDead();
@@ -109,6 +293,13 @@ dungstart: /* $8D13 */
     DrawDungeon();
     U3RenderPrintPascalString("\p ");
     U3RenderDrawPrompt();
+    if (sTraversalCheck) {
+        if (sTraversalStep >= sizeof(sTraversalKeys) - 1) {
+            sTraversalPassed = FALSE;
+            return;
+        }
+        U3CocoaQueueDiagnosticKey(sTraversalKeys[sTraversalStep]);
+    }
     gMouseState = 2;
     nextPassTime = U3PlatformTickCount() + PASSTIME;
     zp[0xD1] = zp[0xD2] = 0;
@@ -184,6 +375,17 @@ dungkeygot:
             break;
     }
 dungeonmech: /* $8FC2 */
+    if (sTraversalCheck) {
+        const unsigned char expectedX[] = {1, 1, 2, 2, 2, 2, 1, 1};
+        const unsigned char expectedLevel[] = {0, 0, 0, 0, 1, 0, 0, 0};
+        sTraversalPassed &= xpos == expectedX[sTraversalStep] && ypos == 1 &&
+            dungeonLevel == expectedLevel[sTraversalStep] &&
+            heading == (sTraversalStep == 0 ? 2 : 1) &&
+            gExitDungeon == (sTraversalStep == 7);
+        ++sTraversalStep;
+        if (!sTraversalPassed)
+            return;
+    }
     if (dungeonLevel < 0) {
         gExitDungeon = true;
         goto dungstart;
@@ -289,7 +491,7 @@ dngnotcombat: /* $9014 */
             PutXYDng(0, xs, ys);
             U3RenderPrintMessage(159);
             U3AudioPlaySound(U3SoundEffectStep, true);    // was 0xF6, TRUE
-            if (StealDisarmFail(Party[7])) {
+            if (StealDisarmFail(Party[7]) == FALSE) {
                 U3RenderPrintMessage(160);
                 goto dungstart;
             }
@@ -412,6 +614,10 @@ void Left(void) { /* $8E93 */
 
 void dDescend(void) { /* $8F0C */
     U3RenderPrintMessage(169);
+    if (dungeonLevel < 0 || dungeonLevel >= 7) {
+        InvalCmd();
+        return;
+    }
     if (GetXYDng(xpos, ypos) > 127) {
         InvalCmd();
         return;

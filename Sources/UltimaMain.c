@@ -291,6 +291,11 @@ void MainLoop(void) {
         gDone = TRUE;
         return;
     }
+    if (getenv("U3_RESUME_CHECK") && getenv("U3_WORLD_INPUT_CHECK")) {
+        Demo();
+        MainMenu();
+        return;
+    }
     if (getenv("U3_WORLD_RENDER_CHECK") || getenv("U3_WORLD_INPUT_CHECK") ||
         getenv("U3_WORLD_MOUSE_CHECK") || getenv("U3_PARTY_FLOW_CHECK")) {
         U3CharacterDraft draft = {{'A', 'd', 'a'}, {15, 15, 10, 10}, 'H', 'F', 'F'};
@@ -402,6 +407,8 @@ void MainMenu(void) {
         tx = 24;
         ty = 15;
         //theChar = U3PlatformCursorKey(false);
+        if (getenv("U3_RESUME_CHECK") && getenv("U3_WORLD_INPUT_CHECK"))
+            U3CocoaQueueDiagnosticKey('j');
         theChar = U3PlatformWaitKeyMouse();
         if (theChar > 95)
             theChar -= 32;
@@ -411,6 +418,8 @@ void MainMenu(void) {
                 Demo();
                 break;
             case 'J':
+                if (getenv("U3_RESUME_CHECK"))
+                    fprintf(stderr, "Resume check: Journey Onward menu command received\n");
                 U3RenderClearBottom();
                 CenterMessage(1, 15);
                 ForceUpdateMain();
@@ -1199,6 +1208,157 @@ void KillChar(void) {
         } */
 }
 
+static void ScenarioRequire(Boolean condition, const char *name) {
+    if (!condition) {
+        fprintf(stderr, "Scenario failed: %s\n", name);
+        exit(EXIT_FAILURE);
+    }
+    fprintf(stderr, "Scenario passed: %s\n", name);
+}
+
+static Boolean sDefeatScenarioCheck;
+
+static void GameplayScenarioCheck(void) {
+    U3PlatformSetBooleanPreference(U3PreferenceSpeechDisabled, true);
+    U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, true);
+    U3PlatformSetBooleanPreference(U3PreferenceUnconstrainedSpeed, true);
+    U3PlatformSetBooleanPreference(U3PreferenceAutoSave, false);
+    short member = Party[7];
+    ScenarioRequire(member > 0 && member <= 20, "party fixture");
+    Player[member][35] = 0;
+    Player[member][36] = 100;
+    Player[member][32] = 1;
+    Player[member][33] = 50;
+    U3CocoaQueueDiagnosticKeys("12\rn");
+    Shop(1, 1);
+    ScenarioRequire(Player[member][36] == 88 && Player[member][33] == 62,
+                    "food purchase debits gold and adds rations");
+    U3CocoaQueueDiagnosticKeys("99\r");
+    Shop(1, 1);
+    ScenarioRequire(Player[member][36] == 88 && Player[member][33] == 62,
+                    "insufficient gold leaves balances unchanged");
+    U3CocoaQueueDiagnosticKeys("\033");
+    Shop(1, 1);
+    ScenarioRequire(Player[member][36] == 88 && Player[member][33] == 62,
+                    "cancel leaves balances unchanged");
+    Player[member][23] = careerTable[2];
+    Player[member][25] = 20;
+    gTorch = 0;
+    U3CocoaQueueDiagnosticKeys("1c");
+    LetterCommand('C');
+    ScenarioRequire(Player[member][25] == 10 && gTorch == 10,
+                    "wizard selection and Lorum mana cost/effect");
+    gTorch = 0;
+    U3CocoaQueueDiagnosticKeys("1\033");
+    LetterCommand('C');
+    ScenarioRequire(Player[member][25] == 10 && gTorch == 0,
+                    "spell cancellation preserves mana and effect");
+    Player[member][25] = 0;
+    U3CocoaQueueDiagnosticKeys("1c");
+    LetterCommand('C');
+    ScenarioRequire(Player[member][25] == 0 && gTorch == 0,
+                    "insufficient mana prevents spell effect");
+    int towns = 0, dungeons = 0;
+    for (size_t i = 0; i < sizeof(LocationX) / sizeof(LocationX[0]); ++i) {
+        short worldX = LocationX[i], worldY = LocationY[i];
+        if (worldX >= 64 || worldY >= 64 || GetXYVal(worldX, worldY) / 2 != 0x0C)
+            continue;
+        xpos = worldX;
+        ypos = worldY;
+        Enter();
+        ScenarioRequire(Party[3] == 2 && xpos == 1 && ypos == 32, "town entry");
+        Routine6E6B();
+        ScenarioRequire(Party[3] == 0 && xpos == worldX && ypos == worldY,
+                        "town return restores world coordinates");
+        ++towns;
+    }
+    ScenarioRequire(towns > 0, "town scenarios exercised");
+    for (size_t i = 0; i < sizeof(LocationX) / sizeof(LocationX[0]); ++i) {
+        short worldX = LocationX[i], worldY = LocationY[i];
+        if (worldX >= 64 || worldY >= 64 || GetXYVal(worldX, worldY) / 2 != 0x0A)
+            continue;
+        xpos = worldX;
+        ypos = worldY;
+        gExitDungeon = 0;
+        U3CocoaQueueDiagnosticKeys("k");
+        Enter();
+        ScenarioRequire(gExitDungeon == 1 && Party[3] == 0 &&
+                        xpos == worldX && ypos == worldY && dungeonLevel == 0,
+                        "dungeon entry and K ladder exit restore world coordinates");
+        ScenarioRequire(!U3PlatformGetKeyMouse(2), "dungeon command consumed");
+        ++dungeons;
+    }
+    ScenarioRequire(dungeons > 0, "dungeon scenarios exercised");
+    ScenarioRequire(U3DungeonTraversalSelfTest(),
+                    "dungeon traversal, doors, trap disarm/damage, chest reward and no repeat loot");
+    /* Unlock the bonus spell and provide a nearby water tile for its ship. */
+    Party[16] = 1;
+    Player[member][25] = 90;
+    short waterX = xpos + 1, waterY = ypos;
+    PutXYVal(0, waterX, waterY);
+    U3CocoaQueueDiagnosticKeys("1s");
+    LetterCommand('C');
+    Boolean shipCreated = FALSE;
+    for (short y = -1; y <= 1; ++y) {
+        for (short x = -1; x <= 1; ++x) {
+            if (Absolute(x) + Absolute(y) == 1 && GetXYVal(xpos + x, ypos + y) == 44)
+                shipCreated = TRUE;
+        }
+    }
+    ScenarioRequire(Player[member][25] == 0 && shipCreated,
+                    "Flotellum bonus spell consumes mana and creates a ship");
+    ScenarioRequire(U3ManualCombatSelfTest(1, FALSE),
+                    "manual pass, enemy attack, A/north kill, victory and world return");
+    ScenarioRequire(U3ManualCombatSelfTest(4, FALSE),
+                    "four-player turn order, east movement, enemy round and victory");
+    ScenarioRequire(U3ManualCombatSelfTest(4, TRUE),
+                    "blocked movement preserves tiles; dead/ashes turns skip input; victory");
+    Party[2] = 1;
+    Party[8] = Party[9] = Party[10] = 0;
+    member = Party[7];
+    unsigned char reserved[65];
+    Player[0][17] = 'G';
+    memcpy(reserved, Player[0], sizeof(reserved));
+    Player[member][17] = 'G';
+    Player[member][26] = 0;
+    Player[member][27] = 10;
+    ScenarioRequire(!HPSubtract(member, 9) && Player[member][27] == 1 &&
+                    Player[member][17] == 'G', "nonlethal damage preserves living status");
+    ScenarioRequire(HPSubtract(member, 1) && Player[member][27] == 0 &&
+                    Player[member][17] == 'D', "lethal damage sets zero HP and death");
+    ScenarioRequire(!CheckAlive(1), "empty party slot is not a living character");
+    sDefeatScenarioCheck = TRUE;
+    CheckAllDead();
+    sDefeatScenarioCheck = FALSE;
+    ScenarioRequire(gResurrect && Party[3] == 0 && xpos == 42 && ypos == 20 &&
+                    Player[member][17] == 'G' && Player[member][26] == 0 &&
+                    Player[member][27] == 100 && Player[member][36] == 150 &&
+                    Player[member][48] == 1 && Player[member][40] == 1,
+                    "party defeat restores health, starting equipment and world location");
+    ScenarioRequire(memcmp(reserved, Player[0], sizeof(reserved)) == 0,
+                    "resurrection leaves reserved roster slot unchanged");
+    gResurrect = FALSE;
+    sDefeatScenarioCheck = TRUE;
+    ScenarioRequire(U3CombatDefeatSelfTest(), "enemy-caused defeat returns from Combat after resurrection");
+    sDefeatScenarioCheck = FALSE;
+    ScenarioRequire(U3IOOpenSaveContainer() == U3SaveContainerOpenResultOpened,
+                    "resurrection save container reopens");
+    Player[member][17] = 'D';
+    Player[member][27] = 0;
+    xpos = ypos = 0;
+    GetParty();
+    GetRoster();
+    GetSosaria();
+    ScenarioRequire(Party[3] == 0 && xpos == 42 && ypos == 20 &&
+                    Player[member][17] == 'G' && Player[member][26] == 0 &&
+                    Player[member][27] == 100 && Player[member][48] == 1 &&
+                    Player[member][40] == 1,
+                    "reloaded resurrection restores party position, health and equipment");
+    gResurrect = FALSE;
+    DrawMap(xpos, ypos);
+    ScenarioRequire(U3CocoaWriteMainBitmap(getenv("U3_WORLD_RENDER_CHECK")), "world screenshot");
+}
+
 static void CommandTextCheck(void) {
     U3PlatformSetBooleanPreference(U3PreferenceSpeechDisabled, true);
     U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, true);
@@ -1298,9 +1458,24 @@ void Game(void) {
     LWEnableMenuItem(gFileMenu, ABORTID);
     InitCursor();
     ShowChars(true);
+    if (getenv("U3_RESUME_CHECK")) {
+        short member = Party[7];
+        ScenarioRequire(Party[2] == 1 && member > 0 && member <= 20,
+                        "fresh process loaded saved party without creating characters");
+        ScenarioRequire(Party[3] == 0 && xpos == 42 && ypos == 20 &&
+                        Player[member][17] == 'G' && Player[member][26] == 0 &&
+                        Player[member][27] == 100 && Player[member][48] == 1 &&
+                        Player[member][40] == 1,
+                        "fresh process resumed resurrection health, equipment and position");
+    }
     while (!gDone) {
         //      if (gUpdateWhere==3) gSongNext = 1;
         DrawMap(xpos, ypos);
+        if (getenv("U3_GAMEPLAY_SCENARIO_CHECK") && getenv("U3_WORLD_RENDER_CHECK")) {
+            GameplayScenarioCheck();
+            gDone = TRUE;
+            return;
+        }
         if (getenv("U3_COMMAND_TEXT_CHECK")) {
             CommandTextCheck();
             gDone = TRUE;
@@ -1720,7 +1895,7 @@ void Enter(void) {
         Party[4] = xpos;
         Party[5] = ypos;
         placeNum = 666;
-        for (x = 0; x < 32; x++) {   // 32 was 19
+        for (x = 0; x < sizeof(LocationX) / sizeof(LocationX[0]); x++) {
             if (xpos == LocationX[x] && ypos == LocationY[x])
                 placeNum = x;
         }
@@ -3102,7 +3277,7 @@ void CheckAllDead(void) { /* $71B4 */
     long time;
 
     alive = FALSE;
-    for (byte = 0; byte < 4; byte++) {
+    for (byte = 0; byte < Party[2] && byte < 4; byte++) {
         if (CheckAlive(byte) == TRUE)
             alive = TRUE;
     }
@@ -3119,10 +3294,11 @@ void CheckAllDead(void) { /* $71B4 */
         gSongCurrent = gSongNext = 0;
         U3AudioUpdateMusic();
         U3PlatformFlushAllEvents();
-        U3PlatformWaitKeyMouse();
+        if (!sDefeatScenarioCheck)
+            U3PlatformWaitKeyMouse();
         gMouseState = 0;
         CursorUpdate();
-        button = Alert(BASERES + 13, nil);    // 0=resurrect, 1=stay dead
+        button = sDefeatScenarioCheck ? 1 : Alert(BASERES + 13, nil);
         gMouseState = 666;
         CursorUpdate();
         ForceUpdateMain();
@@ -3153,8 +3329,10 @@ void CheckAllDead(void) { /* $71B4 */
             SetGWorld(mainPort, nil);
             DrawGamePortToMain(0);
             ForceUpdateMain();
-            for (chNum = 0; chNum < 4; chNum++) {
+            for (chNum = 0; chNum < Party[2] && chNum < 4; chNum++) {
                 rosNum = Party[chNum + 7];
+                if (rosNum < 1 || rosNum > 20)
+                    continue;
                 for (byte = 35; byte < 64; byte++) {
                     Player[rosNum][byte] = 0;
                 }
@@ -3204,7 +3382,11 @@ void CheckAllDead(void) { /* $71B4 */
 
 Boolean CheckAlive(short member) { /* $75BA */
     short rosNum;
+    if (member < 0 || member >= 4 || member >= Party[2])
+        return FALSE;
     rosNum = Party[member + 7];
+    if (rosNum < 1 || rosNum > 20)
+        return FALSE;
     if (Player[rosNum][17] == 'G')
         return TRUE;
     if (Player[rosNum][17] == 'P')

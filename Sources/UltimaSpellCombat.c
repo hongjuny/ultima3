@@ -40,6 +40,15 @@ extern char             gMonVarType;
 // ----------------------------------------------------------------------
 // Local prototypes
 
+static Boolean sManualCombatCheck;
+static unsigned int sManualTurns, sEnemyAttacks;
+static unsigned int sManualTurnOrder;
+static Boolean sEnemyTurnTiming;
+static Boolean sManualMovement;
+static Boolean sBlockedAndDead;
+static unsigned int sActiveTurnOrder;
+static Boolean sCombatDefeatCheck;
+
 void Flashriek(void);
 void Pilfer(short chnum);
 void RelocateDungeon(void);
@@ -564,7 +573,9 @@ void Flashriek(void) { /* $5885 */
     short SpellSound[34] = {0, 1, 2, 3, 4, 1, 5, 1, 2, 7, 0, 1, 7, 0, 0, 0, 0, 7, 6, 2, 4, 3, 5, 6, 5, 2, 6, 7, 1, 6, 0, 6, 7, 0};
 
     InverseTiles();
-    switch (SpellSound[spellnum]) {
+    short sound = (spellnum >= 0 && spellnum < sizeof(SpellSound) / sizeof(SpellSound[0]))
+        ? SpellSound[spellnum] : 7;
+    switch (sound) {
         case 0:
             U3AudioPlaySound(U3SoundEffectBigDeath, false);
             break;    // was 0xE0
@@ -886,6 +897,83 @@ void Victory(void) { /* $8535 */
     DrawMap(xpos, ypos);
 }
 
+Boolean U3CombatDefeatSelfTest(void) {
+    sCombatDefeatCheck = TRUE;
+    Boolean result = U3ManualCombatSelfTest(1, FALSE);
+    sCombatDefeatCheck = FALSE;
+    return result;
+}
+
+Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead) {
+    /* Mutates the disposable party used by GameplayScenarioCheck. */
+    short member = Party[7];
+    short savedMap = Party[3], savedUpdate = gUpdateWhere;
+    int savedX = xpos, savedY = ypos;
+    Boolean savedManualCombat = U3PlatformGetBooleanPreference(U3PreferenceManualCombat);
+    if ((partySize != 1 && partySize != 4) || (blockedAndDead && partySize != 4) ||
+        member < 1 || member > 20)
+        return FALSE;
+    U3PlatformSetBooleanPreference(U3PreferenceManualCombat, true);
+    Player[member][17] = 'G';
+    Player[member][18] = 50;
+    Player[member][19] = 99;
+    Player[member][26] = Player[member][28] = 3;
+    Player[member][27] = Player[member][29] = 232;
+    Player[member][48] = 0;
+    if (partySize == 4) {
+        unsigned char character[65];
+        memcpy(character, Player[member], sizeof(character));
+        for (short i = 0; i < 4; ++i) {
+            memcpy(Player[i + 1], character, sizeof(character));
+            Party[7 + i] = i + 1;
+        }
+    }
+    Party[2] = partySize;
+    if (sCombatDefeatCheck) {
+        /* Exodus without Exotic armour guarantees the enemy's hit. */
+        Party[3] = 3;
+        Party[4] = LocationX[1];
+        Party[16] = 0;
+        Player[member][40] = 0;
+        Player[member][26] = 0;
+        Player[member][27] = 1;
+    }
+    sBlockedAndDead = blockedAndDead;
+    if (blockedAndDead) {
+        Player[Party[8]][17] = 'D';
+        Player[Party[10]][17] = 'A';
+        Player[Party[8]][26] = Player[Party[8]][27] = 0;
+        Player[Party[10]][26] = Player[Party[10]][27] = 0;
+    }
+    gMonType = 0x30;
+    gMonVarType = 0;
+    gTimeNegate = 0;
+    memset(Macro, 0, sizeof(Macro));
+    sManualTurns = sEnemyAttacks = 0;
+    sManualTurnOrder = 0;
+    sActiveTurnOrder = 0;
+    sEnemyTurnTiming = TRUE;
+    sManualMovement = TRUE;
+    sManualCombatCheck = TRUE;
+    Combat();
+    sManualCombatCheck = FALSE;
+    U3PlatformSetBooleanPreference(U3PreferenceManualCombat, savedManualCombat);
+    if (sCombatDefeatCheck)
+        return !gDone && gResurrect && !gAutoCombat && sManualTurns == 1 && sEnemyAttacks == 1 &&
+            sActiveTurnOrder == 1 && Party[3] == 0 && gUpdateWhere == 3 &&
+            xpos == 42 && ypos == 20 && Player[member][17] == 'G' &&
+            Player[member][26] == 0 && Player[member][27] == 100;
+    return !gDone && !gResurrect && !gAutoCombat && sManualMovement && sEnemyTurnTiming &&
+        sManualTurns == partySize + 1 &&
+        sManualTurnOrder == (partySize == 1 ? 0x11 : 0x12341) &&
+        sActiveTurnOrder == (blockedAndDead ? 0x131 : sManualTurnOrder) &&
+        (!blockedAndDead || (Player[Party[8]][17] == 'D' && Player[Party[10]][17] == 'A' &&
+            CharX[1] == 255 && CharY[1] == 255 && CharX[3] == 255 && CharY[3] == 255)) &&
+        sEnemyAttacks == 1 && MonsterHP[0] == 0 && Party[3] == savedMap &&
+        gUpdateWhere == savedUpdate && xpos == savedX && ypos == savedY &&
+        !U3PlatformGetKeyMouse(2);
+}
+
 void Combat(void) { /* $7FB0 */
     short mon, numMon, chnum, health, value, temp, updateStore;
     unsigned char count, count2;
@@ -936,9 +1024,36 @@ void Combat(void) { /* $7FB0 */
             numMon--;
         }
     }
+    if (sManualCombatCheck) {
+        /* Deterministic arena only for the isolated gameplay diagnostic. */
+        memset(TileArray, 2, 121);
+        memset(MonsterHP, 0, sizeof(MonsterHP));
+        memset(CharX, 255, sizeof(CharX));
+        memset(CharY, 255, sizeof(CharY));
+        CharX[0] = CharY[0] = 5;
+        CharTile[0] = MonsterTile[0] = 2;
+        MonsterX[0] = Party[2] == 4 && !sBlockedAndDead ? 6 : 5;
+        MonsterY[0] = 4;
+        MonsterHP[0] = 1;
+        PutXYTile(CharShape[0], 5, 5);
+        PutXYTile(gMonType, MonsterX[0], 4);
+        for (short i = 1; i < Party[2]; ++i) {
+            if (!CheckAlive(i))
+                continue;
+            CharX[i] = i * 2;
+            CharY[i] = 7;
+            CharTile[i] = 2;
+            PutXYTile(CharShape[i], CharX[i], CharY[i]);
+        }
+        if (sBlockedAndDead)
+            PutXYTile(0x48, 6, 5);
+    }
     DrawTiles();
     U3AudioPlaySound(U3SoundEffectCombatStart, false);    // was 0xEE
     U3PlatformFlushInputEvents();
+    if (sManualCombatCheck)
+        U3CocoaQueueDiagnosticKeys(sCombatDefeatCheck ? " " :
+            (sBlockedAndDead ? "6 a8" : (Party[2] == 4 ? "6   a8" : " a8")));
     gSongNext = 5;
     gAutoCombat = !U3PlatformGetBooleanPreference(U3PreferenceManualCombat);
 combatstart:
@@ -946,6 +1061,13 @@ combatstart:
     ShowChars(false);
     g835D = 0;
 combatloop: /* $8164 */
+    if (sManualCombatCheck) {
+        if (++sManualTurns > Party[2] + 1) {
+            gUpdateWhere = updateStore;
+            return;
+        }
+        sManualTurnOrder = (sManualTurnOrder << 4) | (g835D + 1);
+    }
     if (gDone)
         return;
     if (gAutoCombat)
@@ -959,6 +1081,8 @@ combatloop: /* $8164 */
     InverseChnum(chnum);
     if (CheckAlive(chnum) == FALSE)
         goto plrdone;
+    if (sManualCombatCheck)
+        sActiveTurnOrder = (sActiveTurnOrder << 4) | (chnum + 1);
     count = 0x2F;
     U3RenderPrintMessage(134);
     U3RenderPrintNumberPadded(chnum + 1, 1);
@@ -1102,6 +1226,15 @@ keyloop:
     goto plrdone;
     return;
 plrdone: /* $85A6 */
+    if (sManualCombatCheck && Party[2] == 4) {
+        if (sBlockedAndDead) {
+            sManualMovement &= CharX[0] == 5 && CharY[0] == 5 &&
+                GetXYTile(5, 5) == CharShape[0] && GetXYTile(6, 5) == 0x48;
+        } else {
+            sManualMovement &= CharX[0] == 6 && CharY[0] == 5 &&
+                GetXYTile(5, 5) == 2 && GetXYTile(6, 5) == CharShape[0];
+        }
+    }
     if (g835F == 7)
         gTimeNegate = 0;
     chnum = g835D;
@@ -1218,6 +1351,10 @@ drawdone: /* $86F7 */
     DrawMapPause();
     goto nextmon;
 afternext: /* $86FD */
+    if (sManualCombatCheck) {
+        ++sEnemyAttacks;
+        sEnemyTurnTiming &= sManualTurns == Party[2];
+    }
     if (gMonType == 0x1C || gMonType == 0x3C || gMonType == 0x38) {
         Poison(gChnum);
     } else {
@@ -1266,6 +1403,8 @@ c8777:
         DrawTiles();
         ShowChars(false);
         CheckAllDead();
+        if (gResurrect || gDone)
+            return;
     }
     ShowChars(false);
     wx = 0x18;

@@ -7,6 +7,7 @@
 #define UltimaDngn_h
 
 void DungeonStart(short mode);
+int U3DungeonTraversalSelfTest(void);
 void DngInfo(void);
 void DrawDungeon(void);
 void GetDungeonGraphics(void);

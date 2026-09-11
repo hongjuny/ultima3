@@ -864,3 +864,200 @@ reliable. T invokes Transact, followed by character selection and direction.
 - Next: expand scenario coverage to shops, spells, manual combat, dungeons,
   death/resurrection, and map changes. Broader save error propagation and
   validation of other game-state fields remain work, not completed guarantees.
+
+### 2026-09-11: Shop and Town Regression Checks
+
+- Fixed Enter scanning 32 entries in the 20-entry LocationX/LocationY arrays.
+  The search now uses the actual array capacity.
+- Added `sh scripts/test-gameplay-scenarios.sh [app-path]`. Each run creates
+  isolated temporary saves and a world screenshot. The diagnostic uses actual
+  food-shop input handling to check purchases, insufficient gold, and Escape.
+- All nine town locations are exercised through Enter and Routine6E6B, checking
+  map type and entry/return coordinates. This tests the transition functions,
+  not walking across a town boundary or the full merchant discovery workflow.
+- Release and AddressSanitizer checks passed. Spells, manual combat, dungeon entry/exit, and
+  death/resurrection remain the next scenario-coverage tasks. Music is deferred.
+
+### 2026-09-11: Spell and Dungeon Scenarios
+
+- Extended gameplay diagnostics through C -> character 1 -> Lorum, asserting
+  mana cost and torch state. Escape and insufficient mana leave effects unchanged.
+- All seven dungeon entrances now run Enter -> DungeonStart -> keyboard K ->
+  world return, checking exit state, level, restored coordinates, and consumed input.
+  This does not cover internal movement, deeper levels, traps, or encounters.
+- Fixed Flashriek indexing a 34-entry sound table with bonus spell 34
+  (Flotellum). Unlisted spell sounds now use the existing generic spell effect.
+  A bonus-spell fixture unlocks Flotellum and supplies adjacent water, checking
+  its 90-mana cost and ship creation through the ordinary spell-selection path.
+- Release and AddressSanitizer runs passed all expanded gameplay scenarios;
+  bitmap regression tests also passed. These are isolated classic-mode diagnostics,
+  not a claim of exhaustive spell coverage or a full manual playthrough.
+- Next: manual combat, dungeon traversal and level changes, other spell classes,
+  and death/resurrection. Music timbre and looping remain deferred.
+
+### 2026-09-11: Manual Combat Regression
+
+- Added a controlled one-character, one-enemy arena to the isolated gameplay
+  diagnostic. The normal Combat loop, enemy attack logic, CombatAttack,
+  DamageMonster, and Victory execute unchanged; only fixture setup and counters
+  are diagnostic-specific. Input is queued after the normal combat-entry flush.
+- Checks space/pass -> enemy attack attempt -> A/north -> enemy death -> victory.
+  Assertions require manual mode, exactly two player turns, one enemy attack
+  attempt, consumed input, and restored map type, update mode, and coordinates.
+  High fixture dexterity and one enemy HP make the player hit deterministic;
+  the enemy is allowed to hit or miss normally.
+- Release and AddressSanitizer checks passed, including the preceding shop,
+  spell, town, and dungeon scenarios. This is not yet coverage of four-character turn order,
+  combat movement, ranged attacks, combat spells, retreat, or death/resurrection.
+  Dungeon traversal and level changes also remain open; music stays deferred.
+
+### 2026-09-11: Four-Character Combat Turns and Movement
+
+- Extended the disposable combat fixture to four distinct roster slots. The
+  original single-character scenario still runs first.
+- Records and asserts the exact player sequence 1, 2, 3, 4, 1, with one enemy
+  attack attempt only after all four characters complete their first turns.
+- Character 1 moves east; characters 2-4 pass; character 1 attacks north and
+  wins on the next round. At each completed player turn, checks verify the new
+  coordinates, restored floor at the old position, and character tile at the
+  destination, before Victory replaces the combat tiles with the world map.
+- Release and AddressSanitizer scenarios passed. Coverage remains limited to an unobstructed cardinal
+  move and living characters. Blocked/diagonal movement, incapacitated-character
+  turn skipping, ranged attacks, combat spells, and death/resurrection remain open.
+
+### 2026-09-11: Blocked Movement and Inactive Combatants
+
+- Added a third combat scenario with a blocked east tile, member 2 dead, and
+  member 4 ashes (both with zero HP). Existing one- and four-character living
+  scenarios still run before this case.
+- Verifies that the blocked move leaves character coordinates, the occupied
+  tile, and the blocking tile unchanged throughout the round. It retains the
+  legacy behavior in which the failed movement attempt consumes the turn.
+- Records active input turns separately from visited party slots: only 1, 3, 1
+  receive input, with the enemy acting after the first party round. Dead/ashes
+  members remain off the combat grid and retain their status through victory.
+- Release and AddressSanitizer checks passed. This fixture starts with inactive members; it does not
+  exercise dying during combat, full-party defeat, or resurrection. Those paths,
+  dungeon traversal, ranged attacks, and combat spells remain open.
+
+### 2026-09-11: Death and Resurrection State
+
+- Fixed CheckAlive to reject absent party slots and invalid roster indices.
+  Defeat detection and resurrection now iterate actual party members, bounded
+  to four, rather than reading or modifying the reserved Player[0] record for
+  empty slots. Resurrection also ignores invalid member indices.
+- Extended the isolated diagnostic with nonlethal and lethal HPSubtract calls,
+  then CheckAllDead for a one-member party. A deliberately living reserved
+  record verifies that an empty slot cannot prevent defeat or get resurrected.
+- The diagnostic bypasses only the acknowledgement and resurrection-choice UI;
+  normal resurrection, world reset, and save writes still run in the temporary
+  save directory. Checks cover status, 100 HP, starting gold/equipment, world
+  coordinates, resurrection flag, and preservation of the reserved roster record.
+- Release and AddressSanitizer checks passed. This is direct damage/defeat-function coverage, not an
+  enemy-caused wipeout inside Combat, a post-resurrection save reopen check, or
+  coverage of the decline-resurrection dialog path. Those remain open.
+
+### 2026-09-11: Combat Defeat and Resurrection Reload
+
+- Added a one-HP combat fixture using the existing Exodus/no-Exotic-armour
+  guaranteed-hit rule. After a manual pass, the real enemy damage path kills
+  the character and invokes CheckAllDead. Only the resurrection UI choice is
+  supplied by the diagnostic; death, resurrection, and save logic run normally.
+- Combat now returns immediately after resurrection (or quit) in its death
+  handler. Previously it could reach another combatstart/AgeChars call and then
+  restore the old update mode. The test requires only one visited player turn,
+  one enemy attack, the resurrection flag, and restored world state.
+- Reopens the save container, discarding its resource cache, then reloads party,
+  roster, and world after deliberately changing in-memory HP/status/coordinates.
+  Checks that the file restores the resurrection location, 100 HP, and equipment.
+- Release and AddressSanitizer scenarios passed. This is an in-process disk reload, not a separate
+  application launch through the Resume menu. Declining resurrection, dungeon
+  battle defeat, and broader multi-character death cases remain open.
+
+### 2026-09-11: Fresh-Process Resume
+
+- The gameplay script now launches a second app process only after the first
+  process exits successfully, using the same isolated save directory.
+- U3_RESUME_CHECK with U3_WORLD_INPUT_CHECK bypasses diagnostic character
+  creation, not normal loading: startup reads the saved roster/party, the demo
+  is dismissed, and an injected J goes through MainMenu's Journey Onward path.
+- At Game entry, assertions check party membership, resurrection location,
+  100 HP, and equipment. Two ordinary world turns then move east and west and
+  reach the next input cycle; a separate resume.png records the result.
+- Release and AddressSanitizer passed: (42,20) -> (43,20) -> (42,20). This is a headless fresh-process
+  menu/keyboard test, not a physical mouse click or a Finder-launched UI test.
+
+### 2026-09-11: Dungeon Traversal and Level Boundaries
+
+- Added a deterministic two-level corridor, temporarily replacing and then
+  restoring the dungeon buffer. The actual DungeonStart input loop handles
+  right/left rotation, forward movement, blocked movement, descend, climb,
+  backward movement, and ladder exit. Every command checks position, heading,
+  level, and exit state. Keys are queued per prompt so wall-collision input
+  flushing cannot discard later test steps. Existing seven real entrance tests remain.
+- dDescend now rejects descent from level index 7 (or an invalid level), avoiding
+  a level-8 access beyond the eight-level dungeon buffer. A bottom-level ladder
+  fixture checks that the level remains unchanged.
+- Release and AddressSanitizer checks passed, including combat, resurrection, and fresh-process
+  resume. This covers a synthetic corridor, not a full real-dungeon route;
+  traps, doors, treasure, encounters, wraparound, and dungeon defeat remain open.
+
+### 2026-09-11: Dungeon Doors, Traps, and Treasure
+
+- Fixed the floor-trap branch: StealDisarmFail returns true on failure, but the
+  dungeon branch previously skipped damage on true. It now skips damage on
+  successful disarm, consistent with the chest-trap callers.
+- Extended the temporary dungeon fixture with a door (0xA0), checking forward
+  entry, blocked rotation inside it, and backward exit through movement functions.
+- A floor-trap event runs through DungeonStart(1) with guaranteed fixture disarm,
+  checking tile removal and unchanged HP. BombTrap is separately called with a
+  known depth to check its 8-127 damage range. This is not a forced failed-disarm
+  roll through the entire floor-trap event.
+- GetChest receives character selection input on a dungeon chest, checking tile
+  removal and a 30-100 gold reward. Repeating the call on the emptied tile cannot
+  grant more gold. High fixture dexterity makes random chest traps harmless;
+  random item rewards are not asserted. Character data and dungeon data are restored.
+- Release and AddressSanitizer checks passed with the existing battle, resurrection, and fresh-process
+  resume scenarios. These are controlled tile/function tests, not a real dungeon
+  playthrough; fountains, marks, writing, and random encounters remain open.
+
+### 2026-09-11: Fountain, Mark, and Writing Events
+
+- Extended the isolated dungeon fixture through the four fountain effects:
+  poison, healing to maximum HP, 25 HP damage, and poison cure. Character
+  selection and Escape run through the ordinary fountain input loop.
+- A mark tile checks its 0x10 bit and 50 HP cost. A writing tile executes the
+  message/Speak path and returns without consuming the tile. This does not
+  assert the rendered text contents or cover every mark and dungeon inscription.
+- Fixed the diagnostic's event-return flag lifetime: it was disabled before
+  these new events, leaving tests in the interactive dungeon loop. Removed
+  the attempted fountain-specific bypass; ordinary Escape closes the image.
+  The earlier attribution to GetChar rejecting space was incorrect.
+- Release and AddressSanitizer scenarios passed, including battle, resurrection, and fresh-process
+  resume. The temporary character and dungeon records are restored afterward.
+
+### 2026-09-11: Visible Dungeon Inscriptions
+
+- The writing fixture temporarily supplies a known Talk inscription with a 0xFF
+  separator, then executes the writing event in both classic and modern modes.
+  Original Talk data and appearance preference are restored afterward.
+- The gameplay script sets U3_DUNGEON_TEXT_CHECK to capture before/after PNGs
+  for each mode in its isolated artifact directory (inscription-*.png).
+- Release captures were visually inspected: SEEK THE SHRINE. and BEWARE THE
+  FLAMES. are readable in both modes. Classic uses fixed-column wrapping;
+  modern reflows at words. Pixel comparison found 21,188 and 20,994 changed
+  dialogue pixels respectively, with the left dungeon viewport unchanged.
+- The full Release script, including fresh-process resume and two world turns,
+  passed. This verifies the controlled inscription, not every bundled message;
+  the visible scene is still the synthetic event fixture.
+
+### 2026-09-11: Preserve Auto-Combat Preference
+
+- The combat regression fixture temporarily enables Manual Combat so it can
+  drive deterministic player turns. It now saves and restores the original
+  preference after every fixture, including the defeat path.
+- A previous run left `com.lairware.ultima3`'s `cmb` preference enabled, which
+  made normal battles pass instead of using AutoCombat. The local preference
+  was restored to automatic combat (`cmb=false`).
+- Release command/text checks passed after the fix. The full gameplay suite was
+  already passing before this preference-only correction.
