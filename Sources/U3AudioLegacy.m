@@ -23,6 +23,7 @@ extern void CloseMusic(void);
 extern void MusicUpdate(void);
 extern void EndSong(void);
 extern void PlayLegacyFadeTone(int32_t pass);
+extern void StopLegacyFadeTone(void);
 extern short gSongCurrent, gSongNext;
 
 extern short gCurChan, gMaxChan;
@@ -144,4 +145,8 @@ void U3AudioPrimeLegacySample(const uint8_t *sampleData) {
 
 void U3AudioPlayLegacyFadeTone(int32_t pass) {
     PlayLegacyFadeTone(pass);
+}
+
+void U3AudioStopLegacyFadeTone(void) {
+    StopLegacyFadeTone();
 }

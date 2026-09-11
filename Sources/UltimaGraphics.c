@@ -999,6 +999,7 @@ void FadeOnExodusUltima(void) {
             CheckInterrupted();
         }
     }
+    U3AudioStopLegacyFadeTone();
     U3IOReleaseResource(&soundBuffer);
 }
 

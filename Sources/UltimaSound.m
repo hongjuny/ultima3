@@ -37,6 +37,7 @@ short                   gCurSong, gSongVolRefNum;
 Str255                  gCurVoiceName;
 unsigned char           gVoiceName[64][64], strk;
 static AVMIDIPlayer     *songPlayer = nil;
+static AVAudioPlayer    *sFadeTonePlayer = nil;
 short                   gQTMusicVolume = 100;
 
 static NSURL *MusicSoundBankURL(void) {
@@ -134,9 +135,9 @@ void PlaySoundFile(CFStringRef soundName, Boolean forceAsync) {
 
 static NSData *FadeToneData(int32_t pass) {
     const uint32_t sampleRate = 44100;
-    const uint32_t frameCount = 3528;
+    const uint32_t frameCount = sampleRate * 3;
     const uint32_t dataSize = frameCount * sizeof(int16_t);
-    const uint32_t step = (uint32_t)MAX(0, MIN(31, (32768 - pass) / 2048));
+    (void)pass;
     NSMutableData *data = [NSMutableData dataWithLength:44 + dataSize];
     uint8_t *bytes = [data mutableBytes];
     memcpy(bytes, "RIFF", 4);
@@ -158,17 +159,20 @@ static NSData *FadeToneData(int32_t pass) {
     memcpy(bytes + 40, &dataSize, sizeof(dataSize));
 
     int16_t *samples = (int16_t *)(bytes + 44);
-    double filteredNoise = 0.0;
-    uint32_t noiseState = 0x9E3779B9u + step;
+    uint32_t lfsr = 0x1FFFF;
+    uint32_t noiseClock = 0;
+    int noiseBit = 0;
     for (uint32_t i = 0; i < frameCount; ++i) {
-        double attack = MIN(1.0, (double)i / 220.0);
-        double envelope = attack * (1.0 - ((double)i / frameCount));
-        noiseState = (noiseState * 1664525u) + 1013904223u;
-        noiseState ^= noiseState >> 16;
-        double noise = ((double)(noiseState & 0xFFFF) / 32767.5) - 1.0;
-        filteredNoise = (filteredNoise * 0.90) + (noise * 0.10);
-        double brightEdge = noise - filteredNoise;
-        double sample = (filteredNoise * 0.82 + brightEdge * 0.10) * envelope;
+        if (++noiseClock >= 7) {
+            noiseClock = 0;
+            uint32_t feedback = (lfsr ^ (lfsr >> 3)) & 1;
+            noiseBit = lfsr & 1;
+            lfsr = (lfsr >> 1) | (feedback << 16);
+        }
+        double attack = MIN(1.0, (double)i / (sampleRate * 0.04));
+        double release = MIN(1.0, (double)(frameCount - i) / (sampleRate * 0.08));
+        double envelope = attack * release;
+        double sample = (noiseBit ? 0.58 : -0.58) * envelope;
         samples[i] = (int16_t)(MAX(-1.0, MIN(1.0, sample)) * 28000.0);
     }
     return data;
@@ -178,27 +182,26 @@ void PlayLegacyFadeTone(int32_t pass) {
     if (U3CocoaIsHeadlessDiagnostic() || U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled))
         return;
 
-    static NSMutableArray *fadeTonePlayers = nil;
-    if (!fadeTonePlayers)
-        fadeTonePlayers = [[NSMutableArray alloc] init];
-    for (NSInteger i = [fadeTonePlayers count] - 1; i >= 0; --i) {
-        AVAudioPlayer *player = [fadeTonePlayers objectAtIndex:i];
-        if (![player isPlaying])
-            [fadeTonePlayers removeObjectAtIndex:i];
-    }
+    if (sFadeTonePlayer)
+        return;
 
     NSError *error = nil;
     AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithData:FadeToneData(pass) error:&error];
     if (player && [player prepareToPlay]) {
-        short volume = U3PlatformGetIntegerPreference(U3PreferenceSoundVolume);
-        if (volume < 1) volume = 100;
-        [player setVolume:MIN(1.0f, (float)volume / 100.0f)];
-        [fadeTonePlayers addObject:player];
+        [player setVolume:0.75f];
+        sFadeTonePlayer = player;
         [player play];
     } else if (error) {
         NSLog(@"Cannot play Exodus fade tone: %@", [error localizedDescription]);
     }
-    [player release];
+    if (player != sFadeTonePlayer)
+        [player release];
+}
+
+void StopLegacyFadeTone(void) {
+    [sFadeTonePlayer stop];
+    [sFadeTonePlayer release];
+    sFadeTonePlayer = nil;
 }
 /*
 void PlaySound(unsigned short what,Boolean async) // $4705
