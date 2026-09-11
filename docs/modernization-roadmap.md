@@ -1109,3 +1109,12 @@ reliable. T invokes Transact, followed by character selection and direction.
 - The fixture restores monster, tile, party, spell-selection, and quit state.
   Random area spells and the complete cleric spell-selection table remain
   broader playthrough coverage.
+
+### 2026-09-11: Multi-Target Auto-Combat Decision
+
+- Extended the auto-combat regression fixture with two active targets and a
+  controlled experience value. The wizard threat branch must recognize their
+  combined value and queue the `C,P` spell macro rather than falling through to
+  a movement or melee action.
+- The earlier adjacent-melee assertion remains in the same fixture, and player,
+  monster, macro, experience, and combat state are restored after both cases.

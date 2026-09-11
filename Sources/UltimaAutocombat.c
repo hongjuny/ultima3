@@ -199,6 +199,9 @@ Boolean U3AutoCombatSelfTest(void) {
     unsigned char savedMonsterX[8], savedMonsterY[8], savedMonsterHP[8];
     unsigned char savedParty2 = Party[2], savedParty7 = Party[7];
     unsigned char savedClass = Player[1][23], savedWeapon = Player[1][48];
+    unsigned char savedMagic = Player[1][25], savedStatus = Player[1][17];
+    unsigned char savedHPHigh = Player[1][26], savedHPLow = Player[1][27];
+    unsigned char savedExperience = Experience[8];
     short savedMonType = gMonType;
     char saved5521 = g5521, saved56E7 = g56E7;
     memcpy(savedMacro, Macro, sizeof(savedMacro));
@@ -221,7 +224,21 @@ Boolean U3AutoCombatSelfTest(void) {
     g5521 = g56E7 = 0;
     memset(Macro, 0, sizeof(Macro));
     AutoCombat(0);
-    Boolean passed = Macro[0] == 'A' && Macro[1] == '8';
+    Boolean meleePassed = Macro[0] == 'A' && Macro[1] == '8';
+
+    /* Two high-value targets should make a wizard choose the area spell branch. */
+    Player[1][23] = careerTable[2];
+    Player[1][25] = 75;
+    Player[1][17] = 'G';
+    Player[1][26] = 0;
+    Player[1][27] = 100;
+    Experience[8] = 40;
+    MonsterHP[0] = MonsterHP[1] = 1;
+    g5521 = 1; /* Repond has already been used; reach threat-based selection. */
+    memset(Macro, 0, sizeof(Macro));
+    AutoCombat(0);
+    Boolean threatPassed = Macro[0] == 'C' && Macro[1] == 'P';
+    Boolean passed = meleePassed && threatPassed;
 
     memcpy(Macro, savedMacro, sizeof(savedMacro));
     memcpy(CharX, savedCharX, sizeof(savedCharX));
@@ -233,6 +250,11 @@ Boolean U3AutoCombatSelfTest(void) {
     Party[7] = savedParty7;
     Player[1][23] = savedClass;
     Player[1][48] = savedWeapon;
+    Player[1][25] = savedMagic;
+    Player[1][17] = savedStatus;
+    Player[1][26] = savedHPHigh;
+    Player[1][27] = savedHPLow;
+    Experience[8] = savedExperience;
     gMonType = savedMonType;
     g5521 = saved5521;
     g56E7 = saved56E7;
