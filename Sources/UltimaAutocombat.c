@@ -9,7 +9,6 @@
 #import "UltimaMisc.h"
 #import "UltimaSpellCombat.h"
 
-
 extern unsigned char    Player[21][65], Experience[17];
 extern unsigned char    Party[65], Macro[32];
 extern unsigned char    CharX[4], CharY[4], CharTile[4], CharShape[4], careerTable[12];
@@ -247,8 +246,15 @@ Boolean U3AutoCombatSelfTest(void) {
     Party[7] = 1;
     Player[1][23] = careerTable[0];
     Player[1][48] = 0;
+    Player[1][17] = 'G';
+    Player[1][26] = 0;
+    Player[1][27] = 100;
+    memset(CharX, 255, sizeof(CharX));
+    memset(CharY, 255, sizeof(CharY));
     CharX[0] = 5;
     CharY[0] = 5;
+    memset(TileArray, 2, sizeof(TileArray));
+    memset(MonsterHP, 0, sizeof(MonsterHP));
     MonsterX[0] = 5;
     MonsterY[0] = 4;
     MonsterHP[0] = 1;
@@ -257,6 +263,18 @@ Boolean U3AutoCombatSelfTest(void) {
     memset(Macro, 0, sizeof(Macro));
     AutoCombat(0);
     Boolean meleePassed = Macro[0] == 'A' && Macro[1] == '8';
+
+    /* A nearly dead fighter should retreat from an adjacent target. */
+    Player[1][17] = 'G';
+    Player[1][26] = 0;
+    Player[1][27] = 40;
+    memset(MonsterHP, 0, sizeof(MonsterHP));
+    MonsterX[0] = 5;
+    MonsterY[0] = 4;
+    MonsterHP[0] = 1;
+    memset(Macro, 0, sizeof(Macro));
+    AutoCombat(0);
+    Boolean retreatPassed = Macro[0] == '2';
 
     /* Two high-value targets should make a wizard choose the area spell branch. */
     Player[1][23] = careerTable[2];
@@ -297,7 +315,7 @@ Boolean U3AutoCombatSelfTest(void) {
     Boolean commandConsumed = U3PlatformGetKeyMouse(0) && gKeyPress == 'C';
     Boolean spellExecuted = commandConsumed && Cast(1, 1) &&
         Player[1][25] == 0 && MonsterHP[0] < 100;
-    Boolean passed = meleePassed && threatPassed && spellMacroPassed && spellExecuted;
+    Boolean passed = meleePassed && retreatPassed && threatPassed && spellMacroPassed && spellExecuted;
 
     memcpy(Macro, savedMacro, sizeof(savedMacro));
     memcpy(TileArray, savedTileArray, sizeof(savedTileArray));

@@ -1145,3 +1145,11 @@ reliable. T invokes Transact, followed by character selection and direction.
   from poisoned to good status, and preserves the existing support-spell test.
   Paralysis and other status effects are not represented by a distinct player
   status in the current engine and remain a separate legacy behavior audit.
+
+### 2026-09-11: Auto-Combat Retreat Priority
+
+- Extended the auto-combat fixture with a low-HP fighter facing an adjacent
+  enemy. The survival branch must queue a safe south retreat (`2`) before the
+  normal melee decision.
+- The existing melee, threat-based spell, projectile spell, healing, and poison
+  cure assertions remain in the same isolated fixture.
