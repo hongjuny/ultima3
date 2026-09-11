@@ -1,11 +1,18 @@
 .DS_Store
+
+# Xcode products and intermediate build data
 DerivedData/
 build/
 Build/
 xcuserdata/
 *.xcuserstate
 *.dSYM/
-Resources/MusicMIDI/FluidR3_GM.sf2
+
+# Generated caches and local tooling output
 *.noindex/
 Logs/
 XCBuildData/
+scripts/__pycache__/
+
+# Downloaded optional MIDI soundbank
+Resources/MusicMIDI/FluidR3_GM.sf2

@@ -60,6 +60,45 @@ regular file limit. The bundled GeneralUser GS bank remains available as an
 offline fallback; provide `U3_MIDI_SOUNDBANK=/path/to/bank.sf2` to compare
 another SoundFont at runtime.
 
+## Modernization
+
+This repository preserves a historically layered game: the gameplay rules and
+data are rooted in the Apple II version, while the original presentation code
+passed through 1990s Carbon and early Cocoa APIs. The modernization work keeps
+that historical game behavior while separating it from the operating system.
+
+The current runtime is organized around explicit boundaries:
+
+- **Game core:** party state, maps, combat, spells, events, movement, saves,
+  and the original game rules remain in the C sources.
+- **Platform layer:** timing, preferences, paths, resource loading, windows,
+  keyboard events, and application lifecycle are routed through `U3Platform`
+  and `U3IO` adapters rather than being spread through game logic.
+- **Rendering:** the legacy bitmap renderer is isolated behind renderer and
+  Cocoa bridge interfaces. This keeps the classic raster presentation usable
+  while leaving room for a future renderer.
+- **Audio:** PCM effects use modern AVFoundation playback. Music is provided
+  as MIDI with a SoundFont selected at runtime; the original QuickTime/MUSI
+  path is retained as historical input and is not required by the modern
+  build. The Exodus intro uses a procedural Mockingboard-style digital-noise
+  approximation rather than an instrument sample.
+- **Input and text:** keyboard commands, mouse actions, Pascal-style legacy
+  strings, and modern text conversion are handled at the boundary so the game
+  core does not depend on Carbon event structures or MacRoman display APIs.
+
+The result is a native 64-bit Apple silicon macOS application that can be
+built from a clean clone, while retaining the original assets and gameplay
+identity. The code intentionally favors small adapters over a wholesale
+rewrite: this makes future ports to another windowing, rendering, or audio
+library practical without rewriting the game rules.
+
+The modernization also includes release-oriented verification scripts for
+bitmap loading, command/text behavior, and representative gameplay scenarios.
+These checks are designed to catch regressions in the preserved game loop as
+platform code continues to evolve.
+
+Modernization and current macOS/Apple silicon adaptation by **Hong-Jun Yoon**.
+
 ## License
 Usage is provided under the [MIT License](http://opensource.org/licenses/mit-license.php). See LICENSE for the full details.
 
