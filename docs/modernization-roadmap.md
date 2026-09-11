@@ -1135,3 +1135,13 @@ reliable. T invokes Transact, followed by character selection and direction.
   selecting Sanctu and the injured second party member.
 - The test verifies the 10-point mana cost and HP increase, then restores both
   player records, party slots, tiles, combat arrays, and input state.
+
+### 2026-09-11: Auto-Combat Poison Cure
+
+- Added an automatic poison-priority branch for clerics with the 35 mana cost
+  required by Alcort. The first poisoned party member produces `C,H,target`,
+  ahead of offensive and healing decisions.
+- The fixture consumes that macro through `Cast()`, verifies the target changes
+  from poisoned to good status, and preserves the existing support-spell test.
+  Paralysis and other status effects are not represented by a distinct player
+  status in the current engine and remain a separate legacy behavior audit.

@@ -9,6 +9,7 @@
 #import "UltimaMisc.h"
 #import "UltimaSpellCombat.h"
 
+
 extern unsigned char    Player[21][65], Experience[17];
 extern unsigned char    Party[65], Macro[32];
 extern unsigned char    CharX[4], CharY[4], CharTile[4], CharShape[4], careerTable[12];
@@ -116,6 +117,25 @@ void AutoCombat(short chnum) {
             AddMacro('C');
         AddMacro('C');
         return;
+    }
+    /* Cure a poisoned party member before choosing an offensive action. */
+    if (magic >= 35 && isCler) {
+        short poisonedChar = -1;
+        for (chnum2 = 0; chnum2 < Party[2]; chnum2++) {
+            short target = Party[7 + chnum2];
+            if (target != 0 && Player[target][17] == 'P') {
+                poisonedChar = chnum2;
+                break;
+            }
+        }
+        if (poisonedChar >= 0) {
+            AddMacro('1' + poisonedChar);
+            if (isMulti)
+                AddMacro('C');
+            AddMacro('H');
+            AddMacro('C');
+            return;
+        }
     }
     // Can cast nameless spell and there is a big threat
     if (magic >= 75 && isWiz && (ThreatValue() > 60)) {
@@ -362,7 +382,16 @@ Boolean U3AutoCombatSupportSpellSelfTest(void) {
     Boolean commandConsumed = U3PlatformGetKeyMouse(0) && gKeyPress == 'C';
     Boolean spellExecuted = commandConsumed && Cast(1, 1) &&
         Player[1][25] == 0 && Player[2][27] > 50;
-    Boolean passed = spellMacroPassed && spellExecuted;
+
+    Player[1][25] = 35;
+    Player[2][17] = 'P';
+    memset(Macro, 0, sizeof(Macro));
+    AutoCombat(0);
+    Boolean cureMacroPassed = Macro[0] == 'C' && Macro[1] == 'H' && Macro[2] == '2';
+    commandConsumed = U3PlatformGetKeyMouse(0) && gKeyPress == 'C';
+    Boolean cureExecuted = commandConsumed && Cast(1, 1) &&
+        Player[1][25] == 0 && Player[2][17] == 'G';
+    Boolean passed = spellMacroPassed && spellExecuted && cureMacroPassed && cureExecuted;
 
     memcpy(Macro, savedMacro, sizeof(savedMacro));
     memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
