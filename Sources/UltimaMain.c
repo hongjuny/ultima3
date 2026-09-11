@@ -1332,6 +1332,12 @@ static void GameplayScenarioCheck(void) {
                     "multiple enemies select their nearest living targets");
     ScenarioRequire(U3EnemyMultiAttackSelfTest(),
                     "multiple enemies complete their attack turns");
+    ScenarioRequire(U3SpellSelectionSelfTest(),
+                    "wizard and cleric spell selection boundaries work");
+    ScenarioRequire(U3CombatStatusSelfTest(),
+                    "poison applies, cures, and skips dead characters");
+    ScenarioRequire(U3MonsterSpecialSelfTest(),
+                    "monster poison and pilfer effects mutate the intended state");
     Party[2] = 1;
     Party[8] = Party[9] = Party[10] = 0;
     member = Party[7];

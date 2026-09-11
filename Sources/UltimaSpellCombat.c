@@ -1131,6 +1131,131 @@ Boolean U3EnemyMultiAttackSelfTest(void) {
     return passed;
 }
 
+Boolean U3SpellSelectionSelfTest(void) {
+    unsigned char savedParty16 = Party[16];
+    short savedSpell = spellnum;
+    Boolean savedDone = gDone;
+    Party[16] = 1;
+    gDone = FALSE;
+    U3CocoaQueueDiagnosticKeys("APQA");
+    Boolean wizardBasic = WizardChoose() == 0;
+    Boolean wizardLast = WizardChoose() == 15;
+    Boolean wizardBonus = WizardChoose() == 32;
+    Party[16] = 0;
+    U3CocoaQueueDiagnosticKeys("QA");
+    Boolean lockedBonusRejected = WizardChoose() == 0;
+    U3CocoaQueueDiagnosticKeys("AP");
+    Boolean clericFirst = ClericChoose() == 16;
+    Boolean clericLast = ClericChoose() == 31;
+    Boolean passed = wizardBasic && wizardLast && wizardBonus && lockedBonusRejected &&
+        clericFirst && clericLast;
+    Party[16] = savedParty16;
+    spellnum = savedSpell;
+    gDone = savedDone;
+    return passed;
+}
+
+Boolean U3CombatStatusSelfTest(void) {
+    unsigned char savedTileArray[128], savedCharX[4], savedCharY[4];
+    unsigned char savedCharTile[4], savedCharShape[4], savedParty2 = Party[2];
+    unsigned char savedParty3 = Party[3], savedParty7 = Party[7];
+    unsigned char savedStatus = Player[1][17];
+    short savedSpell = spellnum;
+    Boolean savedDone = gDone;
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
+    memcpy(savedCharX, CharX, sizeof(savedCharX));
+    memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedCharTile, CharTile, sizeof(savedCharTile));
+    memcpy(savedCharShape, CharShape, sizeof(savedCharShape));
+    Party[2] = 1;
+    Party[3] = 0x80;
+    Party[7] = 1;
+    Player[1][17] = 'G';
+    CharX[0] = 5;
+    CharY[0] = 5;
+    CharTile[0] = 2;
+    CharShape[0] = 0x80;
+    memset(TileArray, 2, sizeof(TileArray));
+    gDone = FALSE;
+    Boolean poisonApplied = FALSE;
+    for (short attempt = 0; attempt < 64 && !poisonApplied; attempt++) {
+        Player[1][17] = 'G';
+        Poison(0);
+        poisonApplied = Player[1][17] == 'P';
+    }
+    spellnum = 23;
+    U3CocoaQueueDiagnosticKeys("1");
+    Spell(1);
+    Boolean poisonCured = Player[1][17] == 'G';
+    Player[1][17] = 'D';
+    Poison(0);
+    Boolean deadUnaffected = Player[1][17] == 'D';
+    Boolean passed = poisonApplied && poisonCured && deadUnaffected;
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
+    memcpy(CharX, savedCharX, sizeof(savedCharX));
+    memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(CharTile, savedCharTile, sizeof(savedCharTile));
+    memcpy(CharShape, savedCharShape, sizeof(savedCharShape));
+    Party[2] = savedParty2;
+    Party[3] = savedParty3;
+    Party[7] = savedParty7;
+    Player[1][17] = savedStatus;
+    spellnum = savedSpell;
+    gDone = savedDone;
+    return passed;
+}
+
+Boolean U3MonsterSpecialSelfTest(void) {
+    unsigned char savedPlayer[65], savedTileArray[128], savedCharX[4], savedCharY[4];
+    unsigned char savedCharTile[4], savedCharShape[4];
+    unsigned char savedParty2 = Party[2], savedParty7 = Party[7];
+    Boolean savedDone = gDone;
+    memcpy(savedPlayer, Player[1], sizeof(savedPlayer));
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
+    memcpy(savedCharX, CharX, sizeof(savedCharX));
+    memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedCharTile, CharTile, sizeof(savedCharTile));
+    memcpy(savedCharShape, CharShape, sizeof(savedCharShape));
+    Party[2] = 1;
+    Party[7] = 1;
+    Player[1][17] = 'G';
+    Player[1][48] = 0;
+    for (short item = 0; item < 16; item++) {
+        Player[1][40 + item] = 1;
+    }
+    CharX[0] = 5;
+    CharY[0] = 5;
+    CharTile[0] = 2;
+    CharShape[0] = 0x80;
+    memset(TileArray, 2, sizeof(TileArray));
+    gDone = FALSE;
+    Boolean poisoned = FALSE;
+    for (short attempt = 0; attempt < 64 && !poisoned; attempt++) {
+        Player[1][17] = 'G';
+        Poison(0);
+        poisoned = Player[1][17] == 'P';
+    }
+    Player[1][17] = 'G';
+    Boolean pilfered = FALSE;
+    for (short attempt = 0; attempt < 128 && !pilfered; attempt++) {
+        unsigned char before[25];
+        memcpy(before, Player[1] + 40, sizeof(before));
+        Pilfer(0);
+        pilfered = memcmp(before, Player[1] + 40, sizeof(before)) != 0;
+    }
+    Boolean passed = poisoned && pilfered && Player[1][17] == 'G';
+    memcpy(Player[1], savedPlayer, sizeof(savedPlayer));
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
+    memcpy(CharX, savedCharX, sizeof(savedCharX));
+    memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(CharTile, savedCharTile, sizeof(savedCharTile));
+    memcpy(CharShape, savedCharShape, sizeof(savedCharShape));
+    Party[2] = savedParty2;
+    Party[7] = savedParty7;
+    gDone = savedDone;
+    return passed;
+}
+
 Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead) {
     /* Mutates the disposable party used by GameplayScenarioCheck. */
     short member = Party[7];

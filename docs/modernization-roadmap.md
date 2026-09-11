@@ -1195,3 +1195,20 @@ reliable. T invokes Transact, followed by character selection and direction.
   two guaranteed hits, and leave the character alive with reduced HP.
 - The diagnostic exits after that enemy round and restores the map, party,
   combat, and location state; random special attacks remain broader coverage.
+
+### 2026-09-11: Spell Selection and Status Boundaries
+
+- Added selection coverage for first/last wizard and cleric spells, unlocked
+  bonus wizard spell handling, and rejection of locked bonus spells.
+- Added poison-state coverage through the real `Poison()` and `Spell(23)` paths:
+  poison application, Alcort cure, and no mutation of dead characters.
+- Random monster special attacks and the complete spell effect table remain open
+  for the next verification pass.
+
+### 2026-09-11: Monster Special Effects
+
+- Added repeated deterministic-window coverage for the real `Poison()` and
+  `Pilfer()` effects. The fixture confirms poison status and inventory mutation
+  occur on the intended character, while restoring the complete player record.
+- Dragon projectiles and monster spell animation branches remain probabilistic
+  combat-loop coverage rather than being faked by direct effect calls.
