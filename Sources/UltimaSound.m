@@ -134,10 +134,9 @@ void PlaySoundFile(CFStringRef soundName, Boolean forceAsync) {
 
 static NSData *FadeToneData(int32_t pass) {
     const uint32_t sampleRate = 44100;
-    const uint32_t frameCount = 2205;
+    const uint32_t frameCount = 3528;
     const uint32_t dataSize = frameCount * sizeof(int16_t);
     const uint32_t step = (uint32_t)MAX(0, MIN(31, (32768 - pass) / 2048));
-    const double frequency = 2400.0 + (step * 70.0);
     NSMutableData *data = [NSMutableData dataWithLength:44 + dataSize];
     uint8_t *bytes = [data mutableBytes];
     memcpy(bytes, "RIFF", 4);
@@ -159,20 +158,17 @@ static NSData *FadeToneData(int32_t pass) {
     memcpy(bytes + 40, &dataSize, sizeof(dataSize));
 
     int16_t *samples = (int16_t *)(bytes + 44);
-    double previousNoise = 0.0;
+    double filteredNoise = 0.0;
     uint32_t noiseState = 0x9E3779B9u + step;
     for (uint32_t i = 0; i < frameCount; ++i) {
-        double t = (double)i / sampleRate;
-        double envelope = 1.0 - ((double)i / frameCount);
-        envelope *= envelope;
-        double carrier = sin(2.0 * M_PI * frequency * t);
-        double overtone = sin(2.0 * M_PI * frequency * 1.61 * t);
+        double attack = MIN(1.0, (double)i / 220.0);
+        double envelope = attack * (1.0 - ((double)i / frameCount));
         noiseState = (noiseState * 1664525u) + 1013904223u;
         noiseState ^= noiseState >> 16;
         double noise = ((double)(noiseState & 0xFFFF) / 32767.5) - 1.0;
-        double crackle = noise - (previousNoise * 0.72);
-        previousNoise = noise;
-        double sample = (crackle * 0.78 + carrier * 0.06 + overtone * 0.04) * envelope;
+        filteredNoise = (filteredNoise * 0.90) + (noise * 0.10);
+        double brightEdge = noise - filteredNoise;
+        double sample = (filteredNoise * 0.82 + brightEdge * 0.10) * envelope;
         samples[i] = (int16_t)(MAX(-1.0, MIN(1.0, sample)) * 28000.0);
     }
     return data;
