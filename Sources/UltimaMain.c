@@ -1320,6 +1320,8 @@ static void GameplayScenarioCheck(void) {
                     "auto combat heals a low-health party member");
     ScenarioRequire(U3AutoCombatPartyTurnSelfTest(),
                     "two auto combat party members execute independent turns");
+    ScenarioRequire(U3AutoCombatFourPartySelfTest(),
+                    "four auto combat party members generate ordered turns");
     ScenarioRequire(U3RangedCombatSelfTest(),
                     "ranged CombatAttack follows direction and damages target");
     ScenarioRequire(U3CombatSpellSelfTest(),

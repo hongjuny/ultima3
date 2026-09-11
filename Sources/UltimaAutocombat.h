@@ -10,5 +10,6 @@ void AutoCombat(short);
 Boolean U3AutoCombatSelfTest(void);
 Boolean U3AutoCombatSupportSpellSelfTest(void);
 Boolean U3AutoCombatPartyTurnSelfTest(void);
+Boolean U3AutoCombatFourPartySelfTest(void);
 
 #endif /* UltimaAutocombat_h */

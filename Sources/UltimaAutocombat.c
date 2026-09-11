@@ -552,6 +552,87 @@ Boolean U3AutoCombatPartyTurnSelfTest(void) {
     return passed;
 }
 
+Boolean U3AutoCombatFourPartySelfTest(void) {
+    unsigned char savedMacro[32], savedTileArray[128], savedCharX[4], savedCharY[4];
+    unsigned char savedCharTile[4], savedCharShape[4], savedMonsterX[8], savedMonsterY[8];
+    unsigned char savedMonsterTile[8], savedMonsterHP[8], savedParty[65], savedPlayers[21][65];
+    short savedMonType = gMonType;
+    char savedKeyPress = gKeyPress;
+    Boolean savedDone = gDone;
+    memcpy(savedMacro, Macro, sizeof(savedMacro));
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
+    memcpy(savedCharX, CharX, sizeof(savedCharX));
+    memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedCharTile, CharTile, sizeof(savedCharTile));
+    memcpy(savedCharShape, CharShape, sizeof(savedCharShape));
+    memcpy(savedMonsterX, MonsterX, sizeof(savedMonsterX));
+    memcpy(savedMonsterY, MonsterY, sizeof(savedMonsterY));
+    memcpy(savedMonsterTile, MonsterTile, sizeof(savedMonsterTile));
+    memcpy(savedMonsterHP, MonsterHP, sizeof(savedMonsterHP));
+    memcpy(savedParty, Party, sizeof(savedParty));
+    memcpy(savedPlayers, Player, sizeof(savedPlayers));
+
+    Party[2] = 4;
+    Party[7] = 1;
+    Party[8] = 2;
+    Party[9] = 3;
+    Party[10] = 4;
+    Party[16] = 0;
+    for (short i = 0; i < 4; i++) {
+        Player[i + 1][17] = 'G';
+        Player[i + 1][25] = 0;
+        Player[i + 1][26] = 0;
+        Player[i + 1][27] = 100;
+        Player[i + 1][48] = 0;
+        CharTile[i] = 2;
+        CharShape[i] = 0x80;
+    }
+    Player[1][23] = careerTable[0];
+    Player[2][23] = careerTable[0];
+    Player[3][23] = careerTable[2];
+    Player[3][25] = 5;
+    Player[4][23] = careerTable[0];
+    CharX[0] = 2; CharY[0] = 5;
+    CharX[1] = 4; CharY[1] = 5;
+    CharX[2] = 6; CharY[2] = 5;
+    CharX[3] = 8; CharY[3] = 5;
+    for (short i = 0; i < 4; i++) {
+        MonsterX[i] = CharX[i];
+        MonsterY[i] = 4;
+        MonsterTile[i] = 2;
+        MonsterHP[i] = 100;
+    }
+    gMonType = 0x34;
+    gDone = FALSE;
+    memset(TileArray, 2, sizeof(TileArray));
+    Boolean passed = TRUE;
+    const char expected[4][4] = {{'A', '8', 0, 0}, {'A', '8', 0, 0},
+                                 {'C', 'B', '8', 0}, {'A', '8', 0, 0}};
+    for (short i = 0; i < 4; i++) {
+        memset(Macro, 0, sizeof(Macro));
+        AutoCombat(i);
+        passed &= Macro[0] == expected[i][0] && Macro[1] == expected[i][1] &&
+            Macro[2] == expected[i][2];
+    }
+
+    memcpy(Macro, savedMacro, sizeof(savedMacro));
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
+    memcpy(CharX, savedCharX, sizeof(savedCharX));
+    memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(CharTile, savedCharTile, sizeof(savedCharTile));
+    memcpy(CharShape, savedCharShape, sizeof(savedCharShape));
+    memcpy(MonsterX, savedMonsterX, sizeof(savedMonsterX));
+    memcpy(MonsterY, savedMonsterY, sizeof(savedMonsterY));
+    memcpy(MonsterTile, savedMonsterTile, sizeof(savedMonsterTile));
+    memcpy(MonsterHP, savedMonsterHP, sizeof(savedMonsterHP));
+    memcpy(Party, savedParty, sizeof(savedParty));
+    memcpy(Player, savedPlayers, sizeof(savedPlayers));
+    gMonType = savedMonType;
+    gKeyPress = savedKeyPress;
+    gDone = savedDone;
+    return passed;
+}
+
 short ThreatValue(void) {   // total experience value of monsters
     char mon;
     short total, expval;

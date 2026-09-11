@@ -1169,3 +1169,12 @@ reliable. T invokes Transact, followed by character selection and direction.
 - The fixture verifies both targets take damage and the wizard's mana is charged
   only for its own turn, then restores all party, player, tile, monster, and
   input state.
+
+### 2026-09-11: Four-Party Auto-Combat Turn Generation
+
+- Added a four-character fixture covering three melee decisions and one wizard
+  projectile spell decision. Each turn clears and regenerates its own macro,
+  verifying the ordered `A,8`, `A,8`, `C,B,8`, `A,8` sequence.
+- The complete party, player records, combat arrays, tiles, and input state are
+  restored after the four-turn generation check. Full four-member execution in
+  the live combat loop remains a broader playthrough check.
