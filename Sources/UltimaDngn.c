@@ -7,6 +7,7 @@
 #import "U3Audio.h"
 #import "U3Renderer.h"
 #import "U3Platform.h"
+#import "U3PartyRecord.h"
 #import "UltimaGraphics.h"
 #import "UltimaMacIF.h"
 #import "UltimaMain.h"
@@ -18,7 +19,7 @@
 extern Boolean          gDone, gResurrect;
 extern short            zp[255], gUpdateWhere, gTorch, gDepth, gCurMapID;
 extern char             dungeonLevel, gKeyPress;
-extern unsigned char    Dungeon[2048], Player[21][65], Party[64];
+extern unsigned char    Dungeon[2048], Player[21][65];
 extern int              xpos, ypos, tx, ty, xs, ys, wx, wy;
 extern CGrafPtr         mainPort, tilesPort, gamePort;
 extern GDHandle         mainDevice;

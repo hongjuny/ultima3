@@ -15,7 +15,7 @@ extern CGrafPtr         mainPort, minitilesPort;
 extern int              xpos, ypos;
 extern short            WhirlX, WhirlY;
 extern unsigned char    LocationX[20], LocationY[20], MoonXTable[8], MoonYTable[8];
-extern unsigned char    Monsters[256], Party[64];
+extern unsigned char    Monsters[256];
 extern short            gCurMapSize, gUpdateWhere, zp[255];
 extern short            blkSiz;
 extern short            gSongCurrent, gSongNext, gSongPlaying;

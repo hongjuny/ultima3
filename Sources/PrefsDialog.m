@@ -21,7 +21,6 @@
 extern WindowPtr gMainWindow;
 extern short gUpdateWhere, gMouseState;
 extern Boolean gAutoCombat;
-extern unsigned char Party[64];
 extern unsigned char gCurFrame;
 
 static NSString *U3PreferenceStringValue(U3PreferenceKey key) {

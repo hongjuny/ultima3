@@ -27,6 +27,8 @@ enum {
 typedef struct U3GameState {
     uint8_t player[U3PlayerSlotCount][U3PlayerRecordSize];
     uint8_t oldPlayer[U3PlayerSlotCount][U3PlayerRecordSize];
+    /* Version-1 snapshot field: keep its serialized size independent of the
+       one-based legacy Party array, which includes an extra padding byte. */
     uint8_t party[U3PartySize];
     uint8_t monsters[U3MonsterStateSize];
     uint8_t talk[U3TalkStateSize];

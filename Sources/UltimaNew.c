@@ -20,7 +20,7 @@ extern WindowPtr            gMainWindow;
 extern GDHandle             mainDevice;
 extern short                chStatsCur, gDepth, blkSiz;
 extern unsigned char        gStoreDirect, careerTable[12];
-extern unsigned char        Player[21][65], Party[64];
+extern unsigned char        Player[21][65];
 extern UniversalProcPtr     DialogFilterProc;
 extern int                  xpos, ypos;
 extern char                 gCurWeapons[32], gCurArmours[32];
@@ -160,7 +160,7 @@ Boolean U3StorePartySelection(const short selection[4]) {
 }
 
 Boolean U3PartySelectionSelfTest(void) {
-    unsigned char savedPlayers[21][65], savedParty[64];
+    unsigned char savedPlayers[21][65], savedParty[U3LegacyPartySize];
     int savedX = xpos, savedY = ypos;
     memcpy(savedPlayers, Player, sizeof(Player));
     memcpy(savedParty, Party, sizeof(Party));

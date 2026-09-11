@@ -839,3 +839,28 @@ reliable. T invokes Transact, followed by character selection and direction.
 - Subsequent user play verification: commands now respond correctly and tiles
   no longer appear corrupted. Record this as the checkpoint before persistence
   safety work; it is not exhaustive coverage of all game scenarios.
+
+### 2026-09-11: Save and Memory Safety
+
+- Playable checkpoint: commit `597b24e` includes the verified command/text work
+  and the preceding fixed-bank MIDI work. Music timbre and looping remain open.
+- Corrected the legacy Party array to 65 bytes: padding at index zero, followed
+  by all 64 PRTY resource bytes. A shared declaration removes inconsistent
+  extern sizes. File records remain 64 bytes; the version-1 portable snapshot
+  field is unchanged. No save-format migration is required.
+- Added actual GetParty/PutParty/reopen coverage with a nonzero final byte and
+  coordinate checks. Invalid and duplicate party-member indices are rejected
+  when opening/writing save containers; malformed input is not overwritten.
+- AddressSanitizer exposed another overread during startup: bundled career,
+  weapon, and armour tables have 11 bytes, and Experience has 16, while the
+  old loops copied 12 and 17. Reads/writes now respect resource lengths and
+  initialize unused in-memory padding. All six miscellaneous resources retain
+  their exact bytes and lengths after load/save/reopen.
+- Release and AddressSanitizer builds pass the save-container tests. The
+  sanitizer build also passes party formation and two consecutive world turns.
+  Classic and modern command/dialogue diagnostics also pass under ASan.
+  The ASan runtime is linked into the dedicated Debug build under
+  `/tmp/ultima3-party-asan`; the normal Release app remains uninstrumented.
+- Next: expand scenario coverage to shops, spells, manual combat, dungeons,
+  death/resurrection, and map changes. Broader save error propagation and
+  validation of other game-state fields remain work, not completed guarantees.

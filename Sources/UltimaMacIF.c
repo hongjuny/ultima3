@@ -32,7 +32,7 @@ extern PixMapHandle     portraitPixMap, gWidePixMap, updatePixMap, tilesMaskPixM
 extern PixMapHandle     gamePixMap, framePixMap, minitilesPixMap, textPixMap, mainPixMap;
 extern PixMapHandle     directPixMap;
 extern GDHandle         mainDevice;
-extern unsigned char    Party[64], Player[21][65], stx, sty, gCurFrame, gStoreDirect;
+extern unsigned char    Player[21][65], stx, sty, gCurFrame, gStoreDirect;
 extern char             g835E, gKeyPress;
 extern unsigned char    careerTable[12], CharX[4], CharY[4], Macro[32], TileArray[128];
 extern short            gCurCursor, gChnum, gMouseState, gCurMouseDir, gTorch;

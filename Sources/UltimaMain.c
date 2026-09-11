@@ -57,7 +57,7 @@ int             xpos, ypos, xs, ys, dx, dy, ox, oy, tx, ty, wx, wy, demoptr;
 long            gMapOffset;
 short           /*scrollFlag[3] = {0,2,2},*/ twiddleFlag[4] = {0,3,2,1}, animFlag[4] = {0,16,0,5};
 unsigned char   value, TileArray[128], offset, offset2, m5BDC;
-unsigned char   gCurFrame, Player[21][65], oldplr[21][65], Party[64];
+unsigned char   gCurFrame, Player[21][65], oldplr[21][65], Party[U3LegacyPartySize];
 unsigned char   Monsters[256], Talk[256], Dungeon[2048], Macro[32];
 char            gMonVarType;
 //const char        MonTypes[14] = {24,23,25,20,26,27,13,28,22,14,15,29,30,24};

@@ -60,6 +60,13 @@ static BOOL U3ValidateResources(NSDictionary *resources) {
             [resources[key] length] < [minimumSizes[key] unsignedIntegerValue])
             return NO;
     }
+    const uint8_t *party = [resources[U3ResourceKey(U3ResourceKindParty, 400)] bytes];
+    BOOL selected[21] = {NO};
+    for (unsigned int i = 6; i < 10; ++i) {
+        unsigned int member = party[i];
+        if (member > 20 || (member && selected[member])) return NO;
+        selected[member] = YES;
+    }
     for (int i = 0; i < 6; ++i) {
         NSData *original = U3BundledResource(U3ResourceKindMisc, 400 + i);
         NSData *saved = resources[U3ResourceKey(U3ResourceKindMisc, 500 + i)];
@@ -473,6 +480,9 @@ bool U3IOSaveWorld(const U3GameState *state) {
 bool U3IOSelfTest(void) {
     extern void OpenRstr(void);
     extern Boolean U3CharacterStorageSelfTest(void);
+    extern Boolean U3PartyResourceSelfTest(void);
+    extern void GetMiscStuff(short id);
+    extern void PutMiscStuff(void);
     NSString *directory = [NSTemporaryDirectory() stringByAppendingPathComponent:
         [@"u3-save-test-" stringByAppendingString:[NSUUID UUID].UUIDString]];
     const char *previous = getenv("U3_SAVE_DIRECTORY");
@@ -485,6 +495,16 @@ bool U3IOSelfTest(void) {
         OpenRstr();
         if (U3IOLastError() || U3IOOpenSaveContainer() != U3SaveContainerOpenResultOpened) break;
         if (!U3CharacterStorageSelfTest()) break;
+        if (!U3PartyResourceSelfTest()) break;
+        NSDictionary *beforeTables = [[sResources copy] autorelease];
+        GetMiscStuff(100);
+        PutMiscStuff();
+        if (U3IOLastError() || U3IOOpenSaveContainer() != U3SaveContainerOpenResultOpened) break;
+        for (int i = 500; i <= 505; ++i) {
+            NSString *key = U3ResourceKey(U3ResourceKindMisc, i);
+            if (![beforeTables[key] isEqual:sResources[key]]) goto cleanup;
+        }
+        fprintf(stderr, "Misc tables: load/save/reopen preserves bytes and sizes\n");
         U3GameState expected = {0};
         U3GameState restored = {0};
         expected.party[0] = 7;
@@ -537,12 +557,28 @@ bool U3IOSelfTest(void) {
         if (![truncated writeToURL:file atomically:YES]) break;
         if (U3IOOpenSaveContainer() != U3SaveContainerOpenResultFailed) break;
         if (![[NSData dataWithContentsOfURL:file] isEqual:truncated]) break;
+        for (unsigned int scenario = 0; scenario < 2; ++scenario) {
+            invalid = [NSPropertyListSerialization propertyListWithData:lastGood
+                options:NSPropertyListMutableContainers format:NULL error:NULL];
+            NSString *partyKey = U3ResourceKey(U3ResourceKindParty, 400);
+            NSMutableData *badParty = [[invalid[@"resources"][partyKey] mutableCopy] autorelease];
+            uint8_t *bytes = badParty.mutableBytes;
+            bytes[6] = scenario ? 1 : 21;
+            bytes[7] = 1;
+            invalid[@"resources"][partyKey] = badParty;
+            NSData *badData = [NSPropertyListSerialization dataWithPropertyList:invalid
+                format:NSPropertyListBinaryFormat_v1_0 options:0 error:NULL];
+            if (![badData writeToURL:file atomically:YES] ||
+                U3IOOpenSaveContainer() != U3SaveContainerOpenResultFailed ||
+                ![[NSData dataWithContentsOfURL:file] isEqual:badData]) goto cleanup;
+        }
         NSData *corrupt = [@"not a save container" dataUsingEncoding:NSUTF8StringEncoding];
         if (![corrupt writeToURL:file atomically:YES]) break;
         if (U3IOOpenSaveContainer() != U3SaveContainerOpenResultFailed) break;
         if (![[NSData dataWithContentsOfURL:file] isEqual:corrupt]) break;
         passed = true;
     } while (0);
+cleanup:
     U3IOReleaseResource(&read);
     U3IOCloseMutableResource(&edit, false);
     [sResources release]; sResources = nil;

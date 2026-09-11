@@ -28,7 +28,7 @@ extern char             gKeyPress, dungeonLevel;
 extern int              xpos, ypos, xs, ys, wx, wy, dx, dy;
 extern unsigned char    Monsters[256], TileArray[128], Player[21][65], Macro[32];
 extern char             MonsterVariants[];
-extern unsigned char    Party[64], Dungeon[2048], m5BDC, cHide;
+extern unsigned char    Dungeon[2048], m5BDC, cHide;
 extern unsigned char    CharX[4], CharY[4], CharTile[4], CharShape[4];
 extern unsigned char    MonsterX[8], MonsterY[8], MonsterTile[8], MonsterHP[8];
 extern short            gTorch, gTimeNegate, zp[255], gExitDungeon, gMonType;

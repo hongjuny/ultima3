@@ -19,7 +19,7 @@
 #import "UltimaText.h"
 
 extern Boolean          gDone, gResurrect;
-extern unsigned char    Monsters[256], Talk[256], Player[21][65], Party[64];
+extern unsigned char    Monsters[256], Talk[256], Player[21][65];
 extern char             gKeyPress;
 extern unsigned char    TileArray[128], Dungeon[2048], gBallTileBackground;
 extern unsigned char    MoonXTable[8], MoonYTable[8], careerTable[12], wpnUseTable[12];
@@ -165,6 +165,23 @@ void GetDirection(short mode) {   // $7D73? mode=1 means accept space (combat)
     gMouseState = oldMouseState;
 }
 
+static void ReadByteTable(short resourceID, unsigned char *table, size_t capacity) {
+    U3DataBuffer buffer;
+    if (!U3IOLoadResource(U3ResourceKindMisc, resourceID, &buffer)) return;
+    size_t count = buffer.size < capacity ? buffer.size : capacity;
+    memset(table, 0, capacity);
+    memcpy(table, buffer.bytes, count);
+    U3IOReleaseResource(&buffer);
+}
+
+static void WriteByteTable(short resourceID, const unsigned char *table, size_t capacity) {
+    U3MutableDataBuffer buffer;
+    if (!U3IOOpenMutableResource(U3ResourceKindMisc, resourceID, &buffer)) return;
+    size_t count = buffer.size < capacity ? buffer.size : capacity;
+    memcpy(buffer.bytes, table, count);
+    U3IOCloseMutableResource(&buffer, true);
+}
+
 void GetMiscStuff(short id) {
     U3DataBuffer tempBuffer;
     unsigned short byte;
@@ -177,26 +194,9 @@ void GetMiscStuff(short id) {
         U3IOReleaseResource(&tempBuffer);
     }
 
-    if (U3IOLoadResource(U3ResourceKindMisc, BASERES + id + 1, &tempBuffer)) {
-        for (byte = 0; byte < 12; byte++) {
-            careerTable[byte] = tempBuffer.bytes[byte];
-        }
-        U3IOReleaseResource(&tempBuffer);
-    }
-
-    if (U3IOLoadResource(U3ResourceKindMisc, BASERES + id + 2, &tempBuffer)) {
-        for (byte = 0; byte < 12; byte++) {
-            wpnUseTable[byte] = tempBuffer.bytes[byte];
-        }
-        U3IOReleaseResource(&tempBuffer);
-    }
-
-    if (U3IOLoadResource(U3ResourceKindMisc, BASERES + id + 3, &tempBuffer)) {
-        for (byte = 0; byte < 12; byte++) {
-            armUseTable[byte] = tempBuffer.bytes[byte];
-        }
-        U3IOReleaseResource(&tempBuffer);
-    }
+    ReadByteTable(BASERES + id + 1, careerTable, sizeof(careerTable));
+    ReadByteTable(BASERES + id + 2, wpnUseTable, sizeof(wpnUseTable));
+    ReadByteTable(BASERES + id + 3, armUseTable, sizeof(armUseTable));
 
     if (U3IOLoadResource(U3ResourceKindMisc, BASERES + id + 4, &tempBuffer)) {
         for (byte = 0; byte < 20; byte++) {
@@ -206,12 +206,7 @@ void GetMiscStuff(short id) {
         U3IOReleaseResource(&tempBuffer);
     }
 
-    if (U3IOLoadResource(U3ResourceKindMisc, BASERES + id + 5, &tempBuffer)) {
-        for (byte = 0; byte < 17; byte++) {
-            Experience[byte] = tempBuffer.bytes[byte];
-        }
-        U3IOReleaseResource(&tempBuffer);
-    }
+    ReadByteTable(BASERES + id + 5, Experience, sizeof(Experience));
 }
 
 void PutMiscStuff(void) {
@@ -226,26 +221,9 @@ void PutMiscStuff(void) {
         U3IOCloseMutableResource(&tempBuffer, true);
     }
 
-    if (U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 101, &tempBuffer)) {
-        for (byte = 0; byte < 12; byte++) {
-            tempBuffer.bytes[byte] = careerTable[byte];
-        }
-        U3IOCloseMutableResource(&tempBuffer, true);
-    }
-
-    if (U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 102, &tempBuffer)) {
-        for (byte = 0; byte < 12; byte++) {
-            tempBuffer.bytes[byte] = wpnUseTable[byte];
-        }
-        U3IOCloseMutableResource(&tempBuffer, true);
-    }
-
-    if (U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 103, &tempBuffer)) {
-        for (byte = 0; byte < 12; byte++) {
-            tempBuffer.bytes[byte] = armUseTable[byte];
-        }
-        U3IOCloseMutableResource(&tempBuffer, true);
-    }
+    WriteByteTable(BASERES + 101, careerTable, sizeof(careerTable));
+    WriteByteTable(BASERES + 102, wpnUseTable, sizeof(wpnUseTable));
+    WriteByteTable(BASERES + 103, armUseTable, sizeof(armUseTable));
 
     if (U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 104, &tempBuffer)) {
         for (byte = 0; byte < 20; byte++) {
@@ -255,12 +233,7 @@ void PutMiscStuff(void) {
         U3IOCloseMutableResource(&tempBuffer, true);
     }
 
-    if (U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 105, &tempBuffer)) {
-        for (byte = 0; byte < 17; byte++) {
-            tempBuffer.bytes[byte] = Experience[byte];
-        }
-        U3IOCloseMutableResource(&tempBuffer, true);
-    }
+    WriteByteTable(BASERES + 105, Experience, sizeof(Experience));
 }
 
 unsigned char ValidMonsterDir(short tile, short montype) { /* $7C0C */
@@ -647,31 +620,85 @@ void PutRoster(void) {
 }
 
 void GetParty(void) {
-    short byte;
     U3DataBuffer partyBuffer;
 
     if (!U3IOLoadResource(U3ResourceKindParty, BASERES, &partyBuffer))
         return;
-    for (byte = 0; byte < 64; byte++) {
-        Party[byte + 1] = partyBuffer.bytes[byte];
+    if (partyBuffer.size < U3PartyResourceSize) {
+        U3IOReleaseResource(&partyBuffer);
+        return;
     }
+    Party[0] = 0;
+    memcpy(Party + 1, partyBuffer.bytes, U3PartyResourceSize);
     U3IOReleaseResource(&partyBuffer);
     xpos = Party[4];
     ypos = Party[5];
 }
 
 void PutParty(void) {
-    short byte;
     U3MutableDataBuffer partyBuffer;
 
     if (Party[3] == 0) {
         if (!U3IOOpenMutableResource(U3ResourceKindParty, BASERES, &partyBuffer))
             return;
-        for (byte = 0; byte < 64; byte++) {
-            partyBuffer.bytes[byte] = Party[byte + 1];
+        if (partyBuffer.size < U3PartyResourceSize) {
+            U3IOCloseMutableResource(&partyBuffer, false);
+            return;
         }
+        memcpy(partyBuffer.bytes, Party + 1, U3PartyResourceSize);
         U3IOCloseMutableResource(&partyBuffer, true);
     }
+}
+
+Boolean U3PartyResourceSelfTest(void) {
+    unsigned char savedParty[U3LegacyPartySize], original[U3PartyResourceSize];
+    unsigned char expected[U3PartyResourceSize];
+    int savedX = xpos, savedY = ypos;
+    U3DataBuffer read = {0};
+    U3MutableDataBuffer edit = {0};
+    Boolean passed = FALSE;
+    memcpy(savedParty, Party, sizeof(savedParty));
+    if (!U3IOLoadResource(U3ResourceKindParty, BASERES, &read)) return FALSE;
+    if (read.size != sizeof(original)) {
+        U3IOReleaseResource(&read);
+        return FALSE;
+    }
+    memcpy(original, read.bytes, sizeof(original));
+    U3IOReleaseResource(&read);
+    for (unsigned int i = 0; i < sizeof(expected); ++i) expected[i] = (i * 37 + 5) & 255;
+    expected[2] = 0;
+    expected[3] = 42;
+    expected[4] = 20;
+    for (unsigned int i = 0; i < 4; ++i) expected[6 + i] = i + 1;
+    do {
+        if (!U3IOOpenMutableResource(U3ResourceKindParty, BASERES, &edit)) break;
+        memcpy(edit.bytes, expected, sizeof(expected));
+        U3IOCloseMutableResource(&edit, true);
+        if (U3IOLastError()) break;
+        memset(Party, 0xA5, sizeof(Party));
+        GetParty();
+        if (U3IOLastError() || Party[0] != 0 || xpos != 42 || ypos != 20 ||
+            memcmp(Party + 1, expected, sizeof(expected))) break;
+        expected[U3PartyResourceSize - 1] ^= 255;
+        Party[U3PartyResourceSize] = expected[U3PartyResourceSize - 1];
+        PutParty();
+        if (U3IOLastError() || U3IOOpenSaveContainer() != U3SaveContainerOpenResultOpened) break;
+        memset(Party, 0xA5, sizeof(Party));
+        GetParty();
+        if (U3IOLastError() || Party[0] != 0 || memcmp(Party + 1, expected, sizeof(expected))) break;
+        passed = TRUE;
+    } while (0);
+    U3IOCloseMutableResource(&edit, false);
+    if (U3IOOpenMutableResource(U3ResourceKindParty, BASERES, &edit)) {
+        memcpy(edit.bytes, original, sizeof(original));
+        U3IOCloseMutableResource(&edit, true);
+        if (U3IOLastError()) passed = FALSE;
+    } else passed = FALSE;
+    memcpy(Party, savedParty, sizeof(savedParty));
+    xpos = savedX;
+    ypos = savedY;
+    fprintf(stderr, "Party resource: 64-byte load/save/reopen %s\n", passed ? "passed" : "FAILED");
+    return passed;
 }
 
 void ResetSosaria(void) {

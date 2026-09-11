@@ -9,7 +9,7 @@
 #import "UltimaMisc.h"
 #import "UltimaSpellCombat.h"
 
-extern unsigned char    Player[21][65], Party[64], Experience[17];
+extern unsigned char    Player[21][65], Experience[17];
 extern unsigned char    CharX[4], CharY[4], CharTile[4], CharShape[4], careerTable[12];
 extern unsigned char    MonsterX[8], MonsterY[8], MonsterTile[8], MonsterHP[8];
 extern Boolean          gAutoCombat;

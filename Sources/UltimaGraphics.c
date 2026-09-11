@@ -21,7 +21,7 @@
 extern OSErr            gError;
 extern WindowPtr        gMainWindow, gShroudWindow;
 extern char             gKeyPress;
-extern unsigned char    gCurFrame, Player[21][65], Party[64], TileArray[128];
+extern unsigned char    gCurFrame, Player[21][65], TileArray[128];
 extern unsigned char    Monsters[256], cHide, gBallTileBackground;
 extern unsigned char    careerTable[12], CharX[4], CharY[4], CharTile[4], CharShape[4];
 extern unsigned char    MonsterX[8], MonsterY[8], MonsterTile[8], MonsterHP[8];

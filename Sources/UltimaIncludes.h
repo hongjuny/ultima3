@@ -1,3 +1,5 @@
+#include "U3PartyRecord.h"
+
 #define NIL_PTR         0L
 #define BASERES         400
 #define BASECURSORID    500
