@@ -258,7 +258,6 @@ unsigned short RandNum(unsigned short lowrnd, unsigned short highrnd) {
 void MainLoop(void) {
     if (getenv("U3_BASIC_PLAY")) {
         U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, true);
-        U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, true);
     }
     if (getenv("U3_MODERN_TEXT_CHECK"))
         U3PlatformSetBooleanPreference(U3PreferenceClassicAppearance, false);
@@ -1221,7 +1220,6 @@ static Boolean sDefeatScenarioCheck;
 
 static void GameplayScenarioCheck(void) {
     U3PlatformSetBooleanPreference(U3PreferenceSpeechDisabled, true);
-    U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, true);
     U3PlatformSetBooleanPreference(U3PreferenceUnconstrainedSpeed, true);
     U3PlatformSetBooleanPreference(U3PreferenceAutoSave, false);
     short member = Party[7];
@@ -1386,7 +1384,6 @@ static void GameplayScenarioCheck(void) {
 
 static void CommandTextCheck(void) {
     U3PlatformSetBooleanPreference(U3PreferenceSpeechDisabled, true);
-    U3PlatformSetBooleanPreference(U3PreferenceMusicDisabled, true);
     U3PlatformSetBooleanPreference(U3PreferenceUnconstrainedSpeed, true);
     if (!U3CocoaKeyboardSelfTest()) exit(EXIT_FAILURE);
     if (U3CocoaIsHeadlessDiagnostic()) {
