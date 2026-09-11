@@ -1127,3 +1127,11 @@ reliable. T invokes Transact, followed by character selection and direction.
   cost, and projectile damage rather than checking macro bytes only.
 - Tile, character, monster, party, player, spell, macro, and quit state are
   restored after the generated command is executed.
+
+### 2026-09-11: Auto-Combat Support Spell
+
+- Added a two-member fixture where a cleric detects a 50 HP companion and
+  generates `C,C,2`. The macro is consumed through the real `Cast()` path,
+  selecting Sanctu and the injured second party member.
+- The test verifies the 10-point mana cost and HP increase, then restores both
+  player records, party slots, tiles, combat arrays, and input state.
