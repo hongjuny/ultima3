@@ -1212,3 +1212,16 @@ reliable. T invokes Transact, followed by character selection and direction.
   occur on the intended character, while restoring the complete player record.
 - Dragon projectiles and monster spell animation branches remain probabilistic
   combat-loop coverage rather than being faked by direct effect calls.
+
+### 2026-09-11: Endurance Regression Pass
+
+- Rebuilt the Release app and ran the complete gameplay scenario script five
+  consecutive times. Each run produced 70 passing assertions, including fresh
+  process save/resume and two world input turns; no failure, abort, or crash
+  marker was present.
+- Rebuilt with AddressSanitizer and repeated the same scenario three times.
+  Each run also produced 70 passing assertions with no sanitizer or abnormal
+  termination marker.
+- This is repeatable controlled-session coverage, not a substitute for a long
+  random human play session. The remaining manual endurance and clean-user
+  distribution checks are intentionally reserved for the next joint step.
