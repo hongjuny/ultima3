@@ -20,6 +20,7 @@ void U3CocoaQueueDiagnosticMouse(short x, short y);
 Boolean U3CocoaWriteMainBitmap(const char *path);
 U3Bitmap *U3CocoaMainBitmap(void);
 Boolean U3CocoaResizeMainBitmap(short width, short height);
+Boolean U3CocoaResizeMainSurface(short width, short height);
 void U3CocoaInvalidateMainSurface(void);
 Boolean U3CocoaLoadImage(U3Bitmap *output, CFURLRef url, int width, int height,
                         int columns, int rows);

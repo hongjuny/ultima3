@@ -187,8 +187,14 @@ Boolean U3CocoaIsHeadlessDiagnostic(void) {
     CGContextRef display = [[NSGraphicsContext currentContext] CGContext];
     CGContextSaveGState(display);
     CGContextSetInterpolationQuality(display, kCGInterpolationNone);
-    CGContextTranslateCTM(display, 0, bitmap->height);
-    CGContextScaleCTM(display, 1, -1);
+    NSRect bounds = [self bounds];
+    CGFloat scale = MIN(NSWidth(bounds) / bitmap->width, NSHeight(bounds) / bitmap->height);
+    CGFloat drawWidth = bitmap->width * scale;
+    CGFloat drawHeight = bitmap->height * scale;
+    CGFloat drawX = NSMinX(bounds) + (NSWidth(bounds) - drawWidth) / 2.0;
+    CGFloat drawY = NSMinY(bounds) + (NSHeight(bounds) - drawHeight) / 2.0;
+    CGContextTranslateCTM(display, drawX, drawY + drawHeight);
+    CGContextScaleCTM(display, drawWidth / bitmap->width, -drawHeight / bitmap->height);
     CGContextDrawImage(display, CGRectMake(0, 0, bitmap->width, bitmap->height), snapshot);
     CGContextRestoreGState(display);
     CGImageRelease(snapshot);
@@ -357,6 +363,18 @@ Boolean U3CocoaResizeMainBitmap(short width, short height) {
             &sU3MainBitmap, (U3BitmapRect){0, 0, sU3MainBitmap.width, sU3MainBitmap.height});
     U3BitmapDispose(&sU3MainBitmap);
     sU3MainBitmap = replacement;
+    return true;
+}
+
+Boolean U3CocoaResizeMainSurface(short width, short height) {
+    if (!U3CocoaResizeMainBitmap(width, height))
+        return false;
+    if (!U3CocoaIsHeadlessDiagnostic() && sU3MainSurfaceWindow &&
+        !([sU3MainSurfaceWindow styleMask] & NSFullScreenWindowMask)) {
+        [sU3MainSurfaceWindow setContentSize:NSMakeSize(width, height)];
+        [sU3MainSurfaceView setFrameSize:NSMakeSize(width, height)];
+    }
+    U3CocoaInvalidateMainSurface();
     return true;
 }
 

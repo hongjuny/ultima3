@@ -899,8 +899,6 @@ void RestoreDisplay(void) {
 void AdaptToWindow(Boolean forceOnScreen) {
     Boolean doubleSize = !U3PlatformGetBooleanPreference(U3PreferenceOriginalSize);
     int newBlockSize = (doubleSize) ? 32 : 16;
-    if (newBlockSize == doubleSize)
-        return;
 
     TearDownGWorlds();
     blkSiz = newBlockSize;
@@ -908,6 +906,11 @@ void AdaptToWindow(Boolean forceOnScreen) {
     SetUpGWorlds();
     GetGraphics();
     GetPortraits();
+
+    if (U3CocoaHasMainSurface()) {
+        U3CocoaResizeMainSurface(blkSiz * 40, blkSiz * 24);
+        return;
+    }
 
     Rect winRect;
     SetRect(&winRect, 0, 0, blkSiz * 40, blkSiz * 24);
