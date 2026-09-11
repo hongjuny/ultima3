@@ -1,0 +1,9 @@
+FluidR3 GM SoundFont
+
+Copyright (c) 2000-2002, 2008 Frank Wen
+
+FluidR3 is released under the MIT License. The original SoundFont and its
+acknowledgements are distributed with this project for use as the bundled GM
+music bank.
+
+The source copy used by this repository is identified in README.md.

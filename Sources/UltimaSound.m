@@ -43,6 +43,10 @@ static NSURL *MusicSoundBankURL(void) {
     const char *overridePath = getenv("U3_MIDI_SOUNDBANK");
     if (overridePath && overridePath[0] != '\0')
         return [NSURL fileURLWithPath:[NSString stringWithUTF8String:overridePath]];
+    NSURL *fluidURL = [[NSBundle mainBundle] URLForResource:@"FluidR3_GM" withExtension:@"sf2"
+                                              subdirectory:@"MusicMIDI"];
+    if (fluidURL)
+        return fluidURL;
     return [[NSBundle mainBundle] URLForResource:@"GeneralUser-GS" withExtension:@"sf2"
                                    subdirectory:@"MusicMIDI"];
 }
@@ -435,7 +439,7 @@ void MusicUpdate(void) {
     NSString *path = [[NSBundle mainBundle] pathForResource:songName ofType:@"mid" inDirectory:@"MusicMIDI"];
     NSURL *soundBank = MusicSoundBankURL();
     if (!path || !soundBank) {
-        fprintf(stderr, "Music asset missing: %s or GeneralUser-GS.sf2\n", [songName UTF8String]);
+        fprintf(stderr, "Music asset missing: %s or a bundled MIDI sound bank\n", [songName UTF8String]);
         gSongPlaying = 0;
         HandleError(paramErr, 57, 1);
         return;
