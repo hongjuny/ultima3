@@ -1034,6 +1034,46 @@ Boolean U3CombatSpellSelfTest(void) {
     return passed;
 }
 
+Boolean U3CombatAreaSpellSelfTest(void) {
+    unsigned char savedTileArray[128], savedMonsterX[8], savedMonsterY[8];
+    unsigned char savedMonsterTile[8], savedMonsterHP[8];
+    unsigned char savedParty2 = Party[2], savedParty3 = Party[3];
+    short savedSpell = spellnum;
+    Boolean savedDone = gDone;
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
+    memcpy(savedMonsterX, MonsterX, sizeof(savedMonsterX));
+    memcpy(savedMonsterY, MonsterY, sizeof(savedMonsterY));
+    memcpy(savedMonsterTile, MonsterTile, sizeof(savedMonsterTile));
+    memcpy(savedMonsterHP, MonsterHP, sizeof(savedMonsterHP));
+
+    Party[2] = 1;
+    Party[3] = 0x80;
+    MonsterX[0] = 4;
+    MonsterY[0] = 2;
+    MonsterTile[0] = 2;
+    MonsterHP[0] = 20;
+    MonsterX[1] = 6;
+    MonsterY[1] = 2;
+    MonsterTile[1] = 2;
+    MonsterHP[1] = 30;
+    spellnum = 14; /* Necorp: set every active combat monster to 5 HP. */
+    gDone = FALSE;
+    memset(TileArray, 2, sizeof(TileArray));
+    Spell(1);
+    Boolean passed = MonsterHP[0] == 5 && MonsterHP[1] == 5;
+
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
+    memcpy(MonsterX, savedMonsterX, sizeof(savedMonsterX));
+    memcpy(MonsterY, savedMonsterY, sizeof(savedMonsterY));
+    memcpy(MonsterTile, savedMonsterTile, sizeof(savedMonsterTile));
+    memcpy(MonsterHP, savedMonsterHP, sizeof(savedMonsterHP));
+    Party[2] = savedParty2;
+    Party[3] = savedParty3;
+    spellnum = savedSpell;
+    gDone = savedDone;
+    return passed;
+}
+
 Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead) {
     /* Mutates the disposable party used by GameplayScenarioCheck. */
     short member = Party[7];

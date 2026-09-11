@@ -1100,3 +1100,12 @@ reliable. T invokes Transact, followed by character selection and direction.
 - Release gameplay scenarios passed. AddressSanitizer validation is still run
   before commit; multi-target spells and every individual spell remain broader
   playthrough coverage.
+
+### 2026-09-11: Area Combat Spell
+
+- Added a deterministic multi-target fixture for the real `Spell()`/`Necorp`
+  path. Two active combat monsters are supplied and both must be reduced to the
+  spell's fixed 5 HP result.
+- The fixture restores monster, tile, party, spell-selection, and quit state.
+  Random area spells and the complete cleric spell-selection table remain
+  broader playthrough coverage.
