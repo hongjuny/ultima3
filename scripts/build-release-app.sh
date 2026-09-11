@@ -2,8 +2,8 @@
 set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-DERIVED_DATA=${DERIVED_DATA:-/tmp/ultima3-release-derived}
-APP_PATH="$DERIVED_DATA/Build/Products/Release/Ultima III.app"
+DERIVED_DATA=${DERIVED_DATA:-$ROOT_DIR/Build/DerivedData}
+APP_PATH="$ROOT_DIR/Build/Products/Release/Ultima III.app"
 
 cd "$ROOT_DIR"
 "$ROOT_DIR/scripts/fetch-midi-soundbank.sh"

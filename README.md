@@ -27,8 +27,8 @@ cd ultima3
 sh scripts/build-release-app.sh
 ```
 
-The app is written to `/tmp/ultima3-release-derived/Build/Products/Release/Ultima III.app`.
-Set `DERIVED_DATA` to choose another build directory. The build contains all
+The app is written to `Build/Products/Release/Ultima III.app`. Set
+`DERIVED_DATA` to choose another intermediate-data root. The build contains all
 required graphics, text, sound effects, and MIDI files from the repository.
 During the build, `scripts/fetch-midi-soundbank.sh` downloads and checksum-
 verifies FluidR3 GM into the local resource directory so it is included in the
@@ -40,7 +40,7 @@ For a Debug build directly through Xcode:
 
 ```sh
 xcodebuild -project Ultima3.xcodeproj -scheme Ultima3 \
-  -configuration Debug -derivedDataPath /tmp/ultima3-debug-derived \
+  -configuration Debug -derivedDataPath Build/DerivedData \
   CODE_SIGNING_ALLOWED=NO build
 ```
 

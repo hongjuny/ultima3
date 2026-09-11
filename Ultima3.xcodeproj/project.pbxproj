@@ -640,6 +640,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_ARC = NO;
 				CODE_SIGNING_ALLOWED = NO;
+				CONFIGURATION_BUILD_DIR = "$(SRCROOT)/Build/Products/$(CONFIGURATION)";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
@@ -653,6 +654,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.lairware.ultima3;
 				SDKROOT = macosx;
+				SYMROOT = "$(SRCROOT)/Build/Products";
+				OBJROOT = "$(SRCROOT)/Build/Intermediates";
 			};
 			name = Debug;
 		};
@@ -662,6 +665,7 @@
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_ENABLE_OBJC_ARC = NO;
 				CODE_SIGNING_ALLOWED = NO;
+				CONFIGURATION_BUILD_DIR = "$(SRCROOT)/Build/Products/$(CONFIGURATION)";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEPLOYMENT_POSTPROCESSING = NO;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
@@ -675,6 +679,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.lairware.ultima3;
 				SDKROOT = macosx;
+				SYMROOT = "$(SRCROOT)/Build/Products";
+				OBJROOT = "$(SRCROOT)/Build/Intermediates";
 			};
 			name = Release;
 		};

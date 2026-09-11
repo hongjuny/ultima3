@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-APP_PATH="/tmp/ultima3-release-derived/Build/Products/Release/Ultima III.app"
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+APP_PATH="$ROOT_DIR/Build/Products/Release/Ultima III.app"
 if [ ! -x "$APP_PATH/Contents/MacOS/Ultima III" ]; then
     printf '%s\n' 'Run sh scripts/build-release-app.sh first.' >&2
     exit 1

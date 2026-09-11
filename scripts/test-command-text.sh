@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-APP=${1:-/tmp/ultima3-release-derived/Build/Products/Release/Ultima III.app}
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+APP=${1:-$ROOT_DIR/Build/Products/Release/Ultima III.app}
 CHECK_DIR=$(mktemp -d /tmp/u3-command-text.XXXXXX)
 
 env U3_BASIC_PLAY=1 U3_COMMAND_TEXT_CHECK="$CHECK_DIR/classic" \
