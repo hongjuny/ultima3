@@ -478,7 +478,7 @@
 			name = "Create Disk Image";
 			outputPaths = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = /bin/sh;
 			shellScript = "if [[ ${CONFIGURATION} == \"Release\" && {$GCC_PREPROCESSOR_DEFINITIONS} != *APPSTORE* ]]\nthen\n\ncd ${BUILT_PRODUCTS_DIR}\n\nrm -f Ultima-III.dmg\n\nmkdir \"Ultima III\"\n\nhdiutil create -fs HFS+ -size 50000k -volname \"Ultima III\" -srcfolder \"Ultima III\" -fsargs \"-c c=64,a=16,e=16\" -format UDRW UltimaRW.dmg\n\nrmdir \"Ultima III\"\n\ndevice=$(hdiutil attach -readwrite -noverify -noautoopen UltimaRW.dmg | egrep '^/dev/' | sed 1q | awk '{print $1}')\n\nditto \"Ultima III.app\" \"/Volumes/Ultima III/Ultima III.app\"\n\nchmod -Rf go-w \"/Volumes/Ultima III/Ultima III.app\"\n\nrm -rf \"/Volumes/Ultima III/.background\"\nmkdir \"/Volumes/Ultima III/.background\"\n\ncp ${SOURCE_ROOT}/Images/Disk-Background.jpg \"/Volumes/Ultima III/.background/bgnd.jpg\"\n\nln -s /Applications \"/Volumes/Ultima III/Drag & Drop Here\"\n\necho '\n   tell application \"Finder\"\n     tell disk \"Ultima III\"\n           open\n           set current view of container window to icon view\n           set toolbar visible of container window to false\n           set statusbar visible of container window to false\n\t\tset the bounds of container window to {400, 100, 945, 440}\n           set theViewOptions to the icon view options of container window\n           set arrangement of theViewOptions to not arranged\n           set icon size of theViewOptions to 100\n           set background picture of theViewOptions to file \".background:bgnd.jpg\"\n\t\tset position of item \"Ultima III\" of container window to {160, 245}\n\t\tset position of item \"Drag & Drop Here\" of container window to {380, 245}\n\t\t  close\n\t\t  open\n           update without registering applications\n           delay 5\n     end tell\n   end tell\n' | osascript\n\nsync\n\n# a Leopard .DS_Store so it'll look good there too.\n#cp ${SOURCE_ROOT}/../Misc/dot_DS_Store \"/Volumes/Ultima III/.DS_Store\"\n\nhdiutil detach ${device}\n\nhdiutil convert UltimaRW.dmg -format UDBZ -imagekey zlib-level=9 -o Ultima-III.dmg\n\nrm -f UltimaRW.dmg\n\nhdiutil unflatten Ultima-III.dmg\n\nif [ -z \"$XCODE_PATH\" ]; then\n  XCODE_PATH=/Applications/Xcode5.app\nfi\n\n\"${XCODE_PATH}\"/Contents/Developer/Tools/Rez \"${XCODE_PATH}\"/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/Developer/Headers/FlatCarbon/*.r -F \"${XCODE_PATH}\"/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/System/Library/Frameworks/ ${SOURCE_ROOT}/SLA.r -a -o Ultima-III.dmg\n                                                   \nhdiutil flatten Ultima-III.dmg\n\nfi";
 		};
@@ -492,7 +492,7 @@
 			name = "Code Sign";
 			outputPaths = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = /bin/sh;
 			shellScript = "if [ ${CONFIGURATION} == \"Release\" ]\nthen\n\nexport CODESIGN_ALLOCATE=\"/${SYSTEM_DEVELOPER_DIR}/Toolchains/XcodeDefault.xctoolchain/usr/bin/codesign_allocate\"\n\npushd ${BUILT_PRODUCTS_DIR}\n\n/usr/bin/codesign --force --sign E7CA5F335C04F5C7D50C553210054684423F4308 --requirements \"=designated => anchor apple generic  and identifier \\\"com.lairware.ultima3\\\" and ((cert leaf[field.1.2.840.113635.100.6.1.9] exists) or ( certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists  and certificate leaf[subject.OU] = \\\"8X4SEBTU2P\\\" ))\" \"${CODESIGNING_FOLDER_PATH}\"\necho \"Ultima III CODE SIGNING VERIFY:\"\n/usr/bin/codesign --verify --verbose=4 \"${CODESIGNING_FOLDER_PATH}\"\n\npopd\n\nfi";
 		};
@@ -647,7 +647,7 @@
 				CLANG_ENABLE_OBJC_ARC = NO;
 				CODE_SIGNING_ALLOWED = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEPLOYMENT_POSTPROCESSING = YES;
+				DEPLOYMENT_POSTPROCESSING = NO;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;

@@ -39,6 +39,17 @@ xcodebuild -project Ultima3.xcodeproj -scheme Ultima3 \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
+The same project can be opened in Xcode with:
+
+```sh
+open Ultima3.xcodeproj
+```
+
+Select the `Ultima3` scheme and press **Run** or choose **Product > Build**.
+Both Debug and Release compile as unsigned local applications. The historical
+DMG packaging and code-signing phases are reserved for explicit deployment
+postprocessing and are not required for normal IDE builds.
+
 FluidR3 GM is an optional external MIDI bank because its 141 MB file exceeds
 GitHub's regular file limit. The bundled GeneralUser GS bank is used by
 default; provide `U3_MIDI_SOUNDBANK=/path/to/bank.sf2` to compare another
