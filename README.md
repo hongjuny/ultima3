@@ -6,9 +6,43 @@ Some of the logic was originally gleaned through examining the Apple II version'
 
 In my spare time over the following 10+ years I would poke and prod at it to keep it running on current systems of the time; making it capable of running on Mac OS X without the need for Classic, compiling it for Intel processors to eliminate the need for Rosetta, adding support for alternate graphics, etc.  I had transitioned the project to CodeWarrior early on, then to Xcode when that came out.  By the time macOS Catalina was released with its removal of support for 32-bit executables, I had only barely touched this project for many many years.
 
-For upload, I've mostly removed license key handling and update checking.  I haven't checked if it still compiles!  I keep telling myself that this isn't intended to be useful to anyone, it's just some code archaeology.
+For upload, I've mostly removed license key handling and update checking. The
+current macOS build is maintained for Apple silicon and is documented below.
 
 _Random fun fact: Ultima III was one of the first games to acknowledge non-binary gender!_
+
+## Build on modern macOS
+
+Requirements:
+
+- macOS 13 or newer
+- Xcode with the macOS platform and command-line tools installed
+- Apple silicon Mac
+
+Clone the repository and build an unsigned Release app:
+
+```sh
+git clone https://github.com/hongjuny/ultima3.git
+cd ultima3
+sh scripts/build-release-app.sh
+```
+
+The app is written to `/tmp/ultima3-release-derived/Build/Products/Release/Ultima III.app`.
+Set `DERIVED_DATA` to choose another build directory. The build contains all
+required graphics, text, sound effects, and MIDI files from the repository.
+
+For a Debug build directly through Xcode:
+
+```sh
+xcodebuild -project Ultima3.xcodeproj -scheme Ultima3 \
+  -configuration Debug -derivedDataPath /tmp/ultima3-debug-derived \
+  CODE_SIGNING_ALLOWED=NO build
+```
+
+FluidR3 GM is an optional external MIDI bank because its 141 MB file exceeds
+GitHub's regular file limit. The bundled GeneralUser GS bank is used by
+default; provide `U3_MIDI_SOUNDBANK=/path/to/bank.sf2` to compare another
+SoundFont.
 
 ## License
 Usage is provided under the [MIT License](http://opensource.org/licenses/mit-license.php). See LICENSE for the full details.
@@ -18,4 +52,3 @@ However, certain non-code assets (such as the project name, music, maps, etc) we
 To put it another way: I'm not claiming any copyright on the Ultima franchise name, NPC names, the specific maps found in this game, etc.  This license just refers to everything else here.  I'm presenting it merely as historical code in good faith, in hope that no one will care to litigate -- there is indeed no feasible way I am aware of to build this project to run on a modern system without an emulator.
 
 Leon McNeill AKA "Beastie"
-
