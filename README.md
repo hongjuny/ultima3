@@ -97,7 +97,36 @@ bitmap loading, command/text behavior, and representative gameplay scenarios.
 These checks are designed to catch regressions in the preserved game loop as
 platform code continues to evolve.
 
-Modernization and current macOS/Apple silicon adaptation by **Hong-Jun Yoon**.
+## A Personal Note
+
+Ultima III was one of my favorite games as a child. On an Apple II+ clone
+with a Mockingboard, it was the first fantasy role-playing game that made that
+world feel real to me. LairWare's Ultima III continued that dream: it wrapped
+those childhood memories in color and wonder. I still remember playing the
+LairWare game on a 68k Mac Centris with a Trinitron monitor, and I have never
+forgotten that experience.
+
+I discovered the source code after the developer generously open-sourced it
+last year. Since then, I have worked to clear away the accumulated legacy
+layers and make the game run on current macOS. With help from modern ChatGPT
+5.5, I was able to take on a modernization effort that would otherwise have
+been considerably harder. I am grateful for that help, and I offer this work
+in solidarity with the Apple II friends who grew up with similar memories.
+
+Modernization and current macOS/Apple silicon adaptation by **hongjuny**.
+
+## Known Limitations and Future Work
+
+The sound system still has room for improvement. The legacy implementation
+used QuickTime-based instrument playback; it has been adapted to MIDI and
+SoundFont playback for modern macOS, but the result is not a perfect match for
+the original sound. The sizzling noise during the opening Exodus splash is
+also still an approximation and needs further work.
+
+If you find a bug while playing, please report it with the screen or sequence
+where it occurred, the macOS version, and whether the application was built
+from source or downloaded as a release. Gameplay and compatibility reports are
+welcome.
 
 ## License
 Usage is provided under the [MIT License](http://opensource.org/licenses/mit-license.php). See LICENSE for the full details.
