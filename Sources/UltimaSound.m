@@ -12,6 +12,7 @@
 #import <AVFoundation/AVFoundation.h>
 
 extern Boolean          gDone;
+extern unsigned char    Party[65];
 extern short            zp[255];
 
 typedef struct SndChannel *SndChannelPtr;
@@ -464,9 +465,17 @@ void SetMusicPortAndDevice(CGrafPtr thePort, GDHandle theDevice) {
 void MusicUpdate(void) {
     short songid;
     static Boolean last7;
+    Boolean inCombat;
 
     if (U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled))
         return;
+    inCombat = (Party[3] == 0x80);
+    if (inCombat && (gSongCurrent != 5 || gSongNext != 5)) {
+        gSongCurrent = 5;
+        gSongNext = 5;
+        if (gSongPlaying != 5)
+            gSongPlaying = 0;
+    }
     if (!MusicIsPlaying() || (strk == 7 && last7)) {   // current time >= full time
         if (gSongNext == gSongCurrent) {
             if (songPlayer) {

@@ -16,6 +16,7 @@
 #import <CoreText/CoreText.h>
 
 extern short gUpdateWhere;
+extern void HandleSpecialChoice(int theItem);
 
 @class U3MainSurfaceView;
 
@@ -902,6 +903,17 @@ void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short heig
     return &sU3MainSurfaceToken;
 }
 
+void U3CocoaReactivateMainSurface(void) {
+    if (U3CocoaIsHeadlessDiagnostic() || !sU3MainSurfaceWindow)
+        return;
+    CocoaInit();
+    [NSApp finishLaunching];
+    [NSApp activateIgnoringOtherApps:YES];
+    [sU3MainSurfaceWindow makeKeyAndOrderFront:nil];
+    [sU3MainSurfaceWindow makeFirstResponder:sU3MainSurfaceView];
+    U3CocoaPumpEvents();
+}
+
 @interface U3CocoaMenuTarget : NSObject
 @end
 
@@ -909,6 +921,10 @@ void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short heig
 - (void)saveGame:(id)sender {
     (void)sender;
     U3CocoaQueueDiagnosticKey('q');
+}
+- (void)handleSpecialMenuItem:(id)sender {
+    if ([sender respondsToSelector:@selector(tag)])
+        HandleSpecialChoice((int)[sender tag]);
 }
 @end
 
@@ -932,6 +948,24 @@ void U3CocoaInstallMenus(void) {
     [save setTarget:target];
     [fileItem setSubmenu:fileMenu];
     [bar addItem:fileItem];
+
+    NSMenuItem *specialItem = [[[NSMenuItem alloc] initWithTitle:@"Special" action:NULL keyEquivalent:@""] autorelease];
+    NSMenu *specialMenu = [[[NSMenu alloc] initWithTitle:@"Special"] autorelease];
+    NSArray *specialTitles = @[@"Sound", @"Music", @"Speech", @"Constrain Speed",
+                               @"Auto-Combat", @"Double Size", @"-", @"Full Screen"];
+    for (NSUInteger index = 0; index < [specialTitles count]; ++index) {
+        if (index == 6) {
+            [specialMenu addItem:[NSMenuItem separatorItem]];
+            continue;
+        }
+        NSMenuItem *item = [specialMenu addItemWithTitle:[specialTitles objectAtIndex:index]
+                                                   action:@selector(handleSpecialMenuItem:)
+                                            keyEquivalent:@""];
+        [item setTag:(NSInteger)index + 1];
+        [item setTarget:target];
+    }
+    [specialItem setSubmenu:specialMenu];
+    [bar addItem:specialItem];
     [NSApp setMainMenu:bar];
 }
 
@@ -1162,6 +1196,7 @@ Boolean U3CocoaChooseParty(const unsigned char names[20][16], const Boolean avai
             [alert setInformativeText:@"Create a character before forming a party."];
             [alert addButtonWithTitle:@"OK"];
             [alert runModal];
+            U3CocoaReactivateMainSurface();
             return false;
         }
         [alert setMessageText:@"Form a Party"];
@@ -1194,10 +1229,13 @@ Boolean U3CocoaChooseParty(const unsigned char names[20][16], const Boolean avai
         }
         [picker selectionChanged:nil];
         [alert setAccessoryView:accessory];
-        if ([alert runModal] != NSAlertFirstButtonReturn)
+        if ([alert runModal] != NSAlertFirstButtonReturn) {
+            U3CocoaReactivateMainSurface();
             return false;
+        }
         for (int i = 0; i < 4; ++i)
             selection[i] = (short)[[picker->choices[i] selectedItem] tag];
+        U3CocoaReactivateMainSurface();
         return true;
     }
 }
@@ -1715,6 +1753,7 @@ int RunCocoaDialog(CFStringRef nibName, CFMutableDictionaryRef valuesDict, CFStr
                 }
                 [[dialogCnt window] orderOut:nil];
                 [[dialogCnt window] close];
+                U3CocoaReactivateMainSurface();
             }
         } @catch (NSException *e) {
             NSBeep();

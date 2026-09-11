@@ -72,33 +72,35 @@ void ReflectNewCursor(short newCursor);
 void ReflectPrefs(void) {
     if (U3PlatformGetBooleanPreference(U3PreferenceFullScreen))
         MyShowMenuBar();
-    CheckMenuItem(gSpecialMenu, SOUNDID, !U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled));
-    CheckMenuItem(gSpecialMenu, MUSICID, !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled));
-    CheckMenuItem(gSpecialMenu, SPEECHID, !U3PlatformGetBooleanPreference(U3PreferenceSpeechDisabled));
-    CheckMenuItem(gSpecialMenu, CONSTRAINID, !U3PlatformGetBooleanPreference(U3PreferenceUnconstrainedSpeed));
-    CheckMenuItem(gSpecialMenu, AUTOCOMBATID, !U3PlatformGetBooleanPreference(U3PreferenceManualCombat));
-    CheckMenuItem(gSpecialMenu, DOUBLESIZEID, !U3PlatformGetBooleanPreference(U3PreferenceOriginalSize));
-    Boolean isFullScreen = U3PlatformGetBooleanPreference(U3PreferenceFullScreen);
-    CheckMenuItem(gSpecialMenu, FULLSCREENID, isFullScreen);
-    if (isFullScreen)
-        LWDisableMenuItem(gSpecialMenu, DOUBLESIZEID);
-    else
-        LWEnableMenuItem(gSpecialMenu, DOUBLESIZEID);
+    if (gSpecialMenu) {
+        CheckMenuItem(gSpecialMenu, SOUNDID, !U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled));
+        CheckMenuItem(gSpecialMenu, MUSICID, !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled));
+        CheckMenuItem(gSpecialMenu, SPEECHID, !U3PlatformGetBooleanPreference(U3PreferenceSpeechDisabled));
+        CheckMenuItem(gSpecialMenu, CONSTRAINID, !U3PlatformGetBooleanPreference(U3PreferenceUnconstrainedSpeed));
+        CheckMenuItem(gSpecialMenu, AUTOCOMBATID, !U3PlatformGetBooleanPreference(U3PreferenceManualCombat));
+        CheckMenuItem(gSpecialMenu, DOUBLESIZEID, !U3PlatformGetBooleanPreference(U3PreferenceOriginalSize));
+        Boolean isFullScreen = U3PlatformGetBooleanPreference(U3PreferenceFullScreen);
+        CheckMenuItem(gSpecialMenu, FULLSCREENID, isFullScreen);
+        if (isFullScreen)
+            LWDisableMenuItem(gSpecialMenu, DOUBLESIZEID);
+        else
+            LWEnableMenuItem(gSpecialMenu, DOUBLESIZEID);
+    }
     ForceAllOnScreen();
     DrawMenuBar();
 }
 
 void DisableMenus(void) {
-    LWDisableMenuItem(gAppleMenu, 0);
-    LWDisableMenuItem(gFileMenu, 0);
-    LWDisableMenuItem(gSpecialMenu, 0);
+    if (gAppleMenu) LWDisableMenuItem(gAppleMenu, 0);
+    if (gFileMenu) LWDisableMenuItem(gFileMenu, 0);
+    if (gSpecialMenu) LWDisableMenuItem(gSpecialMenu, 0);
     DrawMenuBar();
 }
 
 void EnableMenus(void) {
-    LWEnableMenuItem(gAppleMenu, 0);
-    LWEnableMenuItem(gFileMenu, 0);
-    LWEnableMenuItem(gSpecialMenu, 0);
+    if (gAppleMenu) LWEnableMenuItem(gAppleMenu, 0);
+    if (gFileMenu) LWEnableMenuItem(gFileMenu, 0);
+    if (gSpecialMenu) LWEnableMenuItem(gSpecialMenu, 0);
     DrawMenuBar();
 }
 
@@ -580,6 +582,10 @@ void MenuBarInit(void) {
     gFileMenu = GetMenuHandle(FILEMENU);
     gSpecialMenu = GetMenuHandle(SPECIALMENU);
     gRefMenu = GetMenuHandle(REFERENCEMENU);
+    if (!gAppleMenu || !gFileMenu || !gSpecialMenu || CountMenuItems(gSpecialMenu) < FULLSCREENID) {
+        U3CocoaInstallMenus();
+        return;
+    }
     SetRefMenuIcons(gRefMenu);
     if (gAppleMenu)
         AppendResMenu(gAppleMenu, 'DRVR');
@@ -1864,7 +1870,8 @@ void DoPause(void) {
     short mouseStateStore;
 
     gPaused = (!gPaused);
-    CheckMenuItem(gFileMenu, PAUSEID, gPaused);
+    if (gFileMenu)
+        CheckMenuItem(gFileMenu, PAUSEID, gPaused);
     HiliteMenu(0);
     if (gPaused) {
         mouseStateStore = gMouseState;

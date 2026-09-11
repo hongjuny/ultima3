@@ -385,6 +385,7 @@ void Demo(void) {
 void MainMenu(void) {
     char theChar = 0;
 
+    EnableMenus();
     DrawMenuBar();
     while (!gDone) {
         if (theChar != '\n') {
@@ -433,6 +434,7 @@ void MainMenu(void) {
                 }
                 DisposeButtons();
                 Game();
+                EnableMenus();
                 gDone = TRUE;
                 if (gAbort) {
                     gAbort = FALSE;
