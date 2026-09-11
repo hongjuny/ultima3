@@ -1061,3 +1061,17 @@ reliable. T invokes Transact, followed by character selection and direction.
   was restored to automatic combat (`cmb=false`).
 - Release command/text checks passed after the fix. The full gameplay suite was
   already passing before this preference-only correction.
+
+### 2026-09-11: Auto-Combat Regression
+
+- Added a direct AutoCombat fixture with one adjacent enemy and a living melee
+  character. It verifies the generated macro is `A,8`: AddMacro stores the
+  newest command first, so Combat consumes the attack command and then reads
+  the north direction.
+- The fixture restores macro, party, character, monster, and combat globals.
+  ManualCombat preference preservation is also covered by the surrounding
+  manual-combat fixtures, preventing diagnostics from disabling AutoCombat in
+  later user sessions.
+- Release gameplay scenarios passed and the persisted `cmb` preference remains
+  false afterward. This checks macro generation; a long random multi-monster
+  auto-battle remains a separate playthrough check.

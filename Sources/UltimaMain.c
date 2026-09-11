@@ -11,6 +11,7 @@
 #import "U3Renderer.h"
 #import "U3Platform.h"
 #import "UltimaAppleEvents.h"
+#import "UltimaAutocombat.h"
 #import "UltimaDngn.h"
 #import "UltimaGraphics.h"
 #import "UltimaMacIF.h"
@@ -1313,6 +1314,8 @@ static void GameplayScenarioCheck(void) {
                     "four-player turn order, east movement, enemy round and victory");
     ScenarioRequire(U3ManualCombatSelfTest(4, TRUE),
                     "blocked movement preserves tiles; dead/ashes turns skip input; victory");
+    ScenarioRequire(U3AutoCombatSelfTest(),
+                    "auto combat generates attack macro instead of passing");
     Party[2] = 1;
     Party[8] = Party[9] = Party[10] = 0;
     member = Party[7];

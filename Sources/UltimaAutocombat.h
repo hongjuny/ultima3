@@ -7,5 +7,6 @@
 #define UltimaAutocombat_h
 
 void AutoCombat(short);
+Boolean U3AutoCombatSelfTest(void);
 
 #endif /* UltimaAutocombat_h */

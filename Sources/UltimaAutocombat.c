@@ -10,6 +10,7 @@
 #import "UltimaSpellCombat.h"
 
 extern unsigned char    Player[21][65], Experience[17];
+extern unsigned char    Party[65], Macro[32];
 extern unsigned char    CharX[4], CharY[4], CharTile[4], CharShape[4], careerTable[12];
 extern unsigned char    MonsterX[8], MonsterY[8], MonsterTile[8], MonsterHP[8];
 extern Boolean          gAutoCombat;
@@ -191,6 +192,51 @@ void AutoCombat(short chnum) {
             return;
         }
     }
+}
+
+Boolean U3AutoCombatSelfTest(void) {
+    unsigned char savedMacro[32], savedCharX[4], savedCharY[4];
+    unsigned char savedMonsterX[8], savedMonsterY[8], savedMonsterHP[8];
+    unsigned char savedParty2 = Party[2], savedParty7 = Party[7];
+    unsigned char savedClass = Player[1][23], savedWeapon = Player[1][48];
+    short savedMonType = gMonType;
+    char saved5521 = g5521, saved56E7 = g56E7;
+    memcpy(savedMacro, Macro, sizeof(savedMacro));
+    memcpy(savedCharX, CharX, sizeof(savedCharX));
+    memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedMonsterX, MonsterX, sizeof(savedMonsterX));
+    memcpy(savedMonsterY, MonsterY, sizeof(savedMonsterY));
+    memcpy(savedMonsterHP, MonsterHP, sizeof(savedMonsterHP));
+
+    Party[2] = 1;
+    Party[7] = 1;
+    Player[1][23] = careerTable[0];
+    Player[1][48] = 0;
+    CharX[0] = 5;
+    CharY[0] = 5;
+    MonsterX[0] = 5;
+    MonsterY[0] = 4;
+    MonsterHP[0] = 1;
+    gMonType = 0x30;
+    g5521 = g56E7 = 0;
+    memset(Macro, 0, sizeof(Macro));
+    AutoCombat(0);
+    Boolean passed = Macro[0] == 'A' && Macro[1] == '8';
+
+    memcpy(Macro, savedMacro, sizeof(savedMacro));
+    memcpy(CharX, savedCharX, sizeof(savedCharX));
+    memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(MonsterX, savedMonsterX, sizeof(savedMonsterX));
+    memcpy(MonsterY, savedMonsterY, sizeof(savedMonsterY));
+    memcpy(MonsterHP, savedMonsterHP, sizeof(savedMonsterHP));
+    Party[2] = savedParty2;
+    Party[7] = savedParty7;
+    Player[1][23] = savedClass;
+    Player[1][48] = savedWeapon;
+    gMonType = savedMonType;
+    g5521 = saved5521;
+    g56E7 = saved56E7;
+    return passed;
 }
 
 short ThreatValue(void) {   // total experience value of monsters
