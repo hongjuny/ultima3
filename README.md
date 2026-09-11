@@ -36,6 +36,10 @@ application bundle. The file is cached and ignored by Git. Set
 `U3_SKIP_FLUIDR3_DOWNLOAD=1` to build offline with the bundled GeneralUser GS
 fallback instead.
 
+Prefer not to compile? Download the prebuilt [Apple silicon Release
+application](https://github.com/hongjuny/ultima3/releases/tag/v2.4.1) from
+GitHub Releases. This build is unsigned and not notarized.
+
 For a Debug build directly through Xcode:
 
 ```sh
