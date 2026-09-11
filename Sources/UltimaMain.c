@@ -1328,6 +1328,8 @@ static void GameplayScenarioCheck(void) {
                     "combat spell selection consumes mana and damages target");
     ScenarioRequire(U3CombatAreaSpellSelfTest(),
                     "area combat spell affects every active target");
+    ScenarioRequire(U3EnemyTargetingSelfTest(),
+                    "multiple enemies select their nearest living targets");
     Party[2] = 1;
     Party[8] = Party[9] = Party[10] = 0;
     member = Party[7];

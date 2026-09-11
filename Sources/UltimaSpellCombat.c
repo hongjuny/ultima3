@@ -1074,6 +1074,47 @@ Boolean U3CombatAreaSpellSelfTest(void) {
     return passed;
 }
 
+Boolean U3EnemyTargetingSelfTest(void) {
+    unsigned char savedTileArray[128], savedCharX[4], savedCharY[4];
+    unsigned char savedMonsterX[8], savedMonsterY[8], savedPartySlots[4];
+    unsigned char savedParty2 = Party[2];
+    unsigned char savedPlayer1Status = Player[1][17], savedPlayer2Status = Player[2][17];
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
+    memcpy(savedCharX, CharX, sizeof(savedCharX));
+    memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedMonsterX, MonsterX, sizeof(savedMonsterX));
+    memcpy(savedMonsterY, MonsterY, sizeof(savedMonsterY));
+    memcpy(savedPartySlots, Party + 7, sizeof(savedPartySlots));
+
+    Party[2] = 2;
+    Party[7] = 1;
+    Party[8] = 2;
+    Player[1][17] = Player[2][17] = 'G';
+    CharX[0] = 3;
+    CharY[0] = 3;
+    CharX[1] = 7;
+    CharY[1] = 7;
+    MonsterX[0] = 3;
+    MonsterY[0] = 2;
+    MonsterX[1] = 7;
+    MonsterY[1] = 6;
+    memset(TileArray, 2, sizeof(TileArray));
+    short firstTarget = FigureNewMonPosition(0);
+    short secondTarget = FigureNewMonPosition(1);
+    Boolean passed = firstTarget == 0 && secondTarget == 1;
+
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
+    memcpy(CharX, savedCharX, sizeof(savedCharX));
+    memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(MonsterX, savedMonsterX, sizeof(savedMonsterX));
+    memcpy(MonsterY, savedMonsterY, sizeof(savedMonsterY));
+    memcpy(Party + 7, savedPartySlots, sizeof(savedPartySlots));
+    Party[2] = savedParty2;
+    Player[1][17] = savedPlayer1Status;
+    Player[2][17] = savedPlayer2Status;
+    return passed;
+}
+
 Boolean U3ManualCombatSelfTest(short partySize, Boolean blockedAndDead) {
     /* Mutates the disposable party used by GameplayScenarioCheck. */
     short member = Party[7];

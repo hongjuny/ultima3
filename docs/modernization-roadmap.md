@@ -1178,3 +1178,12 @@ reliable. T invokes Transact, followed by character selection and direction.
 - The complete party, player records, combat arrays, tiles, and input state are
   restored after the four-turn generation check. Full four-member execution in
   the live combat loop remains a broader playthrough check.
+
+### 2026-09-11: Multiple-Enemy Target Selection
+
+- Added a controlled two-character/two-monster fixture around
+  `FigureNewMonPosition()`. Each enemy must select the living character one
+  tile away in its own lane, confirming that target selection does not collapse
+  to the first party slot.
+- This isolates target selection and leaves multi-enemy damage, special attacks,
+  and full live enemy-turn execution as the next combat-loop coverage.
