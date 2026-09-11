@@ -38,7 +38,8 @@ fallback instead.
 
 Prefer not to compile? Download the prebuilt [Apple silicon Release
 application](https://github.com/hongjuny/ultima3/releases/tag/v2.4.1) from
-GitHub Releases. This build is unsigned and not notarized.
+GitHub Releases. This build is ad-hoc signed for bundle integrity, but is not
+Developer ID signed or notarized.
 
 For a Debug build directly through Xcode:
 
