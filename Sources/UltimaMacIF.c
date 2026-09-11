@@ -461,6 +461,8 @@ void HandleSpecialChoice(int theItem) {
     U3PreferenceKey key = U3PreferenceSoundDisabled;
     Boolean hasKey = false;
     Boolean newValue = false;
+    Boolean nativeFullScreen = (theItem == FULLSCREENID && U3CocoaHasMainSurface() &&
+                                !U3CocoaIsHeadlessDiagnostic());
     switch (theItem) {
         case SOUNDID: key = U3PreferenceSoundDisabled; hasKey = true; break;
         case MUSICID: key = U3PreferenceMusicDisabled; hasKey = true; break;
@@ -484,13 +486,17 @@ void HandleSpecialChoice(int theItem) {
             ResetCursor();
             break;
         case FULLSCREENID:
-            SetGWorld(mainPort, mainDevice);
-            if (newValue) {
-                SetUpDisplay();
-                ShowHideBackground();
+            if (nativeFullScreen) {
+                U3CocoaSetMainSurfaceFullScreen(newValue);
             } else {   // going windowed
-                ShowHideBackground();
-                RestoreDisplay();
+                SetGWorld(mainPort, mainDevice);
+                if (newValue) {
+                    SetUpDisplay();
+                    ShowHideBackground();
+                } else {
+                    ShowHideBackground();
+                    RestoreDisplay();
+                }
             }
             ResetCursor();
             SetMusicPortAndDevice(mainPort, mainDevice);
@@ -502,6 +508,7 @@ void HandleSpecialChoice(int theItem) {
     }
     U3AudioApplyPreferences();
     ReflectPrefs();
+    U3CocoaUpdateMenuState();
 }
 
 void HandleReferenceChoice(int theItem) {

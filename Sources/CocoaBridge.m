@@ -35,6 +35,7 @@ static char sU3MainSurfaceToken;
 static U3Bitmap *sU3SelectedBitmap;
 static NSPoint sU3BitmapOrigin;
 static BOOL sU3HeadlessSurface = NO;
+static NSMenu *sU3SpecialMenu = nil;
 static char sU3DiagnosticKey = 0;
 static unsigned char sU3DiagnosticKeys[256];
 static unsigned int sU3DiagnosticKeyIndex, sU3DiagnosticKeyCount;
@@ -923,10 +924,51 @@ void U3CocoaReactivateMainSurface(void) {
     U3CocoaQueueDiagnosticKey('q');
 }
 - (void)handleSpecialMenuItem:(id)sender {
-    if ([sender respondsToSelector:@selector(tag)])
+    if ([sender respondsToSelector:@selector(tag)]) {
         HandleSpecialChoice((int)[sender tag]);
+        U3CocoaUpdateMenuState();
+    }
 }
 @end
+
+void U3CocoaUpdateMenuState(void) {
+    if (!sU3SpecialMenu)
+        return;
+    const struct {
+        NSInteger tag;
+        U3PreferenceKey key;
+    } items[] = {
+        { SOUNDID, U3PreferenceSoundDisabled },
+        { MUSICID, U3PreferenceMusicDisabled },
+        { SPEECHID, U3PreferenceSpeechDisabled },
+        { CONSTRAINID, U3PreferenceUnconstrainedSpeed },
+        { AUTOCOMBATID, U3PreferenceManualCombat },
+        { DOUBLESIZEID, U3PreferenceOriginalSize },
+        { FULLSCREENID, U3PreferenceFullScreen }
+    };
+    for (NSUInteger i = 0; i < sizeof(items) / sizeof(items[0]); ++i) {
+        NSMenuItem *item = [sU3SpecialMenu itemWithTag:items[i].tag];
+        if (!item)
+            continue;
+        Boolean checked = !U3PlatformGetBooleanPreference(items[i].key);
+        if (items[i].tag == CONSTRAINID)
+            checked = !U3PlatformGetBooleanPreference(U3PreferenceUnconstrainedSpeed);
+        else if (items[i].tag == FULLSCREENID)
+            checked = U3PlatformGetBooleanPreference(U3PreferenceFullScreen);
+        [item setState:checked ? NSOnState : NSOffState];
+    }
+    NSMenuItem *doubleSize = [sU3SpecialMenu itemWithTag:DOUBLESIZEID];
+    if (doubleSize)
+        [doubleSize setEnabled:!U3PlatformGetBooleanPreference(U3PreferenceFullScreen)];
+}
+
+void U3CocoaSetMainSurfaceFullScreen(Boolean fullScreen) {
+    if (U3CocoaIsHeadlessDiagnostic() || !sU3MainSurfaceWindow)
+        return;
+    Boolean currentlyFullScreen = (([sU3MainSurfaceWindow styleMask] & NSFullScreenWindowMask) != 0);
+    if (currentlyFullScreen != fullScreen)
+        [sU3MainSurfaceWindow toggleFullScreen:nil];
+}
 
 void U3CocoaInstallMenus(void) {
     if (U3CocoaIsHeadlessDiagnostic())
@@ -951,6 +993,7 @@ void U3CocoaInstallMenus(void) {
 
     NSMenuItem *specialItem = [[[NSMenuItem alloc] initWithTitle:@"Special" action:NULL keyEquivalent:@""] autorelease];
     NSMenu *specialMenu = [[[NSMenu alloc] initWithTitle:@"Special"] autorelease];
+    sU3SpecialMenu = [specialMenu retain];
     NSArray *specialTitles = @[@"Sound", @"Music", @"Speech", @"Constrain Speed",
                                @"Auto-Combat", @"Double Size", @"-", @"Full Screen"];
     for (NSUInteger index = 0; index < [specialTitles count]; ++index) {
@@ -967,6 +1010,7 @@ void U3CocoaInstallMenus(void) {
     [specialItem setSubmenu:specialMenu];
     [bar addItem:specialItem];
     [NSApp setMainMenu:bar];
+    U3CocoaUpdateMenuState();
 }
 
 static Boolean U3CocoaIsGameInput(NSEvent *event) {

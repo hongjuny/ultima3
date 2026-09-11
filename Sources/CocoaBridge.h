@@ -7,6 +7,8 @@
 #include "U3Types.h"
 Boolean U3CocoaCreateCharacter(const Boolean available[20], short *slot, U3CharacterDraft *draft);
 void U3CocoaInstallMenus(void);
+void U3CocoaUpdateMenuState(void);
+void U3CocoaSetMainSurfaceFullScreen(Boolean fullScreen);
 void U3CocoaReactivateMainSurface(void);
 Boolean U3CocoaChooseParty(const unsigned char names[20][16], const Boolean available[20], short selection[4]);
 void U3CocoaQueueDiagnosticKey(char key);
