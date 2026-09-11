@@ -1160,3 +1160,12 @@ reliable. T invokes Transact, followed by character selection and direction.
   the same `HandleMove()` path used by combat. The fixture verifies movement to
   the safe south tile, restoration of the origin tile, and restoration of its
   temporary state before subsequent combat assertions.
+
+### 2026-09-11: Multi-Character Auto-Combat Turns
+
+- Added a two-member combat fixture with an adjacent melee target for the first
+  fighter and an aligned target for the second wizard. Each member generates and
+  consumes its own macro: `A,8` for melee, then `C,B,8` for Mittar.
+- The fixture verifies both targets take damage and the wizard's mana is charged
+  only for its own turn, then restores all party, player, tile, monster, and
+  input state.

@@ -449,6 +449,109 @@ Boolean U3AutoCombatSupportSpellSelfTest(void) {
     return passed;
 }
 
+Boolean U3AutoCombatPartyTurnSelfTest(void) {
+    unsigned char savedMacro[32], savedTileArray[128], savedCharX[4], savedCharY[4];
+    unsigned char savedCharTile[4], savedCharShape[4], savedMonsterX[8], savedMonsterY[8];
+    unsigned char savedMonsterTile[8], savedMonsterHP[8], savedPartySlots[4];
+    unsigned char savedPlayer1[65], savedPlayer2[65];
+    unsigned char savedParty2 = Party[2], savedParty3 = Party[3], savedParty4 = Party[4];
+    unsigned char savedParty16 = Party[16];
+    short savedMonType = gMonType, savedSpell = spellnum;
+    char saved5521 = g5521, saved56E7 = g56E7, savedKeyPress = gKeyPress;
+    Boolean savedDone = gDone;
+    memcpy(savedMacro, Macro, sizeof(savedMacro));
+    memcpy(savedTileArray, TileArray, sizeof(savedTileArray));
+    memcpy(savedCharX, CharX, sizeof(savedCharX));
+    memcpy(savedCharY, CharY, sizeof(savedCharY));
+    memcpy(savedCharTile, CharTile, sizeof(savedCharTile));
+    memcpy(savedCharShape, CharShape, sizeof(savedCharShape));
+    memcpy(savedMonsterX, MonsterX, sizeof(savedMonsterX));
+    memcpy(savedMonsterY, MonsterY, sizeof(savedMonsterY));
+    memcpy(savedMonsterTile, MonsterTile, sizeof(savedMonsterTile));
+    memcpy(savedMonsterHP, MonsterHP, sizeof(savedMonsterHP));
+    memcpy(savedPartySlots, Party + 7, sizeof(savedPartySlots));
+    memcpy(savedPlayer1, Player[1], sizeof(savedPlayer1));
+    memcpy(savedPlayer2, Player[2], sizeof(savedPlayer2));
+
+    Party[2] = 2;
+    Party[3] = 0x80;
+    Party[4] = 0;
+    Party[7] = 1;
+    Party[8] = 2;
+    Party[9] = Party[10] = 0;
+    Party[16] = 0;
+    Player[1][17] = 'G';
+    Player[1][23] = careerTable[0];
+    Player[1][48] = 0;
+    Player[1][26] = 0;
+    Player[1][27] = 100;
+    Player[2][17] = 'G';
+    Player[2][23] = careerTable[2];
+    Player[2][25] = 5;
+    Player[2][48] = 0;
+    Player[2][26] = 0;
+    Player[2][27] = 100;
+    CharX[0] = 4;
+    CharY[0] = 5;
+    CharX[1] = 6;
+    CharY[1] = 5;
+    CharTile[0] = CharTile[1] = 2;
+    CharShape[0] = CharShape[1] = 0x80;
+    MonsterX[0] = 4;
+    MonsterY[0] = 4;
+    MonsterTile[0] = 2;
+    MonsterHP[0] = 100;
+    MonsterX[1] = 6;
+    MonsterY[1] = 4;
+    MonsterTile[1] = 2;
+    MonsterHP[1] = 100;
+    gMonType = 0x34;
+    g5521 = g56E7 = 0;
+    gDone = FALSE;
+    memset(TileArray, 2, sizeof(TileArray));
+    memset(Macro, 0, sizeof(Macro));
+
+    AutoCombat(0);
+    Boolean firstMacro = Macro[0] == 'A' && Macro[1] == '8';
+    Boolean firstCommand = U3PlatformGetKeyMouse(0) && gKeyPress == 'A';
+    if (firstCommand)
+        CombatAttack(0);
+    Boolean firstExecuted = firstCommand && MonsterHP[0] < 100;
+
+    memset(Macro, 0, sizeof(Macro));
+    AutoCombat(1);
+    Boolean secondMacro = Macro[0] == 'C' && Macro[1] == 'B' && Macro[2] == '8';
+    Boolean secondCommand = U3PlatformGetKeyMouse(0) && gKeyPress == 'C';
+    Boolean secondExecuted = secondCommand && Cast(1, 2) &&
+        Player[2][25] == 0 && MonsterHP[1] < 100;
+    Boolean passed = firstMacro && firstExecuted && secondMacro && secondExecuted;
+
+    memcpy(Macro, savedMacro, sizeof(savedMacro));
+    memcpy(TileArray, savedTileArray, sizeof(savedTileArray));
+    memcpy(CharX, savedCharX, sizeof(savedCharX));
+    memcpy(CharY, savedCharY, sizeof(savedCharY));
+    memcpy(CharTile, savedCharTile, sizeof(savedCharTile));
+    memcpy(CharShape, savedCharShape, sizeof(savedCharShape));
+    memcpy(MonsterX, savedMonsterX, sizeof(savedMonsterX));
+    memcpy(MonsterY, savedMonsterY, sizeof(savedMonsterY));
+    memcpy(MonsterTile, savedMonsterTile, sizeof(savedMonsterTile));
+    memcpy(MonsterHP, savedMonsterHP, sizeof(savedMonsterHP));
+    memcpy(Party + 7, savedPartySlots, sizeof(savedPartySlots));
+    Party[2] = savedParty2;
+    Party[3] = savedParty3;
+    Party[4] = savedParty4;
+    Party[16] = savedParty16;
+    memcpy(Player[1], savedPlayer1, sizeof(savedPlayer1));
+    memcpy(Player[2], savedPlayer2, sizeof(savedPlayer2));
+    gMonType = savedMonType;
+    spellnum = savedSpell;
+    g5521 = saved5521;
+    g56E7 = saved56E7;
+    gKeyPress = savedKeyPress;
+    gDone = savedDone;
+    return passed;
+}
+
 short ThreatValue(void) {   // total experience value of monsters
     char mon;
     short total, expval;

@@ -1318,6 +1318,8 @@ static void GameplayScenarioCheck(void) {
                     "auto combat generates attack macro instead of passing");
     ScenarioRequire(U3AutoCombatSupportSpellSelfTest(),
                     "auto combat heals a low-health party member");
+    ScenarioRequire(U3AutoCombatPartyTurnSelfTest(),
+                    "two auto combat party members execute independent turns");
     ScenarioRequire(U3RangedCombatSelfTest(),
                     "ranged CombatAttack follows direction and damages target");
     ScenarioRequire(U3CombatSpellSelfTest(),
