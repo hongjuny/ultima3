@@ -8,6 +8,20 @@ static int32_t sLastError;
 static NSMutableDictionary *sResources;
 static NSURL *sSaveURL;
 static BOOL sInitializing;
+static NSMutableDictionary *sTransactionBackup;
+static NSMutableSet *sTransactionKeys;
+static NSMutableSet *sUnsavedKeys;
+
+static void U3RecordResourceWrite(NSString *key, BOOL success) {
+    if (!sUnsavedKeys) sUnsavedKeys = [[NSMutableSet alloc] init];
+    if (!success) [sUnsavedKeys addObject:key];
+    else if (sTransactionBackup) [sTransactionKeys addObject:key];
+    else [sUnsavedKeys removeObject:key];
+}
+
+bool U3IOHasUnsavedChanges(void) {
+    return sUnsavedKeys.count != 0;
+}
 
 static ResType U3LegacyResourceTypeForKind(U3ResourceKind kind) {
     switch (kind) {
@@ -93,6 +107,9 @@ static BOOL U3WriteResources(NSDictionary *resources) {
 int32_t U3IOLastError(void) { return sLastError; }
 
 U3SaveContainerOpenResult U3IOOpenSaveContainer(void) {
+    [sTransactionBackup release]; sTransactionBackup = nil;
+    [sTransactionKeys release]; sTransactionKeys = nil;
+    [sUnsavedKeys release]; sUnsavedKeys = nil;
     sLastError = 0;
     [sResources release];
     sResources = nil;
@@ -158,13 +175,58 @@ U3SaveContainerOpenResult U3IOOpenSaveContainer(void) {
     return U3SaveContainerOpenResultCreatedEmpty;
 }
 
-void U3IOFlushSaveContainer(void) {
+bool U3IOFlushSaveContainer(void) {
     if (!sResources) {
         sLastError = paramErr;
-        return;
+        U3RecordResourceWrite(@"*", NO);
+        return false;
     }
-    if (U3WriteResources(sResources))
+    if (sTransactionBackup) return true; /* The transaction owns the disk write. */
+    BOOL success = U3WriteResources(sResources);
+    U3RecordResourceWrite(@"*", success);
+    if (success)
         sInitializing = NO;
+    return success;
+}
+
+bool U3IOBeginSaveTransaction(void) {
+    if (!sResources || sTransactionBackup) {
+        sLastError = paramErr;
+        return false;
+    }
+    sTransactionBackup = [sResources mutableCopy];
+    sTransactionKeys = [[NSMutableSet alloc] init];
+    sLastError = 0;
+    return true;
+}
+
+void U3IOCancelSaveTransaction(void) {
+    if (!sTransactionBackup) return;
+    [sResources release];
+    sResources = sTransactionBackup;
+    sTransactionBackup = nil;
+    if (!sUnsavedKeys) sUnsavedKeys = [[NSMutableSet alloc] init];
+    [sUnsavedKeys unionSet:sTransactionKeys];
+    [sUnsavedKeys addObject:@"*"];
+    [sTransactionKeys release]; sTransactionKeys = nil;
+    if (!sLastError) sLastError = ioErr;
+}
+
+bool U3IOCommitSaveTransaction(void) {
+    if (!sTransactionBackup) {
+        sLastError = paramErr;
+        return false;
+    }
+    if (!U3WriteResources(sResources)) {
+        U3IOCancelSaveTransaction();
+        return false;
+    }
+    [sUnsavedKeys minusSet:sTransactionKeys];
+    [sUnsavedKeys removeObject:@"*"];
+    [sTransactionBackup release]; sTransactionBackup = nil;
+    [sTransactionKeys release]; sTransactionKeys = nil;
+    sInitializing = NO;
+    return true;
 }
 
 bool U3IOLoadResource(U3ResourceKind kind, int16_t resourceID, U3DataBuffer *outBuffer) {
@@ -220,9 +282,16 @@ bool U3IOOpenMutableResource(U3ResourceKind kind, int16_t resourceID, U3MutableD
     return U3MutableBuffer(U3ResourceKey(kind, resourceID), data, outBuffer);
 }
 
-void U3IOCloseMutableResource(U3MutableDataBuffer *buffer, bool commit) {
-    if (!buffer) return;
+bool U3IOCloseMutableResource(U3MutableDataBuffer *buffer, bool commit) {
+    if (!buffer) {
+        if (commit) {
+            sLastError = paramErr;
+            U3RecordResourceWrite(@"*", NO);
+        }
+        return !commit;
+    }
     NSDictionary *owner = (NSDictionary *)buffer->owner;
+    BOOL success = !commit;
     if (owner && commit) {
         if (!sResources) {
             sLastError = paramErr;
@@ -231,17 +300,23 @@ void U3IOCloseMutableResource(U3MutableDataBuffer *buffer, bool commit) {
             NSData *snapshot = [owner[@"data"] copy];
             candidate[owner[@"key"]] = snapshot;
             [snapshot release];
-            if (sInitializing || U3WriteResources(candidate)) {
+            if (sInitializing || sTransactionBackup || U3WriteResources(candidate)) {
                 [sResources release];
                 sResources = candidate;
                 candidate = nil;
                 sLastError = 0;
+                success = YES;
             }
             [candidate release];
         }
+        U3RecordResourceWrite(owner[@"key"], success);
+    } else if (commit) {
+        sLastError = paramErr;
+        U3RecordResourceWrite(@"*", NO);
     }
     [owner release];
     *buffer = (U3MutableDataBuffer){0};
+    return success;
 }
 
 bool U3IOCopyResource(U3ResourceKind kind, int16_t sourceResourceID, int16_t destinationResourceID, const uint8_t *name) {
@@ -253,9 +328,9 @@ bool U3IOCopyResource(U3ResourceKind kind, int16_t sourceResourceID, int16_t des
         return false;
     }
     memcpy(destination.bytes, source.bytes, source.size);
-    U3IOCloseMutableResource(&destination, true);
+    bool success = U3IOCloseMutableResource(&destination, true);
     U3IOReleaseResource(&source);
-    return sLastError == 0;
+    return success;
 }
 
 bool U3IOResizeMutableResource(U3MutableDataBuffer *buffer, size_t size) {
@@ -417,13 +492,14 @@ static bool U3SaveState(const U3GameState *state, NSString *key) {
     [encoded appendData:payload];
     NSMutableDictionary *candidate = [sResources mutableCopy];
     candidate[key] = encoded;
-    bool success = U3WriteResources(candidate);
+    bool success = sTransactionBackup || U3WriteResources(candidate);
     if (success) {
         [sResources release];
         sResources = candidate;
         candidate = nil;
     }
     [candidate release];
+    U3RecordResourceWrite(key, success);
     return success;
 }
 
@@ -482,7 +558,7 @@ bool U3IOSelfTest(void) {
     extern Boolean U3CharacterStorageSelfTest(void);
     extern Boolean U3PartyResourceSelfTest(void);
     extern void GetMiscStuff(short id);
-    extern void PutMiscStuff(void);
+    extern Boolean PutMiscStuff(void);
     NSString *directory = [NSTemporaryDirectory() stringByAppendingPathComponent:
         [@"u3-save-test-" stringByAppendingString:[NSUUID UUID].UUIDString]];
     const char *previous = getenv("U3_SAVE_DIRECTORY");
@@ -583,6 +659,9 @@ cleanup:
     U3IOCloseMutableResource(&edit, false);
     [sResources release]; sResources = nil;
     [sSaveURL release]; sSaveURL = nil;
+    [sTransactionBackup release]; sTransactionBackup = nil;
+    [sTransactionKeys release]; sTransactionKeys = nil;
+    [sUnsavedKeys release]; sUnsavedKeys = nil;
     sInitializing = NO;
     [[NSFileManager defaultManager] removeItemAtPath:directory error:NULL];
     if (savedOverride) setenv("U3_SAVE_DIRECTORY", [savedOverride UTF8String], 1);

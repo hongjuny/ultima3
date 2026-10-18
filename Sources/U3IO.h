@@ -48,14 +48,22 @@ typedef enum U3SaveContainerOpenResult {
 
 U3SaveContainerOpenResult U3IOOpenSaveContainer(void);
 int32_t U3IOLastError(void);
-void U3IOFlushSaveContainer(void);
+bool U3IOFlushSaveContainer(void);
+/* Group resource updates into one atomic on-disk save. Failure rolls back the
+   resource cache as well as leaving the previous file intact. Not nestable. */
+bool U3IOBeginSaveTransaction(void);
+bool U3IOCommitSaveTransaction(void);
+void U3IOCancelSaveTransaction(void);
+/* A requested write failed and has not subsequently been persisted. Reads and
+   unrelated successful writes do not discard this pending-save indication. */
+bool U3IOHasUnsavedChanges(void);
 bool U3IOLoadResource(U3ResourceKind kind, int16_t resourceID, U3DataBuffer *outBuffer);
 void U3IOReleaseResource(U3DataBuffer *buffer);
 bool U3IOCreateMutableResource(U3ResourceKind kind, int16_t resourceID, size_t size, const uint8_t *name, U3MutableDataBuffer *outBuffer);
 bool U3IOCopyResource(U3ResourceKind kind, int16_t sourceResourceID, int16_t destinationResourceID, const uint8_t *name);
 bool U3IOOpenMutableResource(U3ResourceKind kind, int16_t resourceID, U3MutableDataBuffer *outBuffer);
 bool U3IOResizeMutableResource(U3MutableDataBuffer *buffer, size_t size);
-void U3IOCloseMutableResource(U3MutableDataBuffer *buffer, bool commit);
+bool U3IOCloseMutableResource(U3MutableDataBuffer *buffer, bool commit);
 void U3IOReleaseLegacyResourceHandle(void *resourceHandle);
 
 bool U3IOLoadGame(U3GameState *state);

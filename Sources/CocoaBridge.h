@@ -8,6 +8,17 @@
 Boolean U3CocoaCreateCharacter(const Boolean available[20], short *slot, U3CharacterDraft *draft);
 void U3CocoaInstallMenus(void);
 void U3CocoaUpdateMenuState(void);
+void U3CocoaSetGameInputReady(Boolean ready);
+Boolean U3CocoaCanSaveGame(void);
+short U3CocoaConfirmQuit(Boolean canSave);
+void U3CocoaReportSaveError(int32_t errorCode);
+void U3CocoaFinishApplication(void);
+void *U3CocoaCreateAutoreleasePool(void);
+void U3CocoaDrainAutoreleasePool(void **pool);
+/* A C game-loop iteration owns its temporary Objective-C objects on every
+ * exit path, including return, break and continue. */
+#define U3_COCOA_SCOPED_POOL \
+    void *u3IterationPool __attribute__((cleanup(U3CocoaDrainAutoreleasePool), unused)) = U3CocoaCreateAutoreleasePool()
 void U3CocoaSetMainSurfaceFullScreen(Boolean fullScreen);
 void U3CocoaReactivateMainSurface(void);
 Boolean U3CocoaChooseParty(const unsigned char names[20][16], const Boolean available[20], short selection[4]);
@@ -15,6 +26,7 @@ void U3CocoaQueueDiagnosticKey(char key);
 void U3CocoaQueueDiagnosticKeys(const char *keys);
 void U3CocoaTextCheckpoint(const char *name);
 Boolean U3CocoaKeyboardSelfTest(void);
+Boolean U3CocoaNativeWindowSelfTest(void);
 void U3CocoaFlushInput(void);
 void U3CocoaQueueDiagnosticMouse(short x, short y);
 Boolean U3CocoaWriteMainBitmap(const char *path);
@@ -34,6 +46,7 @@ void *U3CocoaCreateMainSurface(short xposn, short yposn, short width, short heig
 void U3CocoaPumpEvents(void);
 void U3CocoaPresentMainSurface(void);
 Boolean U3CocoaHasMainSurface(void);
+Boolean U3CocoaHasPendingGameInput(void);
 Boolean U3CocoaUsesNativeUI(void);
 void U3CocoaRunApplication(void);
 Boolean U3CocoaPollKeyMouse(Boolean includeMouse, long timeoutTicks, char *outKey,

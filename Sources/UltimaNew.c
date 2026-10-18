@@ -7,6 +7,7 @@
 #import "CocoaBridge.h"
 #import "U3Renderer.h"
 #import "U3Platform.h"
+#import "U3IO.h"
 #import "UltimaGraphics.h"
 #import "UltimaMacIF.h"
 #import "UltimaMain.h"
@@ -24,7 +25,7 @@ extern unsigned char        Player[21][65];
 extern UniversalProcPtr     DialogFilterProc;
 extern int                  xpos, ypos;
 extern char                 gCurWeapons[32], gCurArmours[32];
-extern Boolean              gStatsActive, gUnusualSize;
+extern Boolean              gStatsActive, gUnusualSize, gDone;
 extern short                gCurNumWeapons, gCurNumArmours;
 
 short               prefFRefNum, prefVRefNums;
@@ -150,12 +151,32 @@ Boolean U3ApplyPartySelection(const short selection[4]) {
 }
 
 Boolean U3StorePartySelection(const short selection[4]) {
-    if (!U3ApplyPartySelection(selection)) return false;
-    PutParty();
-    PutRoster();
-    ResetSosaria();
+    if (gDone) return false;
+    if (!PartySelectionIsValid(selection)) return false;
+    unsigned char previousPlayers[21][65], previousParty[U3LegacyPartySize];
+    int previousX = xpos, previousY = ypos;
+    extern short gCurMapSize;
+    short previousMapSize = gCurMapSize;
+    memcpy(previousPlayers, Player, sizeof(previousPlayers));
+    memcpy(previousParty, Party, sizeof(previousParty));
+    if (!U3IOBeginSaveTransaction()) {
+        U3CocoaReportSaveError(U3IOLastError());
+        return false;
+    }
+    Boolean success = U3ApplyPartySelection(selection) && PutParty() && PutRoster() && ResetSosaria();
+    /* Stage the original tables directly, so a failed save does not reset the
+       live tables before the new party has actually been committed. */
+    for (short i = 0; success && i < 6; ++i)
+        success = U3IOCopyResource(U3ResourceKindMisc, BASERES + i, BASERES + 100 + i, NULL);
+    if (!success || !U3IOCommitSaveTransaction()) {
+        U3IOCancelSaveTransaction();
+        memcpy(Player, previousPlayers, sizeof(previousPlayers));
+        memcpy(Party, previousParty, sizeof(previousParty));
+        xpos = previousX; ypos = previousY; gCurMapSize = previousMapSize;
+        U3CocoaReportSaveError(U3IOLastError());
+        return false;
+    }
     GetMiscStuff(0);
-    PutMiscStuff();
     return true;
 }
 

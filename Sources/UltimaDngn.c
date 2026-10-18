@@ -269,6 +269,8 @@ void DungeonStart(short mode) { /* $8CE9 */
     char bits[8] = {1, 2, 4, 8, 16, 32, 64, 128};
     long nextPassTime;
 
+    if (gDone)
+        return;
     gUpdateWhere = 4;
     if (mode == 1)
         goto dungeonmech;
@@ -278,11 +280,15 @@ void DungeonStart(short mode) { /* $8CE9 */
     gSongCurrent = gSongNext = 4;
     gExitDungeon = 0;
 dungstart: /* $8D13 */
+    if (gDone)
+        return;
     if (sDungeonEventCheck)
         return;
     if (gExitDungeon == 1)
         return;
     CheckAllDead();
+    if (gDone)
+        return;
     DngInfo();
     wx = 0x18;
     wy = 0x17;
@@ -305,6 +311,8 @@ dungstart: /* $8D13 */
     zp[0xD1] = zp[0xD2] = 0;
     zp[0x12] = 5;
 dungkeystart: /* $8D4A */
+    if (gDone)
+        return;
     if (zp[0xD1] == -2000)
         DoAutoHeal();
     zp[0xD1]--;
@@ -375,6 +383,8 @@ dungkeygot:
             break;
     }
 dungeonmech: /* $8FC2 */
+    if (gDone)
+        return;
     if (sTraversalCheck) {
         const unsigned char expectedX[] = {1, 1, 2, 2, 2, 2, 1, 1};
         const unsigned char expectedLevel[] = {0, 0, 0, 0, 1, 0, 0, 0};

@@ -118,6 +118,8 @@ Boolean Cast(short mode, short chnum) { /* $535C. if mode<>0, chnum is set (1-4)
 
 void ProcessMagic(short chnum) {
     short rosNum, magicreq;
+    if (gDone)
+        return;
     rosNum = Party[6 + chnum];
     magicreq = (spellnum & 0x0F) * 5;
     if (spellnum == 32)
@@ -411,8 +413,12 @@ void Spell(short chnum) {
             }
             U3RenderPrintMessage(85);
             U3PlatformGetDirection(0);
+            if (gDone)
+                return;
             U3RenderPrintPascalString("\pTypeNum-");
             value = UInputNum(wx, wy);
+            if (gDone)
+                return;
             Flashriek();
             if (value > 12 && value < 31) {   // a creature
                 openSpot = -1;
@@ -491,7 +497,11 @@ void Projectile(short chnum, short damage) { /* $552B */
     }
     U3RenderPrintMessage(85);
     U3PlatformGetDirection(0);
+    if (gDone)
+        return;
     Flashriek();
+    if (gDone)
+        return;
     hit = Shoot(CharX[chnum - 1], CharY[chnum - 1]);
     if (hit > 127) {
         Failed();
@@ -1336,6 +1346,8 @@ void Combat(void) { /* $7FB0 */
     unsigned char monhpstart[16] = {0x20, 0x20, 0xF0, 0xF0, 0xC0, 0x60, 0xA0, 0x80, 0x30, 0x50, 0x70, 0xA0, 0xC0, 0xE0, 0xF0, 0xF0};
     //Str255            str;
 
+    if (gDone)
+        return;
     g835F = gSongCurrent;
     g5521 = g56E7 = 0;
     gSongCurrent = gSongNext = 0;
@@ -1423,6 +1435,10 @@ void Combat(void) { /* $7FB0 */
     gSongNext = 5;
     gAutoCombat = !U3PlatformGetBooleanPreference(U3PreferenceManualCombat);
 combatstart:
+    if (gDone) {
+        gUpdateWhere = updateStore;
+        return;
+    }
     AgeChars();
     ShowChars(false);
     g835D = 0;
@@ -1434,8 +1450,10 @@ combatloop: /* $8164 */
         }
         sManualTurnOrder = (sManualTurnOrder << 4) | (g835D + 1);
     }
-    if (gDone)
+    if (gDone) {
+        gUpdateWhere = updateStore;
         return;
+    }
     if (gAutoCombat)
         U3PlatformObscureCursor();
     chnum = g835D;
@@ -1461,6 +1479,10 @@ combatloop: /* $8164 */
     ys = CharY[chnum];
     count2 = 0xC0;
 keyloop:
+    if (gDone) {
+        gUpdateWhere = updateStore;
+        return;
+    }
     count2 += 0x40;
     if (count2 == 0) {
         PutXYTile(CharTile[chnum], xs, ys);
@@ -1476,11 +1498,19 @@ keyloop:
     //  gAutoCombat &= (!NearlyDead(0));
     if (gAutoCombat && Macro[0] == 0)
         AutoCombat(chnum);
+    if (gDone) {
+        gUpdateWhere = updateStore;
+        return;
+    }
     if (count == 0) {
         gKeyPress = ' ';
     } else {
         if (U3PlatformGetKeyMouse(0) == FALSE)
             goto keyloop;
+    }
+    if (gDone) {
+        gUpdateWhere = updateStore;
+        return;
     }
     PutXYTile(CharShape[chnum], xs, ys);
     cHide = 0;
@@ -1592,6 +1622,10 @@ keyloop:
     goto plrdone;
     return;
 plrdone: /* $85A6 */
+    if (gDone) {
+        gUpdateWhere = updateStore;
+        return;
+    }
     if (sManualCombatCheck && Party[2] == 4) {
         if (sBlockedAndDead) {
             sManualMovement &= CharX[0] == 5 && CharY[0] == 5 &&
@@ -1628,6 +1662,10 @@ plrdone: /* $85A6 */
     }
     mon = -1;
 nextmon:
+    if (gDone) {
+        gUpdateWhere = updateStore;
+        return;
+    }
     mon++;
     if (gResurrect)
         goto combatstart;
@@ -1821,6 +1859,8 @@ void CombatAttack(short chnum) { /* $8360 */
     U3RenderPrintPascalString(str1);
 
     U3PlatformGetDirection(1);
+    if (gDone)
+        return;
     if (dx == 0 && dy == 0)
         return;
     /* was Whine(chnum*8+0xE0, 6); */

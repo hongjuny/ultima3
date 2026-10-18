@@ -174,12 +174,12 @@ static void ReadByteTable(short resourceID, unsigned char *table, size_t capacit
     U3IOReleaseResource(&buffer);
 }
 
-static void WriteByteTable(short resourceID, const unsigned char *table, size_t capacity) {
+static Boolean WriteByteTable(short resourceID, const unsigned char *table, size_t capacity) {
     U3MutableDataBuffer buffer;
-    if (!U3IOOpenMutableResource(U3ResourceKindMisc, resourceID, &buffer)) return;
+    if (!U3IOOpenMutableResource(U3ResourceKindMisc, resourceID, &buffer)) return FALSE;
     size_t count = buffer.size < capacity ? buffer.size : capacity;
     memcpy(buffer.bytes, table, count);
-    U3IOCloseMutableResource(&buffer, true);
+    return U3IOCloseMutableResource(&buffer, true);
 }
 
 void GetMiscStuff(short id) {
@@ -209,31 +209,40 @@ void GetMiscStuff(short id) {
     ReadByteTable(BASERES + id + 5, Experience, sizeof(Experience));
 }
 
-void PutMiscStuff(void) {
+Boolean PutMiscStuff(void) {
+    if (gDone) return FALSE;
     U3MutableDataBuffer tempBuffer;
     unsigned short byte;
 
     if (U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 100, &tempBuffer)) {
+        if (tempBuffer.size < 16) {
+            U3IOCloseMutableResource(&tempBuffer, false);
+            return FALSE;
+        }
         for (byte = 0; byte < 8; byte++) {
             tempBuffer.bytes[byte] = MoonXTable[byte];
             tempBuffer.bytes[byte + 8] = MoonYTable[byte];
         }
-        U3IOCloseMutableResource(&tempBuffer, true);
-    }
+        if (!U3IOCloseMutableResource(&tempBuffer, true)) return FALSE;
+    } else return FALSE;
 
-    WriteByteTable(BASERES + 101, careerTable, sizeof(careerTable));
-    WriteByteTable(BASERES + 102, wpnUseTable, sizeof(wpnUseTable));
-    WriteByteTable(BASERES + 103, armUseTable, sizeof(armUseTable));
+    if (!WriteByteTable(BASERES + 101, careerTable, sizeof(careerTable)) ||
+        !WriteByteTable(BASERES + 102, wpnUseTable, sizeof(wpnUseTable)) ||
+        !WriteByteTable(BASERES + 103, armUseTable, sizeof(armUseTable))) return FALSE;
 
     if (U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 104, &tempBuffer)) {
+        if (tempBuffer.size < 52) {
+            U3IOCloseMutableResource(&tempBuffer, false);
+            return FALSE;
+        }
         for (byte = 0; byte < 20; byte++) {
             tempBuffer.bytes[byte] = LocationX[byte];
             tempBuffer.bytes[byte + 32] = LocationY[byte];
         }
-        U3IOCloseMutableResource(&tempBuffer, true);
-    }
+        if (!U3IOCloseMutableResource(&tempBuffer, true)) return FALSE;
+    } else return FALSE;
 
-    WriteByteTable(BASERES + 105, Experience, sizeof(Experience));
+    return WriteByteTable(BASERES + 105, Experience, sizeof(Experience));
 }
 
 unsigned char ValidMonsterDir(short tile, short montype) { /* $7C0C */
@@ -605,18 +614,23 @@ void GetRoster(void) {
     U3IOReleaseResource(&rosterBuffer);
 }
 
-void PutRoster(void) {
+Boolean PutRoster(void) {
+    if (gDone) return FALSE;
     short player, byte;
     U3MutableDataBuffer rosterBuffer;
 
     if (!U3IOOpenMutableResource(U3ResourceKindRoster, BASERES, &rosterBuffer))
-        return;
+        return FALSE;
+    if (rosterBuffer.size < 20 * 64) {
+        U3IOCloseMutableResource(&rosterBuffer, false);
+        return FALSE;
+    }
     for (player = 0; player < 20; player++) {
         for (byte = 0; byte < 64; byte++) {
             rosterBuffer.bytes[((player)*64) + byte] = Player[player + 1][byte];
         }
     }
-    U3IOCloseMutableResource(&rosterBuffer, true);
+    return U3IOCloseMutableResource(&rosterBuffer, true);
 }
 
 void GetParty(void) {
@@ -635,19 +649,21 @@ void GetParty(void) {
     ypos = Party[5];
 }
 
-void PutParty(void) {
+Boolean PutParty(void) {
+    if (gDone) return FALSE;
     U3MutableDataBuffer partyBuffer;
 
     if (Party[3] == 0) {
         if (!U3IOOpenMutableResource(U3ResourceKindParty, BASERES, &partyBuffer))
-            return;
+            return FALSE;
         if (partyBuffer.size < U3PartyResourceSize) {
             U3IOCloseMutableResource(&partyBuffer, false);
-            return;
+            return FALSE;
         }
         memcpy(partyBuffer.bytes, Party + 1, U3PartyResourceSize);
-        U3IOCloseMutableResource(&partyBuffer, true);
+        return U3IOCloseMutableResource(&partyBuffer, true);
     }
+    return TRUE; /* Only the overworld party record is persistent. */
 }
 
 Boolean U3PartyResourceSelfTest(void) {
@@ -701,75 +717,44 @@ Boolean U3PartyResourceSelfTest(void) {
     return passed;
 }
 
-void ResetSosaria(void) {
-    short byte;
-    long mapLength;
-    U3DataBuffer originalMapBuffer, originalMonsterBuffer, originalMiscBuffer;
-    U3MutableDataBuffer currentMapBuffer, currentMonsterBuffer, currentMiscBuffer;
-
-    if (U3IOLoadResource(U3ResourceKindMap, BASERES + 20, &originalMapBuffer)) {
-        if (originalMapBuffer.size >= 1) {
-            gCurMapSize = originalMapBuffer.bytes[0];
-            if (gCurMapSize == 0)
-                gCurMapSize = 256;
-            mapLength = (gCurMapSize * gCurMapSize) + 5;
-            if (originalMapBuffer.size >= (size_t)mapLength &&
-                U3IOOpenMutableResource(U3ResourceKindMap, BASERES + 19, &currentMapBuffer)) {
-                if (U3IOResizeMutableResource(&currentMapBuffer, (size_t)mapLength)) {
-                    memcpy(currentMapBuffer.bytes, originalMapBuffer.bytes, (size_t)mapLength);
-                    U3IOCloseMutableResource(&currentMapBuffer, true);
-                } else {
-                    U3IOCloseMutableResource(&currentMapBuffer, false);
-                }
-            }
-        }
-        U3IOReleaseResource(&originalMapBuffer);
+static Boolean ResetResourcePrefix(U3ResourceKind kind, short sourceID, short destinationID, size_t count) {
+    U3DataBuffer source = {0};
+    U3MutableDataBuffer destination = {0};
+    Boolean success = FALSE;
+    if (U3IOLoadResource(kind, sourceID, &source) && source.size >= count &&
+        U3IOOpenMutableResource(kind, destinationID, &destination) && destination.size >= count) {
+        memcpy(destination.bytes, source.bytes, count);
+        success = U3IOCloseMutableResource(&destination, true);
     }
+    U3IOCloseMutableResource(&destination, false);
+    U3IOReleaseResource(&source);
+    return success;
+}
 
-    if (U3IOLoadResource(U3ResourceKindMonster, BASERES + 20, &originalMonsterBuffer)) {
-        if (originalMonsterBuffer.size >= 256 &&
-            U3IOOpenMutableResource(U3ResourceKindMonster, BASERES + 19, &currentMonsterBuffer)) {
-            if (currentMonsterBuffer.size >= 256) {
-                for (byte = 0; byte < 256; byte++) {
-                    currentMonsterBuffer.bytes[byte] = originalMonsterBuffer.bytes[byte];
-                }
-                U3IOCloseMutableResource(&currentMonsterBuffer, true);
-            } else {
-                U3IOCloseMutableResource(&currentMonsterBuffer, false);
-            }
+Boolean ResetSosaria(void) {
+    if (gDone) return FALSE;
+    U3DataBuffer original = {0};
+    U3MutableDataBuffer current = {0};
+    Boolean success = FALSE;
+    short mapSize = 0;
+    if (U3IOLoadResource(U3ResourceKindMap, BASERES + 20, &original) && original.size >= 1) {
+        mapSize = original.bytes[0] ? original.bytes[0] : 256;
+        size_t length = (size_t)mapSize * mapSize + 5;
+        if (original.size >= length &&
+            U3IOOpenMutableResource(U3ResourceKindMap, BASERES + 19, &current) &&
+            U3IOResizeMutableResource(&current, length)) {
+            memcpy(current.bytes, original.bytes, length);
+            success = U3IOCloseMutableResource(&current, true);
         }
-        U3IOReleaseResource(&originalMonsterBuffer);
     }
-
-    if (U3IOLoadResource(U3ResourceKindMisc, BASERES, &originalMiscBuffer)) {
-        if (originalMiscBuffer.size >= 16 &&
-            U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 100, &currentMiscBuffer)) {
-            if (currentMiscBuffer.size >= 16) {
-                for (byte = 0; byte < 16; byte++) {
-                    currentMiscBuffer.bytes[byte] = originalMiscBuffer.bytes[byte];
-                }
-                U3IOCloseMutableResource(&currentMiscBuffer, true);
-            } else {
-                U3IOCloseMutableResource(&currentMiscBuffer, false);
-            }
-        }
-        U3IOReleaseResource(&originalMiscBuffer);
-    }
-
-    if (U3IOLoadResource(U3ResourceKindMisc, BASERES + 4, &originalMiscBuffer)) {
-        if (originalMiscBuffer.size >= 64 &&
-            U3IOOpenMutableResource(U3ResourceKindMisc, BASERES + 104, &currentMiscBuffer)) {
-            if (currentMiscBuffer.size >= 64) {
-                for (byte = 0; byte < 64; byte++) {
-                    currentMiscBuffer.bytes[byte] = originalMiscBuffer.bytes[byte];
-                }
-                U3IOCloseMutableResource(&currentMiscBuffer, true);
-            } else {
-                U3IOCloseMutableResource(&currentMiscBuffer, false);
-            }
-        }
-        U3IOReleaseResource(&originalMiscBuffer);
-    }
+    U3IOCloseMutableResource(&current, false);
+    U3IOReleaseResource(&original);
+    if (!success ||
+        !ResetResourcePrefix(U3ResourceKindMonster, BASERES + 20, BASERES + 19, 256) ||
+        !ResetResourcePrefix(U3ResourceKindMisc, BASERES, BASERES + 100, 16) ||
+        !ResetResourcePrefix(U3ResourceKindMisc, BASERES + 4, BASERES + 104, 64)) return FALSE;
+    gCurMapSize = mapSize;
+    return TRUE;
 }
 
 void GetSosaria(void) {
@@ -791,14 +776,17 @@ void BlockExodus(void) {
     }
 }
 
-void PutSosaria(void) {
+Boolean PutSosaria(void) {
+    if (gDone) return FALSE;
     long mark;
     long mapLength;
     U3MutableDataBuffer currentMapBuffer, currentMonsterBuffer;
 
     if (Party[3] != 0)
-        return;    // I shouldn't need this, dammit!
+        return TRUE;    // Only the overworld is persistent.
     mapLength = gCurMapSize * gCurMapSize;
+    if (gCurMapSize <= 0 || gCurMapSize > 256 || !Map || !*Map || GetHandleSize(Map) < mapLength)
+        return FALSE;
     if (U3IOOpenMutableResource(U3ResourceKindMap, BASERES + 19, &currentMapBuffer)) {
         if (currentMapBuffer.size >= (size_t)(mapLength + 5)) {
             currentMapBuffer.bytes[0] = (unsigned char)(gCurMapSize & 0xFF);
@@ -809,23 +797,25 @@ void PutSosaria(void) {
             currentMapBuffer.bytes[mapLength + 2] = (unsigned char)(WhirlY & 0xFF);
             currentMapBuffer.bytes[mapLength + 3] = (unsigned char)(WhirlDX & 0xFF);
             currentMapBuffer.bytes[mapLength + 4] = (unsigned char)(WhirlDY & 0xFF);
-            U3IOCloseMutableResource(&currentMapBuffer, true);
+            if (!U3IOCloseMutableResource(&currentMapBuffer, true)) return FALSE;
         } else {
             U3IOCloseMutableResource(&currentMapBuffer, false);
+            return FALSE;
         }
-    }
+    } else return FALSE;
 
     if (U3IOOpenMutableResource(U3ResourceKindMonster, BASERES + 19, &currentMonsterBuffer)) {
         if (currentMonsterBuffer.size >= 256) {
             for (mark = 0; mark < 256; mark++) {
                 currentMonsterBuffer.bytes[mark] = Monsters[mark];
             }
-            U3IOCloseMutableResource(&currentMonsterBuffer, true);
+            if (!U3IOCloseMutableResource(&currentMonsterBuffer, true)) return FALSE;
         } else {
             U3IOCloseMutableResource(&currentMonsterBuffer, false);
+            return FALSE;
         }
-    }
-    PutMiscStuff();
+    } else return FALSE;
+    return PutMiscStuff();
 }
 
 void LoadUltimaMap(short resid) {
@@ -931,6 +921,7 @@ void PushSosaria(void) {
 }
 
 void PullSosaria(void) {
+    if (gDone) return;
     long mapLength, mark;
 
     if (GetHandleSize(pushMap) < 10) {   // was never pushed!
@@ -985,6 +976,7 @@ void PutXYVal(unsigned char value, unsigned char x, unsigned char y) {
 }
 
 void Shrine(short chnum) { /* $9400 */
+    if (gDone) return;
     short shtype = xpos & 0x03;
     short voiceTile=0;    // correspond to class which ability is most apropos for
     short rosNum, maxval, statnum=0, race, key=0, gold;
@@ -1047,6 +1039,10 @@ void Shrine(short chnum) { /* $9400 */
     while ((key < '0' || key > '9') && (gDone == FALSE)) {
         U3PlatformGetKeyMouse(0);
         key = gKeyPress;
+    }
+    if (gDone) {
+        ImageGoAway();
+        return;
     }
     U3RenderPrintCharAt(key, tx, ty);
     key -= '0';
@@ -1342,6 +1338,7 @@ void Routine6E6B(void) {
 }
 
 void Routine6E35(void) {
+    if (gDone) return;
     short temp;
     IncMoves();
     MoonGateUpdate();
@@ -1584,6 +1581,7 @@ void HandleMoonStep(void) { /* $7961 */
 }
 
 void Shop(short shopNum, short chnum) {
+    if (gDone) return;
     short rosNum, input, gold, opnum;
     Str255 message, spmessage;
     long amount;
@@ -1597,6 +1595,7 @@ void Shop(short shopNum, short chnum) {
             U3AudioSpeakMessages(186, 0, 20);
             //Speech(GetLocalizedPascalString("\pHere friend, have a drink! It costs 7 gold."),20);
             input = UInputNum(tx, ty);
+            if (gDone) return;
             U3RenderPrintPascalString("\p\n\n");
             if (input < 7) {
                 U3RenderPrintMessageRewrapped(187);
@@ -1629,6 +1628,7 @@ void Shop(short shopNum, short chnum) {
             U3RenderPrintMessage(189);
             //Speech("\pAnother drink?",20);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             if (input > 95)
                 input -= 32;
             if (input != 'Y') {
@@ -1648,6 +1648,7 @@ void Shop(short shopNum, short chnum) {
             U3AudioSpeakMessages(192, 0, 16);
             //Speech(GetLocalizedPascalString("\pRations 1 gold each, how many would you like?"),16);
             input = UInputBigNum(tx, ty);
+            if (gDone) return;
             if (input == 0) {
                 U3RenderPrintPascalString("\p\n\n");
                 return;
@@ -1678,6 +1679,7 @@ void Shop(short shopNum, short chnum) {
             U3AudioSpeakMessages(194, 0, 16);
             //Speech(GetLocalizedPascalString("\pThank you, anything else?"),16);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             if (input > 95)
                 input -= 32;
             if (input != 'Y') {
@@ -1698,6 +1700,7 @@ void Shop(short shopNum, short chnum) {
             input = 0;
             while ((input < '0' || input > '4') && input != ' ') {
                 input = U3PlatformCursorKey(false);
+                if (gDone) return;
             }
             if (input == ' ') {
                 input = 0;
@@ -1713,6 +1716,7 @@ void Shop(short shopNum, short chnum) {
                     if (Clerical(rosNum, 100) == 0) {
                         U3RenderPrintMessage(199);
                         opnum = GetChar();
+                        if (gDone) return;
                         U3RenderPrintPascalString("\p\n");
                         if (opnum >= 1 && opnum <= 4) {
                             SpellNoize(opnum - 1);
@@ -1730,6 +1734,7 @@ void Shop(short shopNum, short chnum) {
                     if (Clerical(rosNum, 200) == 0) {
                         U3RenderPrintMessage(201);
                         opnum = GetChar();
+                        if (gDone) return;
                         U3RenderPrintPascalString("\p\n");
                         if (opnum >= 1 && opnum <= 4) {
                             SpellNoize(opnum - 1);
@@ -1747,6 +1752,7 @@ void Shop(short shopNum, short chnum) {
                     if (Clerical(rosNum, 500) == 0) {
                         U3RenderPrintMessage(203);
                         opnum = GetChar();
+                        if (gDone) return;
                         U3RenderPrintPascalString("\p\n");
                         if (opnum >= 1 && opnum <= 4) {
                             SpellNoize(opnum - 1);
@@ -1764,6 +1770,7 @@ void Shop(short shopNum, short chnum) {
                     if (Clerical(rosNum, 900) == 0) {
                         U3RenderPrintMessage(205);
                         opnum = GetChar();
+                        if (gDone) return;
                         U3RenderPrintPascalString("\p\n");
                         if (opnum >= 1 && opnum <= 4) {
                             SpellNoize(opnum - 1);
@@ -1785,16 +1792,20 @@ void Shop(short shopNum, short chnum) {
             U3AudioSpeakMessages(206, 0, 16);
             //Speech(GetLocalizedPascalString("\pWelcome to the weapons shop!"),16);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             while (input > 95) {
                 input -= 32;
             }
             U3RenderPrintCharAt(input, tx, ty);
-            if (input == 'Y')
+            if (input == 'Y') {
                 WeaponList(opnum);
+                if (gDone) return;
+            }
             U3RenderPrintMessage(207);
             U3AudioSpeakMessages(207, 0, 16);
             //Speech(GetLocalizedPascalString("\pBuy or sell?"),16);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             while (input > 95) {
                 input -= 32;
             }
@@ -1803,6 +1814,7 @@ void Shop(short shopNum, short chnum) {
             if (input == 'B') {
                 U3RenderPrintMessage(208);
                 input = U3PlatformCursorKey(false);
+                if (gDone) return;
                 while (input > 95) {
                     input -= 32;
                 }
@@ -1840,6 +1852,7 @@ void Shop(short shopNum, short chnum) {
             } else {
                 U3RenderPrintMessage(211);
                 input = U3PlatformCursorKey(false);
+                if (gDone) return;
                 while (input > 95) {
                     input -= 32;
                 }
@@ -1888,16 +1901,20 @@ void Shop(short shopNum, short chnum) {
             U3AudioSpeakMessages(216, 0, 18);
             //Speech(GetLocalizedPascalString("\pWelcome to the armor shop!"),18);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             while (input > 95) {
                 input -= 32;
             }
             U3RenderPrintCharAt(input, tx, ty);
-            if (input == 'Y')
+            if (input == 'Y') {
                 ArmourList(opnum);
+                if (gDone) return;
+            }
             U3RenderPrintMessage(207);
             U3AudioSpeakMessages(207, 0, 18);
             //Speech(GetLocalizedPascalString("\pBuy or sell?"),18);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             while (input > 95) {
                 input -= 32;
             }
@@ -1906,6 +1923,7 @@ void Shop(short shopNum, short chnum) {
             if (input == 'B') {
                 U3RenderPrintMessage(208);
                 input = U3PlatformCursorKey(false);
+                if (gDone) return;
                 while (input > 95) {
                     input -= 32;
                 }
@@ -1943,6 +1961,7 @@ void Shop(short shopNum, short chnum) {
             } else {
                 U3RenderPrintMessage(211);
                 input = U3PlatformCursorKey(false);
+                if (gDone) return;
                 while (input > 95) {
                     input -= 32;
                 }
@@ -1992,6 +2011,7 @@ void Shop(short shopNum, short chnum) {
             U3RenderPrintMessage(261);
             U3RenderPrintMessage(218);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             if (input > 95)
                 input -= 32;
             short cost = 0, attrib, qty = 1;
@@ -2034,6 +2054,7 @@ void Shop(short shopNum, short chnum) {
             U3AudioSpeakMessages(220, 0, 23);
             //Speech(GetLocalizedPascalString("\pAnything else?"),23);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             if (input > 95)
                 input -= 32;
             if (input == 'Y')
@@ -2052,6 +2073,7 @@ void Shop(short shopNum, short chnum) {
             input = -1;
             while (gDone != TRUE && (input < 0 || input > 9)) {
                 input = U3PlatformCursorKey(false) - '0';
+                if (gDone) return;
             }
             U3RenderPrintCharAt(input + '0', wx, wy);
             U3RenderPrintPascalString("\p\n\n");
@@ -2079,6 +2101,7 @@ void Shop(short shopNum, short chnum) {
             U3AudioSpeakPascalString(spmessage, 16);
             U3RenderPrintMessage(223);
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             if (input > 95)
                 input -= 32;
             if (input != 'Y') {
@@ -2114,6 +2137,7 @@ void Shop(short shopNum, short chnum) {
             U3AudioSpeakPascalString(theString, 63);
 
             input = U3PlatformCursorKey(false);
+            if (gDone) return;
             if (input > 95)
                 input -= 32;
             if (input != 'Y') {
@@ -2168,9 +2192,11 @@ void GuildGive(short rosNum, short item, short amount) {
 }
 
 short Clerical(short rosNum, short cost) {
+    if (gDone) return 1;
     short input, result, gold;
     result = 0;
     input = U3PlatformCursorKey(false);
+    if (gDone) return 1;
     if (input > 95)
         input -= 32;
     if (input != 'Y') {
@@ -2217,6 +2243,7 @@ void WeaponList(short lastitem) {
     PrintWeaponList(4);
     PrintWeaponList(5);
     U3PlatformWaitKeyMouse();
+    if (gDone) return;
     PrintWeaponList(6);
     PrintWeaponList(7);
     if (lastitem == 'P') {
@@ -2225,6 +2252,7 @@ void WeaponList(short lastitem) {
         PrintWeaponList(10);
         PrintWeaponList(11);
         U3PlatformWaitKeyMouse();
+        if (gDone) return;
         PrintWeaponList(12);
         PrintWeaponList(13);
         PrintWeaponList(14);
@@ -2239,6 +2267,7 @@ void ArmourList(short lastitem) {
     PrintArmourList(3);
     PrintArmourList(4);
     U3PlatformWaitKeyMouse();
+    if (gDone) return;
     if (lastitem == 'H') {
         PrintArmourList(5);
         PrintArmourList(6);
@@ -2247,6 +2276,7 @@ void ArmourList(short lastitem) {
 }
 
 void OtherCommand(short yell) {
+    if (gDone) return;
     short chnum, rosNum, bytes, input, object, gold;
     Rect screct;
     RGBColor color;
@@ -2259,6 +2289,7 @@ void OtherCommand(short yell) {
         U3RenderPrintMessage(236);
     }
     chnum = GetChar();
+    if (gDone) return;
     if (chnum < 1 || chnum > 4)
         return;
     if (CheckAlive(chnum - 1) == FALSE) {
@@ -2269,6 +2300,7 @@ void OtherCommand(short yell) {
     rosNum = Party[6 + chnum];
     U3RenderPrintMessage(238);
     UInputText(tx, ty, str, 8, false);
+    if (gDone) return;
     U3RenderPrintPascalString("\p\n");
     if (EqualString(str, "\pPAXUM", 0, 0) && Party[3] != 0) {
         U3RenderPrintMessage(254);
@@ -2292,6 +2324,7 @@ void OtherCommand(short yell) {
     if (EqualString(str, "\pINSERT", 0, 0)) {
         U3RenderPrintMessage(239);
         U3PlatformGetDirection(0);
+        if (gDone) return;
 
         if (GetXYVal(xs, ys) != 0x7C) {
             NotHere();
@@ -2299,6 +2332,7 @@ void OtherCommand(short yell) {
         }
         U3RenderPrintMessage(240);
         input = GetKey();
+        if (gDone) return;
         object = 0;
         if (input == 'L')
             object = 0x1E;
@@ -2321,6 +2355,7 @@ void OtherCommand(short yell) {
             InverseChar(chnum - 1);
             U3AudioPlaySound(U3SoundEffectHit, true);
             U3PlatformWaitTicks(15);
+            if (gDone) return;
             InverseChar(chnum - 1);
             Player[rosNum][26] = 0;
             Player[rosNum][27] = 1;
@@ -2334,10 +2369,12 @@ void OtherCommand(short yell) {
             DrawMap(xpos, ypos);
             U3AudioPlaySound(U3SoundEffectHit, true);
             U3PlatformWaitTicks(15);
+            if (gDone) return;
             PutXYVal(0x7C, xs, ys);
             DrawMap(xpos, ypos);
             U3AudioPlaySound(U3SoundEffectHit, true);
             U3PlatformWaitTicks(15);
+            if (gDone) return;
         }
         PutXYVal(0x20, xs, ys);
         DrawMap(xpos, ypos);
@@ -2388,23 +2425,28 @@ void OtherCommand(short yell) {
             ForceUpdateMain();
             U3AudioPlaySound(U3SoundEffectHit, false);    // was 0xF7
             U3PlatformWaitTicks(10);
+            if (gDone) { gUpdateWhere = object; return; }
         }
         PenMode(srcCopy);
         U3RenderClearTiles();
         for (input = 0; input < 256; input += 16) {
             WinText(input);
             U3PlatformWaitTicks(1);
+            if (gDone) { gUpdateWhere = object; return; }
             time = U3PlatformTickCount();
             while (time == U3PlatformTickCount()) {
                 U3PlatformGetKeyMouse(0);
+                if (gDone) { gUpdateWhere = object; return; }
             }
         }
         U3PlatformWaitKeyMouse();
+        if (gDone) { gUpdateWhere = object; return; }
         for (input = 255; input >= 0; input -= 16) {
             WinText(input);
             time = U3PlatformTickCount();
             while (time == U3PlatformTickCount()) {
                 U3PlatformGetKeyMouse(0);
+                if (gDone) { gUpdateWhere = object; return; }
             }
         }
         gUpdateWhere = object;
@@ -2441,6 +2483,7 @@ void OtherCommand(short yell) {
     if (str[0] == 5 && str[str[0]] == 'E') { /* Bribe */
         U3RenderPrintMessage(239);
         U3PlatformGetDirection(0);
+        if (gDone) return;
         object = MonsterHere(xs, ys);
         if (object > 127) {
             NotHere();

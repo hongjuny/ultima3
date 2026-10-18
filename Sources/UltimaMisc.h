@@ -9,7 +9,7 @@
 void GetDirection(short mode);
 
 void GetMiscStuff(short id);
-void PutMiscStuff(void);
+Boolean PutMiscStuff(void);
 
 unsigned char ValidMonsterDir(short tile, short montype);
 void ShowMonsterList(void);
@@ -28,15 +28,15 @@ void AddExp(short chnum, short amount);
 void SafeExodus(void);
 void NoEffect(void);
 void GetParty(void);
-void PutParty(void);
+Boolean PutParty(void);
 void GetRoster(void);
-void PutRoster(void);
+Boolean PutRoster(void);
 void OpenRstr(void);
 void GetSosaria(void);
-void PutSosaria(void);
+Boolean PutSosaria(void);
 void PushSosaria(void);
 void PullSosaria(void);
-void ResetSosaria(void);
+Boolean ResetSosaria(void);
 void GetDemoRsrc(void);
 void OtherCommand(short yell);
 Boolean StealDisarmFail(short rosNum);

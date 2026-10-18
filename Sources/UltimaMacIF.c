@@ -106,7 +106,16 @@ void EnableMenus(void) {
 
 Boolean QuitDialog(void) {
     long curNumberOfMoves = Party[14] * 1000000 + Party[13] * 10000 + Party[12] * 100 + Party[11];
-    if (curNumberOfMoves <= (lastSaveNumberOfMoves + 4))
+    if (U3CocoaHasMainSurface()) {
+        /* Inventory and automatic healing can change between move counts.
+         * Always protect an active journey, even immediately after saving. */
+        if (!U3IOHasUnsavedChanges() && gCurFrame != 1)
+            return TRUE;
+        short choice = U3CocoaConfirmQuit(U3CocoaCanSaveGame());
+        if (choice == 1) return QuitSave(1);
+        return choice == 3;
+    }
+    if (!U3IOHasUnsavedChanges() && curNumberOfMoves == lastSaveNumberOfMoves)
         return true;
 
     Str255 where;
@@ -119,8 +128,7 @@ Boolean QuitDialog(void) {
         button = Alert(BASERES + 4, NIL_PTR);
         gMouseState = mouseStateStore;
         if (button == 1) {
-            QuitSave(1);
-            return TRUE;
+            return QuitSave(1);
         }
         if (button == 2) {
             return FALSE;

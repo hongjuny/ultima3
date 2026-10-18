@@ -102,6 +102,32 @@ bitmap loading, command/text behavior, and representative gameplay scenarios.
 These checks are designed to catch regressions in the preserved game loop as
 platform code continues to evolve.
 
+### Native input and save reliability checks
+
+Window resizing and Retina displays share the same drawing and mouse mapping.
+Game clicks remain queued during animation waits while AppKit handles window
+controls and menus. Save Game is available on the surface between actions;
+quitting an active journey offers Cancel, Save and Quit when saving is safe,
+and Quit Without Saving. A failed save keeps the game open and retains pending
+changes for retry. Multi-resource saves, party formation, and party dispersal
+commit together or restore their previous state.
+
+Run the regression tests with macOS developer tools installed:
+
+```sh
+python3 -m unittest discover -s tests -v
+sh scripts/test-bitmap.sh
+python3 scripts/test-native-window.py "Build/Products/Release/Ultima III.app"
+```
+
+The unit tests use temporary storage and silent test doubles, including
+AddressSanitizer and UndefinedBehaviorSanitizer harnesses for native code. The
+last command creates an isolated app copy and preference domain, opens a test
+window, and exercises actual AppKit event routing without starting the game or
+audio. It requires a logged-in WindowServer session. Set
+`U3_TRACE_NATIVE_INPUT=1` when investigating mouse or window-control routing;
+the trace records coordinates and action names without typed text.
+
 ## A Personal Note
 
 Ultima III was one of my favorite games as a child. On an Apple II+ clone
