@@ -1,12 +1,18 @@
-# MIDI Playback Assets
+# Historical MIDI Conversion Assets
+
+The current application uses the C64 SID soundtrack in
+[`Resources/MusicSID`](../MusicSID/README.md). This directory and its conversion
+tools remain for reference; MIDI files, QuickTime music, and SoundFont banks
+are not copied into the app or selected as a fallback. Normal builds no longer
+download a sound bank.
 
 The MIDI files are generated from the original `Resources/Music/Song_*.mov`
 tracks with `python3 scripts/convert-quicktime-music.py`.
 
-Playback uses a bundled GM SoundFont rather than the operating system's
-default bank. A locally supplied FluidR3 GM bank takes priority when present;
-the distributable fallback is GeneralUser GS. The goal is a consistent musical
-arrangement, not QuickTime or vintage-chip emulation.
+The previous player used a bundled GM SoundFont rather than the operating
+system's default bank. A locally supplied FluidR3 GM bank took priority when
+present; the distributable fallback was GeneralUser GS. Its goal was a
+consistent musical arrangement rather than QuickTime or vintage-chip emulation.
 
 Upstream: https://github.com/urish/cinto/blob/master/media/FluidR3%20GM.sf2
 Original SoundFont: FluidR3 GM by Frank Wen, released under the MIT license.
@@ -23,7 +29,7 @@ variable-length events. Supported main-sequence volume, pan, reverb, and chorus
 controls are translated. QuickTime-specific instrument variants use their GM
 fallback. Tune-difference editing sequences, used-note metadata, and header
 MIDI-channel metadata are not played as additional notes. This is a reader for
-the bundled tracks, not a general-purpose QuickTime music converter. Original
+the retained tracks, not a general-purpose QuickTime music converter. Original
 movies remain the source of truth.
 
 Validation:
@@ -32,11 +38,8 @@ Validation:
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_music_conversion.py
 ```
 
-The app's `U3_AUDIO_SELF_TEST=1 U3_VERIFY_MIDI_DEVICE=1` diagnostic loads the
-bundled bank, prepares and starts Song_1, checks player state, then stops it.
-It requires an accessible audio device. Without the second variable, the
-headless diagnostic checks asset availability only.
-
-For A/B listening tests, set `U3_MIDI_SOUNDBANK` to an external `.sf2` file.
-The MIDI files retain
-the instrument programs extracted from the original QuickTime tracks.
+The current app's `U3_AUDIO_SELF_TEST=1` diagnostic instead renders every SID
+track offline, checking playback, loop boundaries, volume, mute, and restart
+without opening an audio device. The historical `U3_VERIFY_MIDI_DEVICE` and
+`U3_MIDI_SOUNDBANK` settings are no longer used by the application. The retained
+MIDI files preserve the programs extracted from the original QuickTime tracks.

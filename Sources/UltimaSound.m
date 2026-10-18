@@ -10,6 +10,8 @@
 
 #import <Cocoa/Cocoa.h>
 #import <AVFoundation/AVFoundation.h>
+#import "U3SIDMusic.h"
+#include <math.h>
 
 extern Boolean          gDone;
 extern unsigned char    Party[65];
@@ -37,29 +39,78 @@ short                   gCountVoices, gCurrentVoiceIndex, gCurVoiceNum;
 short                   gCurSong, gSongVolRefNum;
 Str255                  gCurVoiceName;
 unsigned char           gVoiceName[64][64], strk;
-static AVMIDIPlayer     *songPlayer = nil;
 static AVAudioPlayer    *sFadeTonePlayer = nil;
 short                   gQTMusicVolume = 100;
 
-static NSURL *MusicSoundBankURL(void) {
-    const char *overridePath = getenv("U3_MIDI_SOUNDBANK");
-    if (overridePath && overridePath[0] != '\0')
-        return [NSURL fileURLWithPath:[NSString stringWithUTF8String:overridePath]];
-    NSURL *fluidURL = [[NSBundle mainBundle] URLForResource:@"FluidR3_GM" withExtension:@"sf2"
-                                              subdirectory:@"MusicMIDI"];
-    if (fluidURL)
-        return fluidURL;
-    return [[NSBundle mainBundle] URLForResource:@"GeneralUser-GS" withExtension:@"sf2"
-                                   subdirectory:@"MusicMIDI"];
+/* The soundtrack is rendered from the original C64 SID program. Runtime
+ * playback never remaps its instruments through MIDI or a system sound bank. */
+static U3SIDMusicPlayer *songPlayer = nil;
+static short sFailedSong;
+static uint64_t sLastLoopCount;
+static NSDictionary *sSIDTracks;
+
+static NSError *MusicError(NSString *message, NSInteger code) {
+    return [NSError errorWithDomain:@"UltimaIIIMusic" code:code
+        userInfo:@{NSLocalizedDescriptionKey: message}];
 }
 
-static Boolean MusicIsPlaying(void) {
-    return songPlayer && [songPlayer isPlaying];
+static NSURL *SIDMusicDirectory(void) {
+    return [[NSBundle mainBundle] URLForResource:@"MusicSID" withExtension:nil];
 }
 
-static void SetMusicVolume(float volume) {
-    /* AVMIDIPlayer has no volume API. Keep the preference for a future mixer. */
-    (void)volume;
+static BOOL SIDInteger(id value, int64_t minimum, int64_t maximum) {
+    if (![value isKindOfClass:[NSNumber class]]) return NO;
+    double number = [value doubleValue];
+    return isfinite(number) && number >= minimum && number <= maximum && floor(number) == number;
+}
+
+static NSDictionary *SIDMusicTracks(NSError **error) {
+    if (sSIDTracks) return sSIDTracks;
+    NSURL *url = [SIDMusicDirectory() URLByAppendingPathComponent:@"manifest.json"];
+    NSData *data = url ? [NSData dataWithContentsOfURL:url options:0 error:error] : nil;
+    id manifest = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:error] : nil;
+    id entries = [manifest isKindOfClass:[NSDictionary class]] ? manifest[@"tracks"] : nil;
+    if (![manifest isKindOfClass:[NSDictionary class]] ||
+        ![manifest[@"schema_version"] isEqual:@1] ||
+        ![entries isKindOfClass:[NSArray class]] || [entries count] != 10) {
+        if (error) *error = MusicError(@"The C64 SID soundtrack manifest is missing or invalid.", -2);
+        return nil;
+    }
+    NSMutableDictionary *tracks = [NSMutableDictionary dictionaryWithCapacity:10];
+    for (id entry in entries) {
+        if (![entry isKindOfClass:[NSDictionary class]]) return nil;
+        id song = entry[@"game_song"], subtune = entry[@"subtune"];
+        id frames = entry[@"frame_count"], start = entry[@"loop_start_frame"], end = entry[@"loop_end_frame"];
+        id file = entry[@"file"];
+        if (!SIDInteger(song, 1, 11) || [song intValue] == 9 || tracks[song] ||
+            !SIDInteger(subtune, 1, 10) ||
+            [subtune intValue] != [song intValue] - ([song intValue] >= 10 ? 1 : 0) ||
+            !SIDInteger(frames, 1, 25000000) || !SIDInteger(start, 0, [frames longLongValue] - 1) ||
+            !SIDInteger(end, [start longLongValue] + 1, [frames longLongValue]) ||
+            ![entry[@"sample_rate"] isEqual:@44100] || ![entry[@"channels"] isEqual:@1] ||
+            ![entry[@"bits"] isEqual:@16] || ![file isKindOfClass:[NSString class]] ||
+            ![[file lastPathComponent] isEqual:file] || ![[file pathExtension] isEqual:@"flac"]) {
+            if (error) *error = MusicError(@"The C64 SID soundtrack contains an invalid track.", -3);
+            return nil;
+        }
+        tracks[song] = entry;
+    }
+    sSIDTracks = [tracks copy];
+    return sSIDTracks;
+}
+
+static BOOL LoadSIDMusic(U3SIDMusicPlayer *player, short song, NSError **error) {
+    NSDictionary *track = SIDMusicTracks(error)[@(song)];
+    if (!track) return NO;
+    NSURL *url = [SIDMusicDirectory() URLByAppendingPathComponent:track[@"file"]];
+    return [player loadURL:url loopStartFrame:[track[@"loop_start_frame"] longLongValue]
+        loopEndFrame:[track[@"loop_end_frame"] longLongValue] error:error] &&
+        player.frameCount == [track[@"frame_count"] longLongValue];
+}
+
+void SetMusicVolumePercent(short volumePercent) {
+    gQTMusicVolume = MAX(0, MIN(100, volumePercent));
+    [songPlayer setVolumePercent:gQTMusicVolume];
 }
 
 void ApplyVolumePreferences(void) {
@@ -68,59 +119,87 @@ void ApplyVolumePreferences(void) {
         soundVolume = 100;
     SetSoundVolumePercent(soundVolume);
 
-    Boolean isPlayingMusic = (songPlayer && gSongPlaying != 0);
-    Boolean shouldPlayMusic = !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled);
-    if (isPlayingMusic != shouldPlayMusic) {
-        if (shouldPlayMusic) {
-            gSongPlaying = 0xFF;
-            gSongCurrent = 0;
-            MusicUpdate();
-        } else {
-            EndSong();
-            gSongPlaying = 0;
-        }
-    }
-
     short musicVolume = U3PlatformGetIntegerPreference(U3PreferenceMusicVolume);
-    if (musicVolume < 1)
+    if (!U3PlatformHasPreference(U3PreferenceMusicVolume))
         musicVolume = 100;
-    gQTMusicVolume = musicVolume;
-    SetMusicVolume((float)gQTMusicVolume / 100.0f);
+    SetMusicVolumePercent(musicVolume);
+    /* A deliberate preference change also permits retrying a failed device. */
+    sFailedSong = 0;
+    if (U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled)) EndSong();
+    else MusicUpdate();
 }
 
 bool U3AudioMusicSelfTest(void) {
-    NSString *path = [[NSBundle mainBundle] pathForResource:@"Song_1" ofType:@"mid" inDirectory:@"MusicMIDI"];
-    if (!path || !MusicSoundBankURL())
-        return false;
-    if (U3CocoaIsHeadlessDiagnostic() && !getenv("U3_VERIFY_MIDI_DEVICE")) {
-        fprintf(stderr, "MIDI asset test: passed (playback deferred outside GUI)\n");
-        return true;
-    }
     NSError *error = nil;
-    NSData *data = [NSData dataWithContentsOfFile:path];
-    AVMIDIPlayer *player = nil;
-    @try {
-        player = [[[AVMIDIPlayer alloc] initWithData:data soundBankURL:MusicSoundBankURL() error:&error] autorelease];
-        [player prepareToPlay];
-        [player play:nil];
-    } @catch (NSException *exception) {
-        fprintf(stderr, "MIDI playback unavailable: %s\n", [[exception reason] UTF8String]);
+    U3SIDMusicPlayer *player = [[[U3SIDMusicPlayer alloc] initWithOffline:YES error:&error] autorelease];
+    NSDictionary *tracks = SIDMusicTracks(&error);
+    if (!player || !tracks) {
+        fprintf(stderr, "Offline SID initialization failed: %s\n", error.localizedDescription.UTF8String);
         return false;
     }
-    if (!player) {
-        fprintf(stderr, "MIDI playback unavailable: %s\n", error ? [[error localizedDescription] UTF8String] : "unknown error");
-        return false;
+    const char *renderDirectory = getenv("U3_AUDIO_RENDER_DIRECTORY");
+    const char *renderPath = getenv("U3_AUDIO_RENDER_PATH");
+    const char *renderSong = getenv("U3_AUDIO_RENDER_SONG");
+    const char *renderSeconds = getenv("U3_AUDIO_RENDER_SECONDS");
+    const char *renderVolume = getenv("U3_AUDIO_RENDER_VOLUME");
+    double seconds = renderSeconds ? strtod(renderSeconds, NULL) : 15.0;
+    double volume = renderVolume ? strtod(renderVolume, NULL) : 100.0;
+    if (!isfinite(seconds) || seconds <= 0 || seconds > 600 ||
+        !isfinite(volume) || volume < 0 || volume > 100) return false;
+    NSString *suffix = renderSong ? [NSString stringWithUTF8String:renderSong] : (renderPath ? @"1" : nil);
+    NSDictionary *songs = @{@"1":@1, @"2":@2, @"3":@3, @"4":@4, @"5":@5,
+        @"6":@6, @"7":@7, @"8":@8, @"A":@10, @"B":@11};
+    if (suffix && !songs[suffix]) return false;
+    NSURL *directory = renderDirectory ? [NSURL fileURLWithPath:
+        [NSString stringWithUTF8String:renderDirectory] isDirectory:YES] : nil;
+    if (directory && ![[NSFileManager defaultManager] createDirectoryAtURL:directory
+        withIntermediateDirectories:YES attributes:nil error:&error]) return false;
+    for (NSString *name in [songs.allKeys sortedArrayUsingSelector:@selector(compare:)]) {
+        if (suffix && ![suffix isEqual:name]) continue;
+        @autoreleasepool {
+            short song = [songs[name] shortValue];
+            if (!LoadSIDMusic(player, song, &error)) return false;
+            [player setVolumePercent:(NSInteger)volume];
+            if (![player restart:&error]) return false;
+            NSURL *output = directory ? [directory URLByAppendingPathComponent:
+                [NSString stringWithFormat:@"SID_%@.wav", name]] : nil;
+            if (renderPath) output = [NSURL fileURLWithPath:[NSString stringWithUTF8String:renderPath]];
+            AVAudioFrameCount frames = (AVAudioFrameCount)((output || renderSeconds) ?
+                llround(seconds * player.sampleRate) : player.loopEndFrame + 11025);
+            double rms = 0, peak = 0;
+            if (![player renderFrames:frames toURL:output rms:&rms peak:&peak error:&error] ||
+                (volume > 0 && rms < 0.00001) || peak >= 1.0 ||
+                player.framesPlayed != frames || !player.isPlaying ||
+                (!(output || renderSeconds) && player.completedLoops < 1)) {
+                fprintf(stderr, "SID %s rendering failed: %s\n", name.UTF8String,
+                    error ? error.localizedDescription.UTF8String : "invalid level, loop or timeline");
+                return false;
+            }
+            fprintf(stderr, "SID %s: subtune=%d frames=%lld loop=%lld..%lld RMS=%.5f peak=%.5f\n",
+                name.UTF8String, [tracks[@(song)][@"subtune"] intValue], player.frameCount,
+                player.loopStartFrame, player.loopEndFrame, rms, peak);
+        }
     }
-    Boolean playing = [player isPlaying];
-    fprintf(stderr, "Fixed-bank MIDI: duration=%.2f playing=%d\n", [player duration], playing);
+    if (!LoadSIDMusic(player, 8, &error)) return false;
+    double levels[3] = {0}, peaks[3] = {0};
+    const NSInteger volumes[] = {100, 25, 0};
+    for (int i = 0; i < 3; ++i) {
+        [player setVolumePercent:volumes[i]];
+        if (![player restart:&error] || ![player renderFrames:176400 toURL:nil
+            rms:&levels[i] peak:&peaks[i] error:&error]) return false;
+    }
     [player stop];
-    if (!playing || [player duration] <= 0)
-        return false;
-    NSString *effectPath = [[NSBundle mainBundle] pathForResource:@"Step" ofType:@"wav" inDirectory:@"SoundsPCM"];
-    if (!effectPath)
-        return false;
-    Boolean effectPassed = [[NSFileManager defaultManager] fileExistsAtPath:effectPath];
-    return effectPassed;
+    BOOL passed = levels[0] > 0.00001 && fabs(levels[1] - levels[0] / 4) < 0.000001 &&
+        peaks[0] < 1.0 && peaks[2] == 0 && !player.isPlaying;
+    [player setVolumePercent:25];
+    double restartRMS = 0, restartPeak = 0;
+    passed = passed && [player restart:&error] &&
+        [player renderFrames:176400 toURL:nil rms:&restartRMS peak:&restartPeak error:&error] &&
+        fabs(restartRMS - levels[1]) < 0.000001 && restartPeak < 1.0;
+    [player stop];
+    fprintf(stderr, "Offline SID gain: 100%%=%.5f 25%%=%.5f 0%%=%.8f restart=%s\n",
+        levels[0], levels[1], levels[2], passed ? "passed" : "FAILED");
+    return passed;
 }
 
 void ErrorTone(void) {
@@ -457,110 +536,68 @@ void CloseMusic(void) {
     EndSong();
     [songPlayer release];
     songPlayer = nil;
+    sFailedSong = 0;
+    [sSIDTracks release];
+    sSIDTracks = nil;
 }
 
 void SetMusicPortAndDevice(CGrafPtr thePort, GDHandle theDevice) {
 }
 
 void MusicUpdate(void) {
-    short songid;
-    static Boolean last7;
-    Boolean inCombat;
-
-    if (U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled))
+    /* Dedicated diagnostics exercise this player offline, without an audio device. */
+    if (U3CocoaIsHeadlessDiagnostic()) return;
+    if (U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled)) {
+        if (gSongPlaying) EndSong();
         return;
-    inCombat = (Party[3] == 0x80);
-    if (inCombat && (gSongCurrent != 5 || gSongNext != 5)) {
-        gSongCurrent = 5;
-        gSongNext = 5;
-        if (gSongPlaying != 5)
-            gSongPlaying = 0;
     }
-    if (!MusicIsPlaying() || (strk == 7 && last7)) {   // current time >= full time
-        if (gSongNext == gSongCurrent) {
-            if (songPlayer) {
-                //printf("replaying (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-                [songPlayer setCurrentPosition:0.0];
-                [songPlayer play:nil];
-            }
-        } else {
-            //printf("ending #1 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-            EndSong();
-            gSongCurrent = gSongNext;
-            gSongPlaying = 0;
-        }
-    }
-
-    last7 = false;    //(gSongCurrent==7); // why is this in here??
-    if ((gSongCurrent == gSongPlaying) && gSongPlaying != 0)
-        return;
-    if (gSongCurrent > 0x10)
-        gSongCurrent = 0;
-    if (gSongCurrent == 0)
+    if (Party[3] == 0x80) gSongCurrent = gSongNext = 5;
+    if (gSongCurrent < 0 || gSongCurrent > 0x10) gSongCurrent = 0;
+    if (!gSongCurrent) gSongCurrent = gSongNext;
+    if (gSongPlaying == gSongCurrent && songPlayer.isPlaying) {
+        /* The initial score also ends at loopStartFrame. Honor queued changes
+         * there, then at each complete repeat. Scene changes remain immediate. */
+        uint64_t boundaries = songPlayer.loopStartFrame > 0 ?
+            (songPlayer.framesPlayed >= (uint64_t)songPlayer.loopStartFrame ? songPlayer.completedLoops + 1 : 0) :
+            songPlayer.completedLoops;
+        BOOL atBoundary = boundaries > sLastLoopCount;
+        sLastLoopCount = boundaries;
+        if (!atBoundary || gSongNext == gSongCurrent) return;
         gSongCurrent = gSongNext;
-    gSongPlaying = gSongCurrent;
-    if (gSongCurrent == 0) {
-        if (songPlayer && MusicIsPlaying()) {
-            //printf("ending #2 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-            EndSong();
-            [songPlayer release];
-            songPlayer = nil;
+    }
+    if (gSongCurrent <= 0 || gSongCurrent == 9 || gSongCurrent >= 12) {
+        if (gSongPlaying) EndSong();
+        return;
+    }
+    if (sFailedSong == gSongCurrent) return;
+    @autoreleasepool {
+        NSError *error = nil;
+        @try {
+            if (!songPlayer) songPlayer = [[U3SIDMusicPlayer alloc] initWithOffline:NO error:&error];
+            BOOL ready = songPlayer && LoadSIDMusic(songPlayer, gSongCurrent, &error);
+            if (ready) {
+                [songPlayer setVolumePercent:gQTMusicVolume];
+                ready = [songPlayer restart:&error];
+            }
+            if (ready) {
+                gSongPlaying = gSongCurrent;
+                strk = gSongPlaying;
+                sFailedSong = 0;
+                sLastLoopCount = 0;
+                return;
+            }
+        } @catch (NSException *exception) {
+            error = MusicError(exception.reason, -1);
         }
-        return;
+        EndSong();
+        sFailedSong = gSongCurrent;
+        fprintf(stderr, "C64 SID song %d unavailable: %s\n", gSongCurrent,
+            error ? error.localizedDescription.UTF8String : "missing or invalid soundtrack assets");
     }
-    songid = '0' + gSongPlaying;
-    if (songid > '9')
-        songid += 7;
-    if (songid == '9' || songid == 'C' || songid == 'D' || songid == 'E' || songid == 'F')
-        return;
-    //printf("ending #3 (cur=%d, next=%d)\n", gSongCurrent, gSongNext);
-    EndSong();
-
-    NSString *songName = [NSString stringWithFormat:@"Song_%c", songid];
-    NSString *path = [[NSBundle mainBundle] pathForResource:songName ofType:@"mid" inDirectory:@"MusicMIDI"];
-    NSURL *soundBank = MusicSoundBankURL();
-    if (!path || !soundBank) {
-        fprintf(stderr, "Music asset missing: %s or a bundled MIDI sound bank\n", [songName UTF8String]);
-        gSongPlaying = 0;
-        HandleError(paramErr, 57, 1);
-        return;
-    }
-    NSData *songData = [NSData dataWithContentsOfFile:path];
-    NSError *error = nil;
-    AVMIDIPlayer *newPlayer = nil;
-    @try {
-        newPlayer = [[AVMIDIPlayer alloc] initWithData:songData soundBankURL:soundBank error:&error];
-    } @catch (NSException *exception) {
-        fprintf(stderr, "MIDI playback unavailable: %s\n", [[exception reason] UTF8String]);
-        gSongPlaying = 0;
-        return;
-    }
-    if (!newPlayer) {
-        fprintf(stderr, "Music unavailable: %s\n", [path UTF8String]);
-        if (error)
-            fprintf(stderr, "MIDI error: %s\n", [[error localizedDescription] UTF8String]);
-        return;
-    }
-    [songPlayer release];
-    songPlayer = newPlayer;
-    [songPlayer prepareToPlay];
-    [songPlayer play:nil];
-    strk = gSongPlaying;
 }
 
 void EndSong(void) {
-    long startTime;
-
-    if (songPlayer) {
-        startTime = U3PlatformTickCount();
-        const int numTicks = 30;
-        float scale = gQTMusicVolume / (float)numTicks;
-        while (U3PlatformTickCount() < (startTime + numTicks)) {
-            int newVolume = gQTMusicVolume - (U3PlatformTickCount() - startTime) * scale;
-            SetMusicVolume((float)newVolume / 100.0f);
-            U3PlatformWaitTicks(3);
-        }
-        [songPlayer stop];
-        SetMusicVolume((float)gQTMusicVolume / 100.0f);
-    }
+    [songPlayer stop];
+    gSongPlaying = 0;
+    sLastLoopCount = 0;
 }

@@ -1,0 +1,70 @@
+--- a/src/builders/residfp-builder/residfp/FilterModelConfig6581.cpp
++++ b/src/builders/residfp-builder/residfp/FilterModelConfig6581.cpp
+@@ -250,27 +250,14 @@
+         }
+     };
+ 
+-#if defined(HAVE_CXX20) && defined(__cpp_lib_jthread)
+-    using sidThread = std::jthread;
+-#else
+-    using sidThread = std::thread;
+-#endif
+-
+-    sidThread thdSummer(filterSummer);
+-    sidThread thdMixer(filterMixer);
+-    sidThread thdGain(filterGain);
+-    sidThread thdResonance(filterResonance);
+-    sidThread thdVcrVg(filterVcrVg);
+-    sidThread thdVcrIds(filterVcrIds);
+-
+-#if !defined(HAVE_CXX20) || !defined(__cpp_lib_jthread)
+-    thdSummer.join();
+-    thdMixer.join();
+-    thdGain.join();
+-    thdResonance.join();
+-    thdVcrVg.join();
+-    thdVcrIds.join();
+-#endif
++    // Canonical render: deterministic ordering for shared LUT dither.
++    filterSummer();
++    filterMixer();
++    filterGain();
++    filterResonance();
++    filterVcrVg();
++    filterVcrIds();
++
+ }
+ 
+ unsigned short* FilterModelConfig6581::getDAC(double adjustment) const
+--- a/src/builders/residfp-builder/residfp/FilterModelConfig8580.cpp
++++ b/src/builders/residfp-builder/residfp/FilterModelConfig8580.cpp
+@@ -196,23 +196,12 @@
+         buildResonanceTable(opampModel, resGain);
+     };
+ 
+-#if defined(HAVE_CXX20) && defined(__cpp_lib_jthread)
+-    using sidThread = std::jthread;
+-#else
+-    using sidThread = std::thread;
+-#endif
+-
+-    sidThread thdSummer(filterSummer);
+-    sidThread thdMixer(filterMixer);
+-    sidThread thdGain(filterGain);
+-    sidThread thdResonance(filterResonance);
+-
+-#if !defined(HAVE_CXX20) || !defined(__cpp_lib_jthread)
+-    thdSummer.join();
+-    thdMixer.join();
+-    thdGain.join();
+-    thdResonance.join();
+-#endif
++    // Canonical render: deterministic ordering for shared LUT dither.
++    filterSummer();
++    filterMixer();
++    filterGain();
++    filterResonance();
++
+ }
+ 
+ } // namespace reSIDfp

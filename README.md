@@ -29,16 +29,15 @@ sh scripts/build-release-app.sh
 
 The app is written to `Build/Products/Release/Ultima III.app`. Set
 `DERIVED_DATA` to choose another intermediate-data root. The build contains all
-required graphics, text, sound effects, and MIDI files from the repository.
-During the build, `scripts/fetch-midi-soundbank.sh` downloads and checksum-
-verifies FluidR3 GM into the local resource directory so it is included in the
-application bundle. The file is cached and ignored by Git. Set
-`U3_SKIP_FLUIDR3_DOWNLOAD=1` to build offline with the bundled GeneralUser GS
-fallback instead.
+required graphics, text, sound effects, and the C64 SID soundtrack. Music is
+bundled as lossless mono FLAC recordings rendered from Kenneth W. Arnold's
+original NTSC/MOS6581 program. A normal build is offline and needs no SoundFont
+download. See [soundtrack provenance and regeneration](Resources/MusicSID/README.md).
 
 Prefer not to compile? Download the prebuilt [Apple silicon Release
 application](https://github.com/hongjuny/ultima3/releases/tag/v2.4.1) from
-GitHub Releases. This build is ad-hoc signed for bundle integrity, but is not
+GitHub Releases. That published version predates this SID soundtrack change
+and uses MIDI music. It is ad-hoc signed for bundle integrity, but is not
 Developer ID signed or notarized.
 
 For a Debug build directly through Xcode:
@@ -60,11 +59,6 @@ Both Debug and Release compile as unsigned local applications. The historical
 DMG packaging and code-signing phases are reserved for explicit deployment
 postprocessing and are not required for normal IDE builds.
 
-FluidR3 GM is fetched at build time because its 141 MB file exceeds GitHub's
-regular file limit. The bundled GeneralUser GS bank remains available as an
-offline fallback; provide `U3_MIDI_SOUNDBANK=/path/to/bank.sf2` to compare
-another SoundFont at runtime.
-
 ## Modernization
 
 This repository preserves a historically layered game: the gameplay rules and
@@ -82,11 +76,14 @@ The current runtime is organized around explicit boundaries:
 - **Rendering:** the legacy bitmap renderer is isolated behind renderer and
   Cocoa bridge interfaces. This keeps the classic raster presentation usable
   while leaving room for a future renderer.
-- **Audio:** PCM effects use modern AVFoundation playback. Music is provided
-  as MIDI with a SoundFont selected at runtime; the original QuickTime/MUSI
-  path is retained as historical input and is not required by the modern
-  build. The Exodus intro uses a procedural Mockingboard-style digital-noise
-  approximation rather than an instrument sample.
+- **Audio:** PCM effects use modern AVFoundation playback. Music uses
+  lossless recordings of Kenneth W. Arnold's original C64 SID program,
+  rendered with reSIDfp in NTSC/MOS6581 mode. AVAudioEngine preserves the mono
+  samples, intro, and score loops while supporting independent music volume
+  and mute. Native input waits service scene changes without advancing game
+  turns. QuickTime/MUSI and MIDI conversions remain historical source material
+  and are not bundled as a fallback. The Exodus intro retains its existing
+  procedural Mockingboard-style digital-noise approximation.
 - **Input and text:** keyboard commands, mouse actions, Pascal-style legacy
   strings, and modern text conversion are handled at the boundary so the game
   core does not depend on Carbon event structures or MacRoman display APIs.
@@ -101,6 +98,20 @@ The modernization also includes release-oriented verification scripts for
 bitmap loading, command/text behavior, and representative gameplay scenarios.
 These checks are designed to catch regressions in the preserved game loop as
 platform code continues to evolve.
+
+The SID soundtrack adds silent verification for the original source and asset
+hashes, canonical PCM decoding, the native player, and game-scene transitions:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_sid_*.py'
+```
+
+The app's `U3_AUDIO_SELF_TEST=1` diagnostic renders all ten tracks offline and
+checks loop playback, volume, mute, and restart without opening an audio device.
+The soundtrack uses recorded SID emulation rather than a live emulator. The
+last 128 samples of each loop receive a 2.9 ms blend to avoid phase clicks;
+there is no normalization, EQ, stereo processing, or tempo change. Original
+music rights and offline renderer licenses are documented with the soundtrack.
 
 ## A Personal Note
 
@@ -122,11 +133,11 @@ Modernization and current macOS/Apple silicon adaptation by **hongjuny**.
 
 ## Known Limitations and Future Work
 
-The sound system still has room for improvement. The legacy implementation
-used QuickTime-based instrument playback; it has been adapted to MIDI and
-SoundFont playback for modern macOS, but the result is not a perfect match for
-the original sound. The sizzling noise during the opening Exodus splash is
-also still an approximation and needs further work.
+The soundtrack captures the original C64 SID program rather than recreating
+LairWare's QuickTime instruments. Its fixed NTSC/MOS6581 rendering settings
+are documented with the [soundtrack](Resources/MusicSID/README.md). The sizzling
+noise during the opening Exodus splash is still an approximation and needs
+further work.
 
 If you find a bug while playing, please report it with the screen or sequence
 where it occurred, the macOS version, and whether the application was built

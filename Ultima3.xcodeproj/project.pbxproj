@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        B70000010000000000000000 /* U3SIDMusic.m in Sources */ = {isa = PBXBuildFile; fileRef = B70000020000000000000000 /* U3SIDMusic.m */; };
+        B70000040000000000000000 /* MusicSID in Resources */ = {isa = PBXBuildFile; fileRef = B70000050000000000000000 /* MusicSID */; };
 		B50000010000000000000000 /* CoreText.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B50000020000000000000000 /* CoreText.framework */; };
 		B40000010000000000000000 /* U3Bitmap.c in Sources */ = {isa = PBXBuildFile; fileRef = B40000020000000000000000; };
 		350D488D17025866009499DC /* Cursors in Resources */ = {isa = PBXBuildFile; fileRef = 350D488C17025865009499DC /* Cursors */; };
@@ -83,6 +85,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        B70000020000000000000000 /* U3SIDMusic.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = U3SIDMusic.m; path = Sources/U3SIDMusic.m; sourceTree = SOURCE_ROOT; };
+        B70000030000000000000000 /* U3SIDMusic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U3SIDMusic.h; path = Sources/U3SIDMusic.h; sourceTree = SOURCE_ROOT; };
+        B70000050000000000000000 /* MusicSID */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MusicSID; path = Resources/MusicSID; sourceTree = SOURCE_ROOT; };
 		B50000020000000000000000 /* CoreText.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreText.framework; path = System/Library/Frameworks/CoreText.framework; sourceTree = SDKROOT; };
 		B40000020000000000000000 /* U3Bitmap.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Sources/U3Bitmap.c; sourceTree = SOURCE_ROOT; };
 		0867D6ABFE840B52C02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -263,6 +268,8 @@
 				A821B3110A31CDAC0079FF83 /* UltimaNewMap.c */,
 				A821B30E0A31CDAC0079FF83 /* UltimaSound.h */,
 				A821B30B0A31CDAC0079FF83 /* UltimaSound.m */,
+                B70000020000000000000000 /* U3SIDMusic.m */,
+                B70000030000000000000000 /* U3SIDMusic.h */,
 				35BCC908225F86A70094082C /* UltimaSpellCombat.h */,
 				A821B30D0A31CDAC0079FF83 /* UltimaSpellCombat.c */,
 				35BCC907225F86850094082C /* UltimaText.h */,
@@ -281,6 +288,7 @@
 				A862ADB10B484CF20043DA3B /* Graphics */,
 				A821B3450A31CE930079FF83 /* Music */,
 				B40000140000000000000000 /* MusicMIDI */,
+                B70000050000000000000000 /* MusicSID */,
 				A85A8AEF0B225AE600299E2B /* Sounds */,
 				B40000120000000000000000 /* SoundsPCM */,
 				A896F5AA0B7492DA00A4045D /* Images */,
@@ -368,7 +376,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = C0E91AC508A95435008D54AB /* Build configuration list for PBXNativeTarget "Ultima3" */;
 			buildPhases = (
-				B40000200000000000000000 /* Fetch MIDI Soundbank */,
 				8D0C4E8C0486CD37000505A6 /* Resources */,
 				8D0C4E8F0486CD37000505A6 /* Sources */,
 				8D0C4E910486CD37000505A6 /* Frameworks */,
@@ -421,8 +428,7 @@
 			files = (
 				8D0C4E8D0486CD37000505A6 /* InfoPlist.strings in Resources */,
 				A83CE8E213638CD000ADADCA /* MainResources.rsrc in Resources */,
-				A821B3530A31CE930079FF83 /* Music in Resources */,
-				B40000130000000000000000 /* MusicMIDI in Resources */,
+                B70000040000000000000000 /* MusicSID in Resources */,
 				A8ED548C0A34DC6C007A493A /* Application.icns in Resources */,
 				A85A8B170B225AE600299E2B /* Sounds in Resources */,
 				B40000110000000000000000 /* SoundsPCM in Resources */,
@@ -469,21 +475,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		B40000200000000000000000 /* Fetch MIDI Soundbank */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "Fetch MIDI Soundbank";
-			outputPaths = (
-				"$(SRCROOT)/Resources/MusicMIDI/FluidR3_GM.sf2",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/scripts/fetch-midi-soundbank.sh\"";
-		};
+
 		A80B30A4133926F900CD6D7D /* Create Disk Image */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -534,6 +526,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A821B31D0A31CDAC0079FF83 /* UltimaSound.m in Sources */,
+                B70000010000000000000000 /* U3SIDMusic.m in Sources */,
 				B30000070000000000000000 /* U3AudioLegacy.m in Sources */,
 				B300000A0000000000000000 /* U3RendererLegacy.m in Sources */,
 				B300000C0000000000000000 /* U3PlatformLegacy.m in Sources */,

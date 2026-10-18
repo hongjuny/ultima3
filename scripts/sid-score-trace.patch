@@ -1,0 +1,18 @@
+--- a/src/c64/CPU/mos6510.cpp
++++ b/src/c64/CPU/mos6510.cpp
+@@ -1,3 +1,5 @@
++#include <cstdio>
++#include <cstdlib>
+ /*
+  * This file is part of libsidplayfp, a SID player engine.
+  *
+@@ -257,6 +259,9 @@
+ 
+ void MOS6510::fetchNextOpcode()
+ {
++    static bool u3_trace = std::getenv("U3_SID_SCORE_TRACE") != nullptr;
++    if (u3_trace && (Register_ProgramCounter == 0x9ac4 || Register_ProgramCounter == 0x9cac || Register_ProgramCounter == 0x99e8))
++        std::fprintf(stderr, "U3_SCORE_MARK pc=%04x cycles=%lld\n", (unsigned)Register_ProgramCounter, (long long)eventScheduler.getTime(EVENT_CLOCK_PHI2));
+ #ifdef DEBUG
+     if (dodump)
+     {

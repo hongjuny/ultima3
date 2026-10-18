@@ -22,6 +22,7 @@ extern void SetUpMusic(void);
 extern void CloseMusic(void);
 extern void MusicUpdate(void);
 extern void EndSong(void);
+extern void SetMusicVolumePercent(short volumePercent);
 extern void PlayLegacyFadeTone(int32_t pass);
 extern void StopLegacyFadeTone(void);
 extern short gSongCurrent, gSongNext;
@@ -122,8 +123,7 @@ void U3AudioSetSoundVolumePercent(int16_t volumePercent) {
 }
 
 void U3AudioSetMusicVolumePercent(int16_t volumePercent) {
-    (void)volumePercent;
-    ApplyVolumePreferences();
+    SetMusicVolumePercent(volumePercent);
 }
 
 void U3AudioSpeakText(const char *text, int16_t voiceID) {

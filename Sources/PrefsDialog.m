@@ -150,7 +150,7 @@ void GameOptionsDialog(void) {
     NSString *orgTheme = [[U3PreferenceStringValue(U3PreferenceTileSet) retain] autorelease];
     if (U3PlatformGetIntegerPreference(U3PreferenceSoundVolume) < 1)
         U3PlatformSetIntegerPreference(U3PreferenceSoundVolume, 100);
-    if (U3PlatformGetIntegerPreference(U3PreferenceMusicVolume) < 1)
+    if (!U3PlatformHasPreference(U3PreferenceMusicVolume))
         U3PlatformSetIntegerPreference(U3PreferenceMusicVolume, 100);
     int result = RunCocoaDialog(CFSTR("GameOptions"), (CFMutableDictionaryRef)valuesDict, CFSTR("PrefsDialogController"));
     if (result == 1) {

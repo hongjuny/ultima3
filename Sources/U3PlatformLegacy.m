@@ -14,6 +14,7 @@
 #import "UltimaMain.h"
 #import "UltimaMisc.h"
 #import "UltimaNew.h"
+#import "U3Audio.h"
 
 extern short Random(void);
 extern void ObscureCursor(void);
@@ -89,7 +90,26 @@ static CFStringRef U3LegacyPreferenceNameForKey(U3PreferenceKey key) {
     return NULL;
 }
 
+/* Native Cocoa polling bypasses the old Carbon null-event music service.
+   Keep music alive during prompts without advancing the game's turn loop. */
+static void U3ServiceNativeMusic(void) {
+    static bool servicing;
+    static bool hasServiced;
+    static uint32_t lastTick;
+    if (servicing || gDone || U3CocoaIsHeadlessDiagnostic() || !U3CocoaHasMainSurface())
+        return;
+    uint32_t now = U3PlatformTickCount();
+    if (hasServiced && (uint32_t)(now - lastTick) < 3)
+        return;
+    servicing = true;
+    hasServiced = true;
+    lastTick = now;
+    U3AudioUpdateMusic();
+    servicing = false;
+}
+
 bool U3PlatformPollInput(U3InputEvent *event, uint32_t timeoutTicks) {
+    U3ServiceNativeMusic();
     if (event) {
         event->command = U3CommandNone;
         event->direction = U3DirectionNone;
@@ -99,7 +119,9 @@ bool U3PlatformPollInput(U3InputEvent *event, uint32_t timeoutTicks) {
     char key = 0;
     Boolean isMouse = false;
     uint8_t mode = timeoutTicks == 0 ? 2 : 1;
-    if (U3CocoaPollKeyMouse(true, mode == 2 ? 0 : 5, &key, &isMouse)) {
+    Boolean received = U3CocoaPollKeyMouse(true, mode == 2 ? 0 : 5, &key, &isMouse);
+    U3ServiceNativeMusic();
+    if (received) {
         gKeyPress = key;
         if (event) {
             event->rawKey = (uint8_t)key;
@@ -116,6 +138,7 @@ bool U3PlatformPollInput(U3InputEvent *event, uint32_t timeoutTicks) {
 }
 
 bool U3PlatformGetKeyMouse(uint8_t mode) {
+    U3ServiceNativeMusic();
     char key = 0;
     Boolean isMouse = false;
     gMouseKey = false;
@@ -127,7 +150,9 @@ bool U3PlatformGetKeyMouse(uint8_t mode) {
         gMouseKey = true;
         return true;
     }
-    if (U3CocoaPollKeyMouse(true, mode == 2 ? 0 : 5, &key, &isMouse)) {
+    Boolean received = U3CocoaPollKeyMouse(true, mode == 2 ? 0 : 5, &key, &isMouse);
+    U3ServiceNativeMusic();
+    if (received) {
         gKeyPress = key;
         gMouseKey = isMouse;
         if (isMouse) {

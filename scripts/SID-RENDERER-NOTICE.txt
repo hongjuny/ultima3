@@ -1,0 +1,43 @@
+Offline SID rendering tools
+===========================
+
+render-sid.cpp is licensed under GPL-2.0-or-later. The renderer links
+libsidplayfp 2.12.0 and reSIDfp, which retain their original copyright and
+GPL-2.0-or-later notices. The full GPL text is sid-renderer-COPYING.txt.
+
+Pinned upstream source:
+https://github.com/libsidplayfp/libsidplayfp/releases/download/v2.12.0/libsidplayfp-2.12.0.tar.gz
+SHA-256: bc4f4fa203dcf0736fe48c23dce9aa0db825370e5941e7595e4851efe6937cdc
+
+sid-deterministic-lut.patch modifies these upstream GPL files:
+src/builders/residfp-builder/residfp/FilterModelConfig6581.cpp
+src/builders/residfp-builder/residfp/FilterModelConfig8580.cpp
+Copyright 2011-2024 Leandro Nini, 2007-2010 Antti Lankila, 2010 Dag Lem.
+Their existing notices are preserved when the patch is applied.
+
+The patch serializes filter lookup-table initialization. Upstream's concurrent
+initializers share a mutable dither sequence; their execution order otherwise
+changes a small number of low PCM bits between rendering processes. No SID
+register, waveform, filter setting, resampling, gain, or soundtrack data is
+changed by the patch.
+
+build-sid-renderer.sh downloads and verifies the source archive, applies this
+patch, and retains the source, license and build logs in the caller's scratch
+directory. Nothing is installed systemwide. The app bundles rendered audio,
+not the GPL renderer or emulator library. These tool notices do not license
+the separately copyrighted Ultima III music or original SID machine code;
+soundtrack provenance and credits are documented with Resources/MusicSID.
+
+sid-score-trace.patch is an optional analysis patch to the upstream GPL file
+src/c64/CPU/mos6510.cpp, retaining its existing notices:
+Copyright 2011-2020 Leandro Nini, 2007-2010 Antti Lankila, 2000 Simon White.
+It logs original Ultima III score-entry/restart instruction addresses and
+event-scheduler CPU-cycle timestamps when U3_SID_SCORE_TRACE is enabled.
+It is not applied to the canonical asset renderer. trace-sid-score.py reads
+those timestamps without audio playback; Resources/MusicSID/README.md gives
+the separate tracing build and reproduction commands.
+
+Bitwise reproduction is verified for the recorded toolchain and configuration.
+Floating-point and C++ standard-library implementations can differ on another
+toolchain; the shipped FLAC and decoded PCM hashes identify the canonical asset
+independently of how another machine regenerates it.
