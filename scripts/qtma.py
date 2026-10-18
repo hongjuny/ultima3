@@ -70,20 +70,28 @@ def music(data):
     return header, b"".join(samples), scale
 
 
-def performance(data):
+def performance(data, *, preserve_gs=False):
     header, sequence, scale = music(data)
-    channels, programs = {}, {}
+    channels, programs, banks = {}, {}, {}
     melodic = iter(i for i in range(16) if i != 9)
     for kind, word, payload in events(header):
         if kind == 15 and (u32(payload, len(payload) - 4) >> 16) & 16383 == 1:
             part, gm = (word >> 16) & 4095, u32(payload, 84)
+            instrument = u32(payload, 80)
             drums = gm >= 0x4000
             program = gm - (0x4001 if drums else 1)
             if not 0 <= program < 128:
                 raise ValueError(f"unsupported GM instrument {gm}")
             channels[part] = 9 if drums else next(melodic)
+            # QTMA numbers GS tones as (variation * 128) + GM program (1-based).
+            # Keep the historical fallback conversion available for GM-only banks.
+            if preserve_gs and not drums and 1 <= instrument <= 0x3FFF:
+                banks[part], program = divmod(instrument - 1, 128)
             programs[part] = program
     output = [(0, -1, bytes([0xC0 | channel, programs[part]])) for part, channel in channels.items()]
+    for part, bank in banks.items():
+        output.extend([(0, -3, bytes([0xB0 | channels[part], 0, bank])),
+                       (0, -2, bytes([0xB0 | channels[part], 32, 0]))])
     now = 0
     for kind, word, payload in events(sequence):
         if kind == 0:

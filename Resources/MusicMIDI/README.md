@@ -21,10 +21,22 @@ Conversion restores General MIDI program assignments, routes percussion to
 channel 10, reads source media timescale, and handles extended notes and
 variable-length events. Supported main-sequence volume, pan, reverb, and chorus
 controls are translated. QuickTime-specific instrument variants use their GM
-fallback. Tune-difference editing sequences, used-note metadata, and header
+fallback by default; `--preserve-gs` retains supported GS bank selections.
+Tune-difference editing sequences, used-note metadata, and header
 MIDI-channel metadata are not played as additional notes. This is a reader for
 the bundled tracks, not a general-purpose QuickTime music converter. Original
 movies remain the source of truth.
+
+The original Song_A requests the GS variation "Choir Aahs 2" (0x1035), whose
+ordinary GM fallback is Choir Aahs (0x35). To generate comparison MIDI with
+the requested bank variations while leaving the default assets unchanged:
+
+```sh
+python3 scripts/convert-quicktime-music.py --preserve-gs --output Build/MIDI-GS
+```
+
+Use a GS-compatible SoundFont when auditioning those comparison files. The
+default conversion and runtime MIDI player remain unchanged.
 
 Validation:
 
@@ -35,7 +47,29 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_music_co
 The app's `U3_AUDIO_SELF_TEST=1 U3_VERIFY_MIDI_DEVICE=1` diagnostic loads the
 bundled bank, prepares and starts Song_1, checks player state, then stops it.
 It requires an accessible audio device. Without the second variable, the
-headless diagnostic checks asset availability only.
+headless diagnostic checks MIDI asset availability only. It also decodes all
+36 PCM effects and renders the original splash sample without audio output.
+
+## Sound effects
+
+The PCM files retain their original sample rates and decoded waveforms.
+Several original recordings already contain clipping; playback cannot recover
+those lost details. The effects player measures each asset once and only
+attenuates: integrated RMS is limited to -16 dBFS and sample peaks to -3 dBFS.
+Quiet footsteps are never amplified. Per-effect player pools, repeated-trigger
+coalescing, and a global eight-voice limit reduce loading work and sound pileups.
+Volume controls update cached players immediately and preserve zero as mute.
+
+The previously missing `SoundsPCM/ExpLevelUp.wav` is decoded from the original
+`Sounds/ExpLevelUp.mp3` at its source sample rate. On macOS it can be regenerated
+with:
+
+```sh
+afconvert -f WAVE -d LEI16 Resources/Sounds/ExpLevelUp.mp3 Resources/SoundsPCM/ExpLevelUp.wav
+```
+
+Run `python3 -m unittest discover -s tests` for conversion, asset completeness
+and fidelity, native splash loading, and silent playback behavior checks.
 
 For A/B listening tests, set `U3_MIDI_SOUNDBANK` to an external `.sf2` file.
 The MIDI files retain

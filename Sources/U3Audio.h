@@ -65,7 +65,7 @@ void U3AudioSetMusicVolumePercent(int16_t volumePercent);
 void U3AudioSpeakText(const char *text, int16_t voiceID);
 void U3AudioSpeakMessages(int16_t messageID, int16_t additionalMessageID, int16_t voiceID);
 void U3AudioSpeakPascalString(uint8_t *pascalString, int16_t voiceID);
-void U3AudioPrimeLegacySample(const uint8_t *sampleData);
+void U3AudioPrimeLegacySample(const uint8_t *sampleData, size_t sampleSize);
 void U3AudioPlayLegacyFadeTone(int32_t pass);
 void U3AudioStopLegacyFadeTone(void);
 bool U3AudioMusicSelfTest(void);

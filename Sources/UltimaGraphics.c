@@ -912,7 +912,7 @@ void FadeOnExodusUltima(void) {
         return;
     }
     lastByte2 = lastByte - chunk;
-    U3AudioPrimeLegacySample(soundBuffer.bytes);
+    U3AudioPrimeLegacySample(soundBuffer.bytes, soundBuffer.size);
     Boolean soundInactive = U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled);
     while (pass < 32768 && !gInterrupt) {
         frameTime = U3PlatformTickCount() + 5;

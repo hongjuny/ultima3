@@ -40,6 +40,23 @@ class MusicConversionTests(unittest.TestCase):
         self.assertEqual([kind for kind, _, _ in parsed], [9, 0])
         self.assertEqual(len(parsed[0][2]), 8)
 
+    def test_preserves_lairware_choir_variation_when_requested(self):
+        data = (ROOT / "Resources/Music/Song_A.mov").read_bytes()
+        fallback, end, scale = performance(data)
+        preserved, preserved_end, preserved_scale = performance(data, preserve_gs=True)
+        messages = [message for _, _, message in preserved]
+        # Original ToneDescription: Choir Aahs 2, 0x1035; GM fallback 0x35.
+        self.assertIn(bytes([0xB1, 0, 32]), messages)
+        self.assertIn(bytes([0xB1, 32, 0]), messages)
+        self.assertIn(bytes([0xC1, 52]), messages)
+        self.assertLess(messages.index(bytes([0xB1, 0, 32])),
+                        messages.index(bytes([0xC1, 52])))
+        notes = lambda values: [(time, message) for time, _, message in values
+                                if message[0] & 240 in (128, 144)]
+        self.assertEqual(notes(preserved), notes(fallback))
+        self.assertEqual((preserved_end, preserved_scale), (end, scale))
+        self.assertNotEqual(converter.midi_file(data, preserve_gs=True), converter.midi_file(data))
+
     def test_rejects_truncated_general_event(self):
         with self.assertRaises(ValueError):
             list(events(struct.pack(">I", 0xF0000017)))

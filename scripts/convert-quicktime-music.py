@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Convert bundled QTMA music to MIDI with its GM instrument assignments."""
 from pathlib import Path
+import argparse
 import struct
 from qtma import performance
 
@@ -20,8 +21,8 @@ def vlq(value):
     return bytes(result)
 
 
-def midi_file(data):
-    events, end, scale = performance(data)
+def midi_file(data, *, preserve_gs=False):
+    events, end, scale = performance(data, preserve_gs=preserve_gs)
     # One-second quarters preserve media ticks directly in the MIDI division.
     track = bytearray(b"\x00\xff\x51\x03\x0f\x42\x40")
     previous = 0
@@ -35,12 +36,18 @@ def midi_file(data):
 
 
 def main():
-    converted = [(p, midi_file(p.read_bytes())) for p in sorted(SOURCE.glob("Song_*.mov"))]
-    DESTINATION.mkdir(parents=True, exist_ok=True)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--preserve-gs", action="store_true",
+                        help="Preserve requested GS bank variations for a compatible instrument bank")
+    parser.add_argument("--output", type=Path, default=DESTINATION)
+    args = parser.parse_args()
+    converted = [(p, midi_file(p.read_bytes(), preserve_gs=args.preserve_gs))
+                 for p in sorted(SOURCE.glob("Song_*.mov"))]
+    args.output.mkdir(parents=True, exist_ok=True)
     for source, data in converted:
-        destination = DESTINATION / (source.stem + ".mid")
+        destination = args.output / (source.stem + ".mid")
         destination.write_bytes(data)
-        print(f"{source.name} -> {destination.relative_to(ROOT)}")
+        print(f"{source.name} -> {destination}")
 
 
 if __name__ == "__main__":

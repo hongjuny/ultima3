@@ -12,7 +12,7 @@ xcuserdata/
 *.noindex/
 Logs/
 XCBuildData/
-scripts/__pycache__/
+__pycache__/
 
 # Downloaded optional MIDI soundbank
 Resources/MusicMIDI/FluidR3_GM.sf2

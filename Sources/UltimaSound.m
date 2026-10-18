@@ -10,6 +10,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import <AVFoundation/AVFoundation.h>
+#import "U3SplashSound.h"
 
 extern Boolean          gDone;
 extern unsigned char    Party[65];
@@ -38,7 +39,7 @@ short                   gCurSong, gSongVolRefNum;
 Str255                  gCurVoiceName;
 unsigned char           gVoiceName[64][64], strk;
 static AVMIDIPlayer     *songPlayer = nil;
-static AVAudioPlayer    *sFadeTonePlayer = nil;
+static U3SplashSoundPlayer *sFadeTonePlayer = nil;
 short                   gQTMusicVolume = 100;
 
 static NSURL *MusicSoundBankURL(void) {
@@ -64,9 +65,11 @@ static void SetMusicVolume(float volume) {
 
 void ApplyVolumePreferences(void) {
     short soundVolume = U3PlatformGetIntegerPreference(U3PreferenceSoundVolume);
-    if (soundVolume < 1)
+    if (!U3PlatformHasPreference(U3PreferenceSoundVolume))
         soundVolume = 100;
-    SetSoundVolumePercent(soundVolume);
+    Boolean soundDisabled = U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled);
+    SetSoundVolumePercent(soundDisabled ? 0 : soundVolume);
+    [sFadeTonePlayer setVolumePercent:soundVolume enabled:!soundDisabled];
 
     Boolean isPlayingMusic = (songPlayer && gSongPlaying != 0);
     Boolean shouldPlayMusic = !U3PlatformGetBooleanPreference(U3PreferenceMusicDisabled);
@@ -89,6 +92,7 @@ void ApplyVolumePreferences(void) {
 }
 
 bool U3AudioMusicSelfTest(void) {
+    if (!U3CocoaSoundEffectsSelfTest() || !U3SplashSoundSelfTest()) return false;
     NSString *path = [[NSBundle mainBundle] pathForResource:@"Song_1" ofType:@"mid" inDirectory:@"MusicMIDI"];
     if (!path || !MusicSoundBankURL())
         return false;
@@ -134,69 +138,27 @@ void PlaySoundFile(CFStringRef soundName, Boolean forceAsync) {
     }
 }
 
-static NSData *FadeToneData(int32_t pass) {
-    const uint32_t sampleRate = 44100;
-    const uint32_t frameCount = sampleRate * 3;
-    const uint32_t dataSize = frameCount * sizeof(int16_t);
-    (void)pass;
-    NSMutableData *data = [NSMutableData dataWithLength:44 + dataSize];
-    uint8_t *bytes = [data mutableBytes];
-    memcpy(bytes, "RIFF", 4);
-    uint32_t riffSize = 36 + dataSize;
-    memcpy(bytes + 4, &riffSize, sizeof(riffSize));
-    memcpy(bytes + 8, "WAVEfmt ", 8);
-    uint32_t fmtSize = 16;
-    uint16_t format = 1, channels = 1, bits = 16;
-    uint32_t byteRate = sampleRate * channels * sizeof(int16_t);
-    uint16_t blockAlign = channels * sizeof(int16_t);
-    memcpy(bytes + 16, &fmtSize, sizeof(fmtSize));
-    memcpy(bytes + 20, &format, sizeof(format));
-    memcpy(bytes + 22, &channels, sizeof(channels));
-    memcpy(bytes + 24, &sampleRate, sizeof(sampleRate));
-    memcpy(bytes + 28, &byteRate, sizeof(byteRate));
-    memcpy(bytes + 32, &blockAlign, sizeof(blockAlign));
-    memcpy(bytes + 34, &bits, sizeof(bits));
-    memcpy(bytes + 36, "data", 4);
-    memcpy(bytes + 40, &dataSize, sizeof(dataSize));
-
-    int16_t *samples = (int16_t *)(bytes + 44);
-    uint32_t lfsr = 0x1FFFF;
-    uint32_t noiseClock = 0;
-    int noiseBit = 0;
-    for (uint32_t i = 0; i < frameCount; ++i) {
-        if (++noiseClock >= 7) {
-            noiseClock = 0;
-            uint32_t feedback = (lfsr ^ (lfsr >> 3)) & 1;
-            noiseBit = lfsr & 1;
-            lfsr = (lfsr >> 1) | (feedback << 16);
-        }
-        double attack = MIN(1.0, (double)i / (sampleRate * 0.04));
-        double release = MIN(1.0, (double)(frameCount - i) / (sampleRate * 0.08));
-        double envelope = attack * release;
-        double sample = (noiseBit ? 0.58 : -0.58) * envelope;
-        samples[i] = (int16_t)(MAX(-1.0, MIN(1.0, sample)) * 28000.0);
+void PrimeLegacySample(const uint8_t *sampleData, size_t sampleSize) {
+    [sFadeTonePlayer stop];
+    [sFadeTonePlayer release];
+    sFadeTonePlayer = nil;
+    if (!sampleData || !sampleSize || gDone || U3CocoaIsHeadlessDiagnostic()) return;
+    @autoreleasepool {
+        NSError *error = nil;
+        NSData *resource = [NSData dataWithBytes:sampleData length:sampleSize];
+        sFadeTonePlayer = [[U3SplashSoundPlayer alloc] initWithSoundResourceData:resource error:&error];
+        if (!sFadeTonePlayer)
+            NSLog(@"Cannot load the original splash sound: %@", error.localizedDescription);
     }
-    return data;
 }
 
 void PlayLegacyFadeTone(int32_t pass) {
-    if (U3CocoaIsHeadlessDiagnostic() || U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled))
-        return;
-
-    if (sFadeTonePlayer)
-        return;
-
-    NSError *error = nil;
-    AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithData:FadeToneData(pass) error:&error];
-    if (player && [player prepareToPlay]) {
-        [player setVolume:0.75f];
-        sFadeTonePlayer = player;
-        [player play];
-    } else if (error) {
-        NSLog(@"Cannot play Exodus fade tone: %@", [error localizedDescription]);
-    }
-    if (player != sFadeTonePlayer)
-        [player release];
+    if (!sFadeTonePlayer || gDone || U3CocoaIsHeadlessDiagnostic()) return;
+    short volume = U3PlatformHasPreference(U3PreferenceSoundVolume) ?
+        U3PlatformGetIntegerPreference(U3PreferenceSoundVolume) : 100;
+    BOOL enabled = !U3PlatformGetBooleanPreference(U3PreferenceSoundDisabled);
+    [sFadeTonePlayer setVolumePercent:volume enabled:enabled];
+    if (enabled) [sFadeTonePlayer triggerPass:pass];
 }
 
 void StopLegacyFadeTone(void) {
@@ -269,6 +231,8 @@ void OpenChannel(void) {
 */}
 
 void CloseChannel(void) {
+    StopLegacyFadeTone();
+    U3CocoaCloseSoundEffects();
 }
 
 void SetUpSpeech(void) {

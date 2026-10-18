@@ -85,8 +85,8 @@ The current runtime is organized around explicit boundaries:
 - **Audio:** PCM effects use modern AVFoundation playback. Music is provided
   as MIDI with a SoundFont selected at runtime; the original QuickTime/MUSI
   path is retained as historical input and is not required by the modern
-  build. The Exodus intro uses a procedural Mockingboard-style digital-noise
-  approximation rather than an instrument sample.
+  build. The Exodus intro uses the original Mac `Whoosh` sample, with pitch
+  changes and two alternating voices driven by the original dissolve passes.
 - **Input and text:** keyboard commands, mouse actions, Pascal-style legacy
   strings, and modern text conversion are handled at the boundary so the game
   core does not depend on Carbon event structures or MacRoman display APIs.
@@ -125,8 +125,28 @@ Modernization and current macOS/Apple silicon adaptation by **hongjuny**.
 The sound system still has room for improvement. The legacy implementation
 used QuickTime-based instrument playback; it has been adapted to MIDI and
 SoundFont playback for modern macOS, but the result is not a perfect match for
-the original sound. The sizzling noise during the opening Exodus splash is
-also still an approximation and needs further work.
+the original sound. The opening splash now plays the original `Whoosh`
+resource. Its packed legacy pitch command uses a documented compatibility
+interpretation; see [the source evidence and limitations](Resources/SplashSound/README.md).
+
+Sound effects retain their original recordings and sample rates. Playback
+caches decoded players, limits overlapping voices, and attenuates loud assets
+without boosting quiet ones. Volume zero stays muted, and the missing level-up
+PCM asset has been restored from its original MP3. QuickTime-to-MIDI conversion
+also supports an optional `--preserve-gs` mode for comparing the original
+instrument-bank variations with a compatible SoundFont.
+
+Run the conversion, asset-fidelity, splash-resource, and silent native playback
+checks without opening an audio output device:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests
+```
+
+The macOS splash regression uses the production resource loader and Carbon's
+native-endian sound headers. Native playback tests substitute silent players;
+they do not check a physical output device. `U3_AUDIO_SELF_TEST=1` also checks
+all 36 effects and the splash renderer before the existing MIDI asset check.
 
 If you find a bug while playing, please report it with the screen or sequence
 where it occurred, the macOS version, and whether the application was built

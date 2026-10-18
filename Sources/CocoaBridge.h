@@ -66,6 +66,8 @@ CFStringRef CopyCatStrings(CFStringRef str1, CFStringRef str2);
 void PlaySoundFileQT(CFStringRef soundName, Boolean async);
 Boolean U3CocoaIsHeadlessDiagnostic(void);
 void SetSoundVolumePercent(short newVolume);
+void U3CocoaCloseSoundEffects(void);
+Boolean U3CocoaSoundEffectsSelfTest(void);
 Boolean ShouldNotifyUser(void);
 Boolean GetSystemVersion(unsigned *majorVersion, unsigned *minorVersion, unsigned *bugFixVersion);
 CFArrayRef StringsArray(CFStringRef identifier);

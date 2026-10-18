@@ -14,13 +14,16 @@
 #import <Carbon/Carbon.h>
 #import <AVFoundation/AVFoundation.h>
 #import <CoreText/CoreText.h>
+#include <math.h>
 
 extern short gUpdateWhere;
+extern Boolean gDone;
 extern void HandleSpecialChoice(int theItem);
 
 @class U3MainSurfaceView;
 
-static short sQTSoundVolume = 100;    // was 254 but let's make sounds quieter.
+static short sQTSoundVolume = 100;
+static NSMutableDictionary *sEffectSounds = nil;
 static NSMutableArray *sEffectPlayers = nil;
 static NSWindow *sU3MainSurfaceWindow = nil;
 static U3MainSurfaceView *sU3MainSurfaceView = nil;
@@ -1703,78 +1706,182 @@ Boolean SetCursorNamed(CFStringRef cursorName, float scale) {
     return (theCursor != nil);
 }
 
-void PlaySoundFileQT(CFStringRef soundName, Boolean async) {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    if (U3CocoaIsHeadlessDiagnostic()) {
-        [pool release];
-        return;
+/* Keep the original recordings, but attenuate loud assets before they mix.
+   Never boost quiet samples or attempt to restore already-clipped recordings. */
+static float U3EffectGainForURL(NSURL *url) {
+    NSError *error = nil;
+    AVAudioFile *file = [[AVAudioFile alloc] initForReading:url
+        commonFormat:AVAudioPCMFormatFloat32 interleaved:NO error:&error];
+    if (!file || file.length <= 0 || file.length > 4 * 1024 * 1024) {
+        [file release];
+        return 0.5f;
     }
-    static NSString *sSoundsDirectory = nil;
-    if (!sSoundsDirectory)
-        sSoundsDirectory = [[[NSBundle mainBundle] pathForResource:@"SoundsPCM" ofType:nil] retain];
-    if (sSoundsDirectory) {
-        NSString *key = [(NSString *)soundName copy];
-        static NSArray *sSoundFiles = nil;
-        if (!sSoundFiles)
-            sSoundFiles = [[[NSFileManager defaultManager] subpathsAtPath:sSoundsDirectory] retain];
-        if (!sEffectPlayers)
-            sEffectPlayers = [[NSMutableArray alloc] init];
-        for (NSInteger i = [sEffectPlayers count] - 1; i >= 0; --i) {
-            AVAudioPlayer *oldPlayer = [sEffectPlayers objectAtIndex:i];
-            if (![oldPlayer isPlaying])
-                [sEffectPlayers removeObjectAtIndex:i];
+    AVAudioPCMBuffer *buffer = [[AVAudioPCMBuffer alloc] initWithPCMFormat:file.processingFormat
+        frameCapacity:(AVAudioFrameCount)file.length];
+    if (!buffer || ![file readIntoBuffer:buffer error:&error] || !buffer.floatChannelData) {
+        [buffer release];
+        [file release];
+        return 0.5f;
+    }
+    double squares = 0.0, peak = 0.0;
+    const AVAudioChannelCount channels = buffer.format.channelCount;
+    for (AVAudioChannelCount channel = 0; channel < channels; ++channel) {
+        const float *samples = buffer.floatChannelData[channel];
+        for (AVAudioFrameCount frame = 0; frame < buffer.frameLength; ++frame) {
+            double sample = samples[frame];
+            squares += sample * sample;
+            peak = fmax(peak, fabs(sample));
         }
+    }
+    double count = (double)channels * buffer.frameLength;
+    double rms = count ? sqrt(squares / count) : 0.0;
+    float gain = 1.0f;
+    if (rms > 0.0) gain = fmin(gain, pow(10.0, -16.0 / 20.0) / rms);
+    if (peak > 0.0) gain = fmin(gain, pow(10.0, -3.0 / 20.0) / peak);
+    [buffer release];
+    [file release];
+    return gain;
+}
 
-        NSString *prefix = [(NSString *)soundName stringByAppendingString:@"."];
-        NSString *targetFile = nil;
-        for (NSString *filename in sSoundFiles) {
-            if ([filename hasPrefix:prefix]) {
-                targetFile = [sSoundsDirectory stringByAppendingPathComponent:filename];
+@interface U3EffectSound : NSObject {
+@public
+    NSURL *url;
+    NSMutableArray *players;
+    float gain;
+    NSTimeInterval lastStarted;
+}
+- (id)initWithURL:(NSURL *)source;
+@end
+
+@implementation U3EffectSound
+- (id)initWithURL:(NSURL *)source {
+    if ((self = [super init])) {
+        url = [source retain];
+        players = [[NSMutableArray alloc] init];
+        gain = U3EffectGainForURL(source);
+    }
+    return self;
+}
+- (void)dealloc {
+    for (AVAudioPlayer *player in players) [player stop];
+    [players release];
+    [url release];
+    [super dealloc];
+}
+@end
+
+static NSURL *U3EffectURL(NSString *name) {
+    NSBundle *bundle = [NSBundle mainBundle];
+    NSURL *url = [bundle URLForResource:name withExtension:@"wav" subdirectory:@"SoundsPCM"];
+    if (!url) url = [bundle URLForResource:name withExtension:@"wav" subdirectory:@"Sounds"];
+    if (!url) url = [bundle URLForResource:name withExtension:@"mp3" subdirectory:@"Sounds"];
+    return url;
+}
+
+static void U3PruneEffectPlayers(void) {
+    for (NSInteger i = (NSInteger)sEffectPlayers.count - 1; i >= 0; --i)
+        if (![[sEffectPlayers objectAtIndex:i] isPlaying])
+            [sEffectPlayers removeObjectAtIndex:i];
+}
+
+void PlaySoundFileQT(CFStringRef soundName, Boolean async) {
+    @autoreleasepool {
+        if (!soundName || gDone || U3CocoaIsHeadlessDiagnostic() || sQTSoundVolume == 0)
+            return;
+        NSString *name = (NSString *)soundName;
+        if (!sEffectSounds) sEffectSounds = [[NSMutableDictionary alloc] init];
+        if (!sEffectPlayers) sEffectPlayers = [[NSMutableArray alloc] init];
+        U3PruneEffectPlayers();
+        U3EffectSound *sound = [sEffectSounds objectForKey:name];
+        if (!sound) {
+            NSURL *url = U3EffectURL(name);
+            if (!url) {
+                NSLog(@"Cannot find sound '%@'", name);
+                return;
+            }
+            sound = [[[U3EffectSound alloc] initWithURL:url] autorelease];
+            [sEffectSounds setObject:sound forKey:name];
+        }
+        NSTimeInterval now = [[NSProcessInfo processInfo] systemUptime];
+        if (sound->lastStarted > 0.0 && now - sound->lastStarted < 0.06)
+            return;
+        AVAudioPlayer *player = nil;
+        for (AVAudioPlayer *candidate in sound->players) {
+            if (![candidate isPlaying]) {
+                player = candidate;
                 break;
             }
+            /* Long effects already sounding should not pile up on themselves. */
+            if (candidate.duration >= 0.75)
+                return;
         }
-        if (targetFile) {
+        if (!player && sound->players.count < 2) {
             NSError *error = nil;
-            AVAudioPlayer *player = [[AVAudioPlayer alloc]
-                initWithContentsOfURL:[NSURL fileURLWithPath:targetFile] error:&error];
-            if (player && [player prepareToPlay]) {
-                [player setVolume:MIN(1.0f, (float)sQTSoundVolume / 100.0f)];
-                [sEffectPlayers addObject:player];
-                [player play];
-                CFAbsoluteTime timeout = CFAbsoluteTimeGetCurrent() + 8.0;
-                if (!async) {
-                    while ([player isPlaying] && CFAbsoluteTimeGetCurrent() < timeout) {
-                        if (U3CocoaHasMainSurface())
-                            U3CocoaPumpEvents();
-                        else {
-                            EventRecord theEvent;
-                            WaitNextEvent(everyEvent, &theEvent, 6, nil);
-                            if (theEvent.what == kHighLevelEvent)
-                                AEProcessAppleEvent(&theEvent);
-                        }
-                        [NSThread sleepUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
-                    }
-                }
-            } else if (error) {
-                NSLog(@"Cannot play sound '%@': %@", key, [error localizedDescription]);
+            player = [[[AVAudioPlayer alloc] initWithContentsOfURL:sound->url error:&error] autorelease];
+            if (!player) {
+                NSLog(@"Cannot decode sound '%@': %@", name, error.localizedDescription);
+                return;
             }
-            [player release];
-        } else {
-            NSLog(@"Cannot find sound '%@'", key);
+            [sound->players addObject:player];
         }
-        [key release];
+        if (!player)
+            return;
+        /* Event pumping during synchronous effects may close the sound cache. */
+        [[player retain] autorelease];
+        /* Bound the sum of effects during combat and rapid movement. */
+        if (sEffectPlayers.count >= 8) {
+            AVAudioPlayer *oldest = [sEffectPlayers objectAtIndex:0];
+            [oldest stop];
+            [sEffectPlayers removeObjectAtIndex:0];
+        }
+        player.currentTime = 0;
+        player.volume = sound->gain * sQTSoundVolume / 100.0f;
+        if (![player prepareToPlay] || ![player play])
+            return;
+        sound->lastStarted = now;
+        [sEffectPlayers addObject:player];
+        if (!async) {
+            NSTimeInterval timeout = now + player.duration + 0.25;
+            while (!gDone && player.isPlaying && [[NSProcessInfo processInfo] systemUptime] < timeout) {
+                U3CocoaPumpEvents();
+                if (!gDone) [NSThread sleepForTimeInterval:0.01];
+            }
+            if (gDone) [player stop];
+        }
     }
-    [pool release];
 }
 
 void SetSoundVolumePercent(short newVolume) {
-    if (newVolume >= 0 && newVolume <= 100) {
-        short newQTVolume = (short)((float)newVolume * 1.5);    // was 2.55 but sfx are so loud compared to music.
-        if (newQTVolume != sQTSoundVolume) {
-            sQTSoundVolume = newQTVolume;
-            for (AVAudioPlayer *player in sEffectPlayers)
-                [player setVolume:MIN(1.0f, (float)sQTSoundVolume / 100.0f)];
+    sQTSoundVolume = MIN(100, MAX(0, newVolume));
+    for (U3EffectSound *sound in sEffectSounds.allValues)
+        for (AVAudioPlayer *player in sound->players)
+            player.volume = sound->gain * sQTSoundVolume / 100.0f;
+}
+
+void U3CocoaCloseSoundEffects(void) {
+    for (AVAudioPlayer *player in sEffectPlayers) [player stop];
+    [sEffectPlayers release];
+    sEffectPlayers = nil;
+    [sEffectSounds release];
+    sEffectSounds = nil;
+}
+
+Boolean U3CocoaSoundEffectsSelfTest(void) {
+    @autoreleasepool {
+        NSString *directory = [[NSBundle mainBundle] pathForResource:@"SoundsPCM" ofType:nil];
+        NSArray *files = directory ? [[NSFileManager defaultManager] contentsOfDirectoryAtPath:directory error:NULL] : nil;
+        NSUInteger count = 0;
+        for (NSString *name in files) {
+            if (![[name pathExtension] isEqualToString:@"wav"]) continue;
+            NSURL *url = [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:name]];
+            float gain = U3EffectGainForURL(url);
+            if (!isfinite(gain) || gain <= 0.0f || gain > 1.0f) return false;
+            ++count;
         }
+        Boolean complete = U3EffectURL(@"ExpLevelUp") != nil && count == 36;
+        fprintf(stderr, "Sound effects: %lu assets, attenuation-only gain %s\n",
+            (unsigned long)count, complete ? "passed" : "FAILED");
+        return complete;
     }
 }
 
